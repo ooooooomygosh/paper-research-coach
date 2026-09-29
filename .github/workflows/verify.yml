@@ -37,9 +37,12 @@ jobs:
           name: paper-research-coach-packages
           path: dist/*
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -51,5 +54,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" dist/* --title "Paper Research Coach $TAG" --generate-notes --prerelease
+          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v2.0.0-rc.1' }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists; keeping its original artifacts."
+          else
+            gh release create "$TAG" dist/* --target "$COMMIT" --title "Paper Research Coach $TAG" --generate-notes --prerelease
+          fi

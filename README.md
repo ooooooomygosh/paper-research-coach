@@ -50,6 +50,8 @@ prc serve
 
 将 `codex` 换成 `claude` 或 `pi` 可安装到相应目录。Windows 使用 `python -m venv`，并运行虚拟环境中的 `Scripts/Activate.ps1`。软件支持 Python 3.10+；跨操作系统实测范围单独记录。
 
+macOS 完成上述安装后，也可双击仓库中的 `scripts/open-workbench.command` 打开界面。
+
 浏览器打开后，导入 PDF 或连接 Zotero。选中文字或框选图表，然后输入想法，界面会自动保存。回到宿主说“继续”，教练读取新增笔记和阅读断点，再展开讨论。**“已保存”与“AI 已讨论”是两个状态。**
 
 工作台不运行独立 AI，也不会在宿主关闭后继续推理。
@@ -115,6 +117,8 @@ prc --data-dir .prc/demo serve
 ```
 
 构建安装包：`python scripts/package_release.py`。输出的 skill ZIP 与 Python wheel 位于 `dist/`。源码开发需要 Node.js 22.13+，发布包运行不需要。
+
+首个通过全部检查的 main 分支构建自动建立预览版并附上两个安装包。之后的 main 构建保留既有发布物；新版本标签生成各自的预览版。
 
 ## 数据、证据与许可
 

@@ -38,6 +38,8 @@ prc serve
 
 Use `--host claude` or `--host pi` for another host. On Windows activate the virtual environment through `Scripts/Activate.ps1`. The wheel bundles the React/PDF.js frontend; Node.js is not needed at runtime. See TESTING.md for operating-system coverage.
 
+On macOS, after installation you can also double-click `scripts/open-workbench.command` in the repository.
+
 Import a PDF, select text or a region, and write a thought. It saves locally. Return to your existing AI host and say “continue”; the skill reads the new notes and checkpoint. Saved and discussed are distinct states. The workbench does not call an AI service or reason in the background after your host session ends.
 
 ## Zotero
@@ -68,7 +70,7 @@ python scripts/validate_skill.py
 python scripts/package_release.py
 ```
 
-Node.js 22.13+ is needed for source builds. `examples/create_demo.py` creates original synthetic teaching material. CI builds the wheel and skill ZIP; tagged releases attach those artifacts.
+Node.js 22.13+ is needed for source builds. `examples/create_demo.py` creates original synthetic teaching material. After verification, the first successful main-branch build creates the initial preview release with the wheel and skill ZIP. Later main builds preserve that release; new version tags publish separate previews.
 
 Software tests do not establish learning gains. A [human trial protocol](docs/HUMAN-TRIAL.md) separately evaluates accuracy, independent explanation, transfer and amount of assistance. No learner-outcome study has been completed.
 

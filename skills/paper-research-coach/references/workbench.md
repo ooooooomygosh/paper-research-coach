@@ -1,6 +1,6 @@
 # 与本地工作台连接
 
-工作台是持久化与阅读界面，AI在当前宿主里。无须新增 AI key。`prc --help` 是当前命令契约；不存在此命令时走 Markdown 路径，不宣称已安装。
+工作台是持久化与阅读界面，AI在当前宿主里。无须新增 AI key。`prc --help` 是当前命令契约。若 prc 不在 PATH，检查 README 约定的 `~/.venvs/paper-research-coach/bin/prc`，存在时使用其绝对路径；二者均不存在再走 Markdown 路径，不宣称已安装。
 
 ## 通常的一个带读回合
 
