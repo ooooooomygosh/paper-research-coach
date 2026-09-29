@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "paper-research-coach"
+version = "2.0.0rc1"
+description = "A source-grounded paper-reading skill and local research workbench"
+requires-python = ">=3.10"
+license = "MIT"
+readme = "README.md"
+authors = [{name = "ooooooomygosh"}]
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1", "pydantic>=2.9,<3", "pypdf>=5,<7", "platformdirs>=4,<5", "keyring>=25,<26"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "build>=1.2,<2", "pyyaml>=6,<7", "reportlab>=4,<5", "ruff>=0.16,<1"]
+
+[project.scripts]
+prc = "paper_research_coach.cli:main"
+
+[project.urls]
+Repository = "https://github.com/ooooooomygosh/paper-research-coach"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/paper_research_coach"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+
+[tool.hatch.build.targets.wheel.force-include]
+"skills/paper-research-coach" = "paper_research_coach/skill"
+"src/paper_research_coach/static" = "paper_research_coach/static"
+"src/paper_research_coach/licenses" = "paper_research_coach/licenses"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "skills", "frontend/src", "frontend/index.html", "frontend/package.json", "frontend/package-lock.json", "frontend/tsconfig.json", "frontend/vite.config.ts", "scripts", "tests", "evals", "examples", "docs", "README.md", "README.en.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]

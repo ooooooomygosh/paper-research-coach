@@ -1,0 +1,29 @@
+{
+  "operation_id": "REPLACE_WITH_A_UNIQUE_OPERATION_ID",
+  "mutations": [
+    {
+      "kind": "note",
+      "expected_revision": 0,
+      "data": {
+        "id": "REPLACE_WITH_USER_NOTE_ID",
+        "paper_id": "REPLACE_WITH_REAL_PAPER_ID",
+        "author": "user",
+        "provenance": "USER",
+        "content": "REPLACE_WITH_EXACT_USER_WORDS",
+        "anchor": null
+      }
+    },
+    {
+      "kind": "note",
+      "expected_revision": 0,
+      "data": {
+        "id": "REPLACE_WITH_ASSISTANT_NOTE_ID",
+        "paper_id": "REPLACE_WITH_REAL_PAPER_ID",
+        "author": "assistant",
+        "provenance": "INFERENCE",
+        "content": "REPLACE_WITH_SEPARATE_AI_COMMENT",
+        "links": ["REPLACE_WITH_USER_NOTE_ID"]
+      }
+    }
+  ]
+}
