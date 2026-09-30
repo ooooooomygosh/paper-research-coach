@@ -1,118 +1,85 @@
 # Paper Research Coach
 
-A portable Agent Skill and local reading workbench for graduate researchers. Move from choosing a paper to explaining its contribution, testing its evidence, preserving your own thoughts, developing falsifiable questions, and preparing recall or presentations.
+### Read beyond the summary. Make the judgment your own.
 
-**2.0.0rc5 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
+A local workspace that keeps **the paper, one concrete question, and your thinking** together. Also available as a portable reading-coach Skill. Built for researchers who want to understand, check, and transfer a paper’s ideas—not collect another AI summary.
 
-[中文](README.md) · [Design rationale](docs/DESIGN.md) · [Sources](docs/SOURCES.md) · [Verification scope](docs/TESTING.md)
+[中文](README.md) · [Quick start](docs/QUICKSTART.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Contributing](CONTRIBUTING.md)
 
-## What it does
+[![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-526653.svg)](LICENSE)
 
-The coach advances one concrete reading move at a time, with a real source location and at most one thinking task. It gives direct explanations when requested, accepts detours and pauses, and tracks assistance by ability rather than page count. Theory, empirical, measurement, dataset and survey papers use different checks.
+> **Preview software, not a proven learning intervention.** This source prepares `2.0.0rc6`. Until it is merged and released, the rc5 download does not include these changes, including the new `prc-demo` command.
 
-Your words and AI comments remain separate, with anchors and revision history. The workbench connects PDFs, evidence-backed relationships, comparison records, ideas, adjustable retrieval practice and exports. The UI defaults to Chinese; the skill follows your language.
+## What reading looks like
 
-## Quiet reading, durable coaching and optional translation
+Keep the source visible. Start with a figure, equation, unfamiliar sentence, or a claim you disagree with. Ask for a hint or a direct explanation; the reading route is not a mandatory lesson sequence.
 
-Each paper has one canonical workbench conversation and one persisted native Codex thread. Refresh, reopening, restarting the service and changing the coach model resume that same thread. Earlier conversations remain read-only history. `--new` now reconnects idempotently. Initial instructions are bounded to 3000 characters; normal turns add at most 300 automatic characters, then preserve exact user words and explicit selections/images. Full pages, note collections and copied history are retrieved only on demand.
+| Your question | The coach’s job |
+|---|---|
+| What did the authors actually notice? | Separate the distinctive observation from background and the proposed method. |
+| Does this result support the claim? | Inspect the evidence, matched budgets, alternative explanations and limits. |
+| Is my difficulty language or the concept? | Separate translation, prerequisite knowledge and the paper’s argument; preserve qualifiers. |
+| Where did my thought come from? | Keep your words apart from AI commentary, with a return path to the source. |
+| What changes in my research next? | Record a provisional judgment, unresolved question or smallest useful test—not a compulsory summary. |
 
-The library starts collapsed. The compact toolbar opens a secondary drawer for translation, coach/model/history, notes and other tools. Wide screens use a resizable 70/30 PDF/chat split, small screens stack independently scrolling panes, and immersive mode retains only PDF, conversation and composer. Escape closes the topmost overlay before leaving immersive mode. Drafts and rendering state remain mounted; paper/version-scoped page, scroll and zoom are persisted.
+> **Reader:** Could this gain just come from taking more measurements?  
+> **Coach:** First check whether Figure 1 matches the two measurement budgets. Would that explanation still hold? A direct explanation is fine too.
 
-Translation uses a separate, tool-free Codex connection with existing login, defaulting to GPT-6-Luna with low reasoning. BabelDOC 0.6.4 generates Chinese and side-by-side bilingual PDFs and saved paragraph/glyph mappings; sentence alignment supports split/merged sentences, with paragraph fallback when uncertain. PDFs become readable before alignment finishes. Selecting text queries saved translations; discussing it attaches the original source anchor. Jobs freeze their model and language settings. Settings offers a searchable, selectable library for batch background translation, reusable existing jobs and bilingual badges. By default, two papers run with four shared concurrent model requests; configurable limits are 1–4 papers and 1–8 requests. Jobs keep running after browser closure and resume automatically after service restart; deliberately stopped tasks remain stopped. Existing PDFs skip regeneration on resume. Changed source versions leave previous translations archived.
+*This is an illustrative exchange, not a live-model result. Solving a local question or deciding not to pursue a paper is also a valid outcome.*
 
-Install the optional worker with Python 3.12 in `<data_dir>/babeldoc-env` (BabelDOC supports Python 3.10–3.13):
+## Choose your starting point
 
-```bash
-uv venv --python 3.12 "/path/to/prc-data/babeldoc-env"
-uv pip install --python "/path/to/prc-data/babeldoc-env/bin/python" "BabelDOC==0.6.4"
-```
+### Reading guidance only: install the Skill
 
-Use `Scripts/python.exe` on Windows, or set `PRC_BABELDOC_PYTHON` before starting the service for a different environment. The base reader works without the component. First use downloads upstream layout/font/tokenizer assets. No extra API key is used. See [licensing and compatibility](docs/THIRD_PARTY_TRANSLATION.md) and [validation scope](docs/TESTING.md).
+Download `paper-research-coach-skill-*.zip` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases). Extract the complete folder into your host’s skill directory:
 
-## Skill only
+| Host | User-level directory |
+|---|---|
+| Codex | `~/.agents/skills/paper-research-coach/` |
+| Claude Code | `~/.claude/skills/paper-research-coach/` |
+| Pi | `~/.pi/agent/skills/paper-research-coach/` |
 
-Download the skill ZIP from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases). Copy the entire `paper-research-coach` folder, including references and assets, into one of:
+Attach a paper and ask: **“Use paper-research-coach to guide my reading. Start with the authors’ key observation.”** Keep `references` and `assets`, not just `SKILL.md`. This mode uses your host’s existing model setup; it does not require this project’s Python, Node.js or Zotero installation. Format compatibility is not a claim that every host and model has been tested.
 
-- Codex: `~/.agents/skills/paper-research-coach/`
-- Claude Code: `~/.claude/skills/paper-research-coach/`
-- Pi: `~/.pi/agent/skills/paper-research-coach/`
+### Source and conversation together: install the workbench
 
-In a new chat: “Use paper-research-coach to read this paper with me. I need to decide whether its assumptions fit my research problem.”
-
-No runtime or additional AI key is required. Plain Markdown notes work without the workbench. Format compatibility and live host verification are reported separately.
-
-## Local workbench
-
-Python 3.10+ is required. Download the wheel from Releases:
-
-```bash
-python3 -m venv ~/.venvs/paper-research-coach
-source ~/.venvs/paper-research-coach/bin/activate
-python -m pip install /path/to/paper_research_coach-2.0.0rc5-py3-none-any.whl
-prc install-skill --host codex
-prc serve
-```
-
-Use `--host claude` or `--host pi` for another host. On Windows activate the virtual environment through `Scripts/Activate.ps1`. The wheel bundles the React/PDF.js frontend; Node.js is not needed at runtime. See TESTING.md for operating-system coverage.
-
-On macOS, after installation you can also double-click `scripts/open-workbench.command` in the repository.
-
-Import a PDF and use the Coach conversation beside it. The workbench drives your local Codex CLI with its existing provider, model and login configuration. Initialization provides concise coaching rules; turns append a short natural page hint and exact user text, with explicit selections and images. Pages, notes and detailed methods are retrieved on demand. Responses stream, can be interrupted, and survive refreshes and service restarts. Attach the current page image when discussing figures.
-
-Use `prc open --paper PAPER_ID` to open the browser with local authentication and the selected paper conversation. It reuses the running service or starts one when needed; `--new` reconnects to the same canonical conversation for that paper. The conversation picker shows only the selected paper's saved conversations and never enumerates global CLI history. `prc coach send --file message.txt --wait` continues that same workbench conversation from the CLI. Live workbench conversations currently use Codex; the portable skill still supports Codex, Claude Code and Pi.
-
-Conversation history is stored locally. Note consent controls additional verbatim learner notes; AI comments remain separate. Next actions, research ideas and recall questions can be saved directly through workbench tools. Selected source material goes to the model service configured in the CLI. Inference starts when the user sends a message. Saved and discussed remain distinct states.
-
-## Guided reading without a custom prompt
-
-Click **Start reading** for a paper. Every paper follows the same eight-step route: reading goal, distinctive contribution, problem setup, mechanism, evidence, scope and judgment, research transfer, and recall. The coach adapts the evidence to the paper type. **Continue the route** resumes the current step; answering its question uses the answer-and-continue action. Ordinary questions, notes and selection discussions are detours that preserve the return point. A round ends only after all eight steps and a real recall answer from this round.
-
-Conversations are scoped to one paper. Creating or switching chats preserves that paper’s notes and reading progress. The workbench does not enumerate global CLI history. Use `prc open` to open an authenticated browser session, and `prc coach send --follow --wait` to continue without entering a prompt.
-
-Import a downloaded PDF in the workbench, or save it to the selected Zotero collection for indexing. Notes and annotations sync to the linked Zotero item when authorized; connected folder exports go to `06_PRC阅读记录`. Conversations, progress and review attempts are stored locally. GitHub contains the software and Skill, not the personal library.
-
-## Zotero
-
-Zotero 10+ exposes a native local API. Enable local application communication in Advanced settings, select a personal-library collection in the workbench, and authorize writes in Zotero's own dialog. “Always Allow” enables persistent use; “Allow” permits a single write.
-
-Bibliography and PDF attachment information flow from Zotero; notes and supported highlights/text annotations synchronize both ways. The first PDF attachment is the initial source; keep distinct PDF versions separate or explicitly manage the source. Simultaneous edits preserve both versions for resolution. Deletions require a decision and never cascade to source PDFs. Instance IDs isolate versions across libraries.
-
-Keys remain in the OS credential store or memory. The app scopes synchronization to the chosen collection even though Zotero's native key itself is broader. Disconnection or denied authorization does not prevent local reading. Live-test limitations are explicitly listed in [TESTING.md](docs/TESTING.md).
-
-## CLI and exports
-
-`prc doctor`, `import`, `list`, `context`, `commit`, `resume`, `text`, `history`, `replace-source`, `import-markdown`, `serve`, `sync`, and `export` share the same data layer. Use JSON files or stdin for structured commits; operation IDs and expected revisions protect against duplicate retries and lost edits.
-
-Exports: Markdown paper cards, research question cards, presentation outlines, comparison CSV and separate annotated PDFs. Only verified anchors for the current PDF version are exported as annotations. Original PDFs remain unchanged. Default review intervals of 1/3/7/14 days are editable product defaults, not established optimal schedules.
-
-## Development
+Requires **Python 3.10+**. Download the `.whl` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases), then run in the download directory:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-npm ci --prefix frontend
-npm --prefix frontend run build
-python scripts/prepare_licenses.py
-python -m pip install -e '.[dev]'
-pytest -q
-python scripts/validate_skill.py
-python scripts/package_release.py
+# Replace the filename with the wheel you actually downloaded.
+python -m pip install "./paper_research_coach-<version>-py3-none-any.whl"
+prc open
 ```
 
-Node.js 24.15+ is needed for source builds. `examples/create_demo.py` creates original synthetic teaching material. After verification, the first successful main-branch build creates the initial preview release with the wheel and skill ZIP. Later main builds preserve that release; new version tags publish separate previews.
+The wheel already includes the interface. **Node.js is only needed for source development.** See [Quick start](docs/QUICKSTART.md) for Windows, source installation and troubleshooting. The workbench’s AI conversation currently uses a locally authenticated Codex CLI; the Skill’s multi-host support does not mean the workbench has all those backends.
 
-Software tests do not establish learning gains. A [human trial protocol](docs/HUMAN-TRIAL.md) separately evaluates accuracy, independent explanation, transfer and amount of assistance. No learner-outcome study has been completed.
+Then: **import one PDF → select one passage → ask your current question.** Zotero and whole-paper translation are optional, not prerequisites.
 
-Original code and documentation: [MIT](LICENSE). Third-party reading sources are credited and paraphrased, not redistributed or relicensed. Bundled libraries retain their own licenses. [Data and security boundaries](docs/SECURITY.md).
+The new preview includes a disposable example:
 
-## OneDrive and local literature folders
+```bash
+prc-demo
+```
 
-Choose and authorize a Zotero collection, then connect a literature folder in Settings or run `prc vault configure --path /path/to/literature` and `prc vault scan`. PDFs are matched by content; existing Zotero attachments and original files remain intact. New papers receive linked attachments. Existing Obsidian paper cards remain read-only external sources, including their AI attribution.
+It opens an original three-page synthetic paper in a separate temporary library on port `8766`. It does not read your personal papers, call a model automatically, or grant recording/sync consent. `Ctrl+C` stops the service and removes the example records. Export outside that temporary folder before stopping to keep anything. This command is not in rc5.
 
-New and imported editable notes are exported under `06_PRC阅读记录/<paper-id>/` as append-only Markdown revisions. Editing an exported revision imports that edit; concurrent edits become explicit conflicts. New Markdown files initially have unconfirmed external authorship. Source PDFs and original cards are never overwritten, and missing cloud files never cause cascading deletion.
+## Quiet by default
 
-`prc service install` enables a macOS login service. It scans the folder every 10 minutes and synchronizes with running Zotero every 10 minutes; sleep/logout pauses work. Use `prc service status` or `prc service stop`. Other platforms can keep `prc serve` running. SQLite and credentials stay outside OneDrive.
+The library is collapsed while reading. Keep the PDF and one persistent conversation side by side; use fit-width, position recovery, adjustable panes and immersive reading. Notes, sync and model configuration stay in secondary tools. Existing conversations, drafts and evidence anchors remain intact.
 
-New Zotero parents require bibliographic identity verified against the PDF's first page. Crossref and arXiv provide structured metadata; OpenAlex is optional (`prc metadata openalex-key` stores your key in the OS keyring). Only identifiers and titles leave the computer. Unresolved papers remain locally readable and do not block other imports. `prc metadata resolve --paper <id> --refresh` retries a lookup; `prc metadata status` shows source records.
+Zotero, a OneDrive / Obsidian directory, bilingual translation, review and exports are optional extensions: [Workbench guide](docs/WORKBENCH.en.md).
 
-The reader includes PDF outlines, cancellable local text search and back/forward reading locations. Optional learning feedback links exact learner answers to checked source pages, actual assistance and explicit criteria; it records a local performance, not mastery.
+## Privacy and limits
+
+Papers and reading records are stored locally, and the service binds to loopback. **Local storage does not mean offline AI.** Using the coach or translation sends relevant content to the configured model provider. Zotero writes require authorization. Never share the private launch link, which carries an access credential. See [Data and access boundaries](docs/SECURITY.md).
+
+There is no human learning-effect claim, no full Safari / iPad / Pencil certification, no real-time cross-device collaboration, and no guarantee of OCR for scanned PDFs. Zotero currently uses the first PDF attachment of an item: check the version before annotating. See [Testing](docs/TESTING.md) and [Review](docs/FINAL-REVIEW.md).
+
+## Contribute
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Describe the reading task that was interrupted—not just the control you would like to add. Use synthetic reproduction material; do not submit private PDFs, databases, credentials or conversations.
+
+Original code and documentation: [MIT](LICENSE). [Reading-method sources](docs/SOURCES.md) and [translation-component licensing](docs/THIRD_PARTY_TRANSLATION.md) retain their respective boundaries.

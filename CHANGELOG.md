@@ -1,12 +1,19 @@
 # Changelog
 
+## 2.0.0rc6 — reading polish (pending release)
+
+- Add a disposable `prc-demo` entrypoint with a synthetic, searchable three-page paper and isolated temporary storage; no automatic model request or authorization.
+- Commit page-number edits on Enter/blur, cancel with Escape, and keep the persisted cursor separate from typing.
+- Use native modal dialogs with explicit keyboard wrapping for import, metadata and reading-task edits; preserve file/title/goal after failed import and support single-PDF drag/drop.
+- Search across bibliographic fields; expose a useful empty state; discuss selected original text without whole-paper translation.
+- Refine local-question and non-native-language coaching without forcing a route or conflating translation with evidence.
+- Reorganize bilingual repository entrypoints, quickstart, detailed guides, review boundaries and contribution/report templates. Add offline documentation checks and a separate synthetic browser/showcase workflow.
+
+### Earlier unreleased work included in this version
+
 - Add searchable batch background translation and bilingual library badges; share a persistent queue across browser sessions and automatically resume pending work after service restart.
 - Run multiple paper workers and multiplex independent Codex translation/alignment requests with configurable global limits (default two papers / four requests). Make finished PDFs readable before alignment completes and reuse saved PDFs on resume.
-
-## Unreleased
-
 - Automatic Zotero and literature-folder checks default to every 10 minutes, with a manual refresh in the reading tools drawer. Index each sync poll's paper list once and limit the translation layout worker's CPU threads.
-
 - Bind each paper to one durable workbench conversation and native Codex thread; resume across restarts/model changes and reconcile unknown creation without duplicating threads. Keep previous chats as read-only history.
 - Bound initialization and per-turn automatic context, preserving exact user messages while retrieving pages, notes and methods on demand.
 - Add optional BabelDOC 0.6.4 whole-paper translation through separate Codex login connections, independent model settings, resumable cached tasks, mono/dual PDFs and saved sentence/paragraph source mappings.
