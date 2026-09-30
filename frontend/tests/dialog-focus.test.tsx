@@ -10,16 +10,16 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-it("includes a details summary as the last enabled stop when Save is disabled", () => {
+it("wraps at a summary and excludes collapsed details even when their descendants have rects", () => {
   render(<Dialog label="Import" onClose={vi.fn()}>
     <button>First</button>
-    <details><summary tabIndex={0}>More</summary><input aria-label="Hidden path" /></details>
+    <details><summary>More</summary><input aria-label="Hidden path" /></details>
     <button disabled>Save</button>
   </Dialog>);
   const first = screen.getByRole("button", { name: "First" });
   const summary = screen.getByText("More");
-  // jsdom does not lay out controls; only the two visible enabled stops have rects.
-  for (const element of [first, summary])
+  // Reproduce Chromium retaining boxes for controls inside collapsed details.
+  for (const element of [first, summary, screen.getByLabelText("Hidden path")])
     vi.spyOn(element, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
   summary.focus();
   fireEvent.keyDown(summary, { key: "Tab" });

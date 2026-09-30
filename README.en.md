@@ -9,6 +9,10 @@ A local workspace that keeps **the paper, one concrete question, and your thinki
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-526653.svg)](LICENSE)
 
+![Actual workbench: source on the left and a source-grounded discussion on the right. Synthetic paper and scripted dialogue.](docs/images/reading.webp)
+
+*Actual built UI; the paper, values and dialogue are explicitly illustrative, not live-model output or evidence of learning benefit. [Reproduce the showcase and full-size screenshots](docs/SHOWCASE.md).*
+
 > **Preview software, not a proven learning intervention.** This source prepares `2.0.0rc6`. Until it is merged and released, the rc5 download does not include these changes, including the new `prc-demo` command.
 
 ## What reading looks like

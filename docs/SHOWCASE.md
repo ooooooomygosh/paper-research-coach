@@ -1,6 +1,10 @@
 # Reproducible reading showcase
 
+![Actual reading workbench with synthetic material and explicitly scripted dialogue](images/reading.webp)
+
 The showcase is the actual built workbench, not a marketing mockup. The paper, values and notes are synthetic. Any conversation injected by the capture script is labelled **预设带读示例 · 非实时模型回复** in the UI. It is not evidence of model quality or learning benefit.
+
+The committed WebP is a compact 800-pixel-wide copy of the desktop capture. Full-size desktop, welcome, import-dialog and narrow-viewport PNGs are available in the `reading-showcase` artifact of [Reading browser checks](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/showcase.yml), retained for 14 days. The script below recreates them after artifact expiry.
 
 ## Try the interface
 

@@ -9,6 +9,10 @@
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-526653.svg)](LICENSE)
 
+![真实工作台：左侧原文，右侧围绕同一证据的阅读讨论。图中为合成材料和预设对话。](docs/images/reading.webp)
+
+*实际构建的界面；论文、数值与对话均为明确标注的示例，不是实时模型效果或学习收益证明。[复现展示与查看完整尺寸截图](docs/SHOWCASE.md)。*
+
 > **预览软件，不是已验证的教学产品。** 当前源码准备发布 `2.0.0rc6`；合并并通过发布流程前，Releases 中的 rc5 不包含本轮改动，包括新增的 `prc-demo` 示例入口。
 
 ## 读论文时，它帮你做什么？
