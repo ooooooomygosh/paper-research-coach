@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
 authors = [{name = "ooooooomygosh"}]
-dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1", "pydantic>=2.9,<3", "pypdf>=5,<7", "platformdirs>=4,<5", "keyring>=25,<26"]
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1", "pydantic>=2.9,<3", "pypdf>=5,<7", "fonttools>=4.60,<5", "platformdirs>=4,<5", "keyring>=25,<26", "filelock>=3.16,<4", "pyyaml>=6,<7"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "build>=1.2,<2", "pyyaml>=6,<7", "reportlab>=4,<5", "ruff>=0.16,<1"]
@@ -34,4 +34,4 @@ testpaths = ["tests"]
 "src/paper_research_coach/licenses" = "paper_research_coach/licenses"
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "skills", "frontend/src", "frontend/index.html", "frontend/package.json", "frontend/package-lock.json", "frontend/tsconfig.json", "frontend/vite.config.ts", "scripts", "tests", "evals", "examples", "docs", "README.md", "README.en.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]
+include = ["src", "skills", "frontend/src", "frontend/index.html", "frontend/package.json", "frontend/package-lock.json", "frontend/tsconfig.json", "frontend/vite.config.ts", "frontend/vitest.config.ts", "frontend/tests", "scripts", "tests", "evals", "examples", "docs", "README.md", "README.en.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]

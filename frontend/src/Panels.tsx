@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Plus,
@@ -22,6 +22,7 @@ const fields: Record<string, string> = {
   project_relation: "与我的研究有关什么",
 };
 export function Lineage({
+  seq = 0,
   paper,
   papers,
   refresh,
@@ -29,6 +30,7 @@ export function Lineage({
   onSelect,
 }: {
   paper: Row;
+  seq?: number;
   papers: Row[];
   refresh: () => void;
   report: (s: string) => void;
@@ -36,18 +38,39 @@ export function Lineage({
 }) {
   const [relations, setRelations] = useState<Row[]>([]),
     [comparison, setComparison] = useState<any>(paper.comparison),
+    [comparisonBase, setComparisonBase] = useState(paper),
+    [comparisonDirty, setComparisonDirty] = useState(false),
     [target, setTarget] = useState(""),
     [kind, setKind] = useState("prior"),
     [evidence, setEvidence] = useState(""),
     [url, setUrl] = useState(""),
     [verified, setVerified] = useState(false),
     [picked, setPicked] = useState<Row | null>(null);
+  const comparisonRef = useRef(comparison);
+  comparisonRef.current = comparison;
+  const savingComparison = useRef(false);
+  const loadSequence = useRef(0);
   async function load() {
-    setRelations(await api("records/relation"));
+    const request = ++loadSequence.current;
+    const rows = await api("records/relation");
+    if (request === loadSequence.current) setRelations(rows);
   }
   useEffect(() => {
     void load().catch((e) => report(String(e)));
-  }, [paper.id]);
+    return () => {
+      loadSequence.current++;
+    };
+  }, [paper.id, seq]);
+  useEffect(() => {
+    if (
+      comparisonBase.id !== paper.id ||
+      (!comparisonDirty && paper.revision > comparisonBase.revision)
+    ) {
+      setComparison(paper.comparison);
+      setComparisonBase(paper);
+      setComparisonDirty(false);
+    }
+  }, [paper.id, paper.revision, comparisonDirty]);
   const adjacent = relations.filter(
     (r) => r.paper_id === paper.id || r.target_id === paper.id,
   );
@@ -211,22 +234,58 @@ export function Lineage({
               {label}
               <textarea
                 value={comparison[k] || ""}
-                onChange={(e) =>
-                  setComparison({ ...comparison, [k]: e.target.value })
-                }
+                onChange={(e) => {
+                  setComparisonDirty(true);
+                  setComparison({ ...comparison, [k]: e.target.value });
+                }}
               />
             </label>
           ))}
         </div>
+        {comparisonDirty && comparisonBase.revision !== paper.revision && (
+          <div className="notice">
+            其他地方已更新这篇论文。当前填写已保留，保存时会检查版本。
+            <details>
+              <summary>对照最新比较记录</summary>
+              <pre>{JSON.stringify(paper.comparison, null, 2)}</pre>
+            </details>
+            <button
+              onClick={() => {
+                setComparison(paper.comparison);
+                setComparisonBase(paper);
+                setComparisonDirty(false);
+              }}
+            >
+              放弃当前修改，载入最新记录
+            </button>
+          </div>
+        )}
         <button
           className="primary"
           onClick={async () => {
+            if (savingComparison.current) return;
+            savingComparison.current = true;
+            const snapshot = comparisonRef.current;
             try {
-              await put("paper", { ...paper, comparison });
+              const saved = await put("paper", {
+                ...comparisonBase,
+                comparison: snapshot,
+              });
+              setComparisonBase(saved);
+              if (comparisonRef.current === snapshot) {
+                setComparison(saved.comparison);
+                setComparisonDirty(false);
+              }
               refresh();
-              report("比较记录已保存");
+              report(
+                comparisonRef.current === snapshot
+                  ? "比较记录已保存"
+                  : "上次提交已保存；新输入仍待保存",
+              );
             } catch (e) {
               report(String(e));
+            } finally {
+              savingComparison.current = false;
             }
           }}
         >
@@ -269,20 +328,28 @@ const ideaFields: Record<string, string> = {
   literature_question: "下一次检索只解决什么问题？",
 };
 export function Ideas({
+  seq = 0,
   paper,
   report,
 }: {
   paper: Row;
+  seq?: number;
   report: (s: string) => void;
 }) {
   const [ideas, setIdeas] = useState<Row[]>([]),
     [editing, setEditing] = useState<any>(null);
+  const loadSequence = useRef(0);
   async function load() {
-    setIdeas(await api("records/idea?paper_id=" + paper.id));
+    const request = ++loadSequence.current;
+    const rows = await api("records/idea?paper_id=" + paper.id);
+    if (request === loadSequence.current) setIdeas(rows);
   }
   useEffect(() => {
     void load().catch((e) => report(String(e)));
-  }, [paper.id]);
+    return () => {
+      loadSequence.current++;
+    };
+  }, [paper.id, seq]);
   return (
     <div className="workspace-view">
       <div className="view-heading">
@@ -389,11 +456,13 @@ export function Ideas({
   );
 }
 export function Reviews({
+  seq = 0,
   paper,
   report,
   onLocate,
 }: {
   paper: Row;
+  seq?: number;
   report: (s: string) => void;
   onLocate: (a: any) => void;
 }) {
@@ -404,12 +473,18 @@ export function Reviews({
     [help, setHelp] = useState("none"),
     [active, setActive] = useState<string | null>(null),
     [past, setPast] = useState<Row | null>(null);
+  const loadSequence = useRef(0);
   async function load() {
-    setReviews(await api("records/review?paper_id=" + paper.id));
+    const request = ++loadSequence.current;
+    const rows = await api("records/review?paper_id=" + paper.id);
+    if (request === loadSequence.current) setReviews(rows);
   }
   useEffect(() => {
     void load().catch((e) => report(String(e)));
-  }, [paper.id]);
+    return () => {
+      loadSequence.current++;
+    };
+  }, [paper.id, seq]);
   async function submit(r: Row, success: boolean) {
     try {
       await api("review/" + r.id, {
@@ -584,7 +659,8 @@ export function Settings({
 }) {
   const [collections, setCollections] = useState<any>(null),
     [selected, setSelected] = useState(state.sync.collection || ""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [vaultPath, setVaultPath] = useState(state.vault?.root || "");
   async function perform(fn: () => Promise<any>) {
     setBusy(true);
     try {
@@ -603,6 +679,85 @@ export function Settings({
         <span className="eyebrow">本机保存，按所选集合同步</span>
         <h2>Zotero 连接</h2>
         <p>需要 Zotero 10，并开启“设置 → 高级 → 允许本机其他应用通信”。</p>
+      </div>
+      <div className="surface">
+        <h3>OneDrive / 本地文献目录</h3>
+        <p>
+          自动发现新增 PDF，并按文件内容关联
+          Zotero。已有论文卡作为外部资料保留；新笔记以修订版本写入“06_PRC阅读记录”，可以直接编辑自己的原话文件。
+        </p>
+        <label>
+          文献目录
+          <input
+            value={vaultPath}
+            onChange={(e) => setVaultPath(e.target.value)}
+            placeholder="文献阅读文件夹的完整路径"
+          />
+        </label>
+        <div className="button-row">
+          <button
+            disabled={busy || !vaultPath}
+            onClick={() =>
+              perform(() => api("vault/configure", { root: vaultPath }))
+            }
+          >
+            连接目录
+          </button>
+          <button
+            disabled={busy || !state.vault?.enabled}
+            onClick={() => perform(() => api("vault/scan", {}))}
+          >
+            立即检查新文件
+          </button>
+        </div>
+        {state.vault?.enabled && (
+          <p className="muted">
+            {state.vault.collection
+              ? "目录与 Zotero 已绑定。"
+              : "仅目录已连接；选择 Zotero 集合后重新连接目录以完成绑定。"}{" "}
+            已发现 {state.vault.pdf_count || 0} 份 PDF、
+            {state.vault.card_count || 0} 张论文卡。服务运行时每 30 秒检查一次。
+            {state.vault.message}
+          </p>
+        )}
+        {(state.vault?.pending_metadata || []).length > 0 && (
+          <details className="notice">
+            <summary>这些论文的书目信息需要核实</summary>
+            <p>
+              可先在 Zotero 对 PDF
+              使用“检索元数据”，再检查新文件。其他论文继续同步。
+            </p>
+            <ul>
+              {state.vault.pending_metadata.map((p: any) => (
+                <li key={p.paper_id}>{p.title}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+        {(state.vault_conflicts || []).map((c: any) => (
+          <div className="notice" key={c.id}>
+            <b>Markdown 与工作台同时修改</b>
+            <p>{c.path}</p>
+            <pre>{c.file_content}</pre>
+            <div className="button-row">
+              {[
+                ["both", "保留为两条笔记"],
+                ["file", "采用文件内容"],
+                ["local", "采用工作台内容"],
+              ].map(([choice, label]) => (
+                <button
+                  key={choice}
+                  disabled={busy}
+                  onClick={() =>
+                    perform(() => api("vault/conflict/" + c.id, { choice }))
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
       <div className="surface">
         <div className="sync-status">
@@ -737,6 +892,8 @@ export function Settings({
                   {
                     "both-edited": "两边都修改过",
                     "remote-delete": "Zotero 中已删除",
+                    "paper-remote-delete":
+                      "Zotero 父条目已删除，本地论文和笔记仍保留",
                     "local-delete": "本地已归档，是否同步删除？",
                     "anchor-type-changed": "位置类型发生变化",
                   } as any
@@ -745,7 +902,9 @@ export function Settings({
               <div className="conflict-columns">
                 <div>
                   <h4>本地版本</h4>
-                  <p className="preserve">{c.local_data.content}</p>
+                  <p className="preserve">
+                    {c.local_data.content || c.local_data.title}
+                  </p>
                   <button
                     disabled={busy}
                     onClick={() =>
@@ -754,7 +913,9 @@ export function Settings({
                       )
                     }
                   >
-                    采用本地版本
+                    {c.reason === "paper-remote-delete"
+                      ? "保留本地论文并断开同步"
+                      : "采用本地版本"}
                   </button>
                 </div>
                 <div>
@@ -775,7 +936,9 @@ export function Settings({
                       )
                     }
                   >
-                    采用 Zotero 版本
+                    {c.reason === "paper-remote-delete"
+                      ? "归档本地论文，保留文件和笔记"
+                      : "采用 Zotero 版本"}
                   </button>
                 </div>
               </div>

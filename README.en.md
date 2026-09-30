@@ -2,7 +2,7 @@
 
 A portable Agent Skill and local reading workbench for graduate researchers. Move from choosing a paper to explaining its contribution, testing its evidence, preserving your own thoughts, developing falsifiable questions, and preparing recall or presentations.
 
-**2.0.0rc1 is a release candidate.** Live Zotero 10 round-trip verification is still pending, so this is not labeled stable.
+**2.0.0rc1 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
 
 [中文](README.md) · [Design rationale](docs/DESIGN.md) · [Sources](docs/SOURCES.md) · [Verification scope](docs/TESTING.md)
 
@@ -70,8 +70,18 @@ python scripts/validate_skill.py
 python scripts/package_release.py
 ```
 
-Node.js 22.13+ is needed for source builds. `examples/create_demo.py` creates original synthetic teaching material. After verification, the first successful main-branch build creates the initial preview release with the wheel and skill ZIP. Later main builds preserve that release; new version tags publish separate previews.
+Node.js 24.15+ is needed for source builds. `examples/create_demo.py` creates original synthetic teaching material. After verification, the first successful main-branch build creates the initial preview release with the wheel and skill ZIP. Later main builds preserve that release; new version tags publish separate previews.
 
 Software tests do not establish learning gains. A [human trial protocol](docs/HUMAN-TRIAL.md) separately evaluates accuracy, independent explanation, transfer and amount of assistance. No learner-outcome study has been completed.
 
 Original code and documentation: [MIT](LICENSE). Third-party reading sources are credited and paraphrased, not redistributed or relicensed. Bundled libraries retain their own licenses. [Data and security boundaries](docs/SECURITY.md).
+
+## OneDrive and local literature folders
+
+Choose and authorize a Zotero collection, then connect a literature folder in Settings or run `prc vault configure --path /path/to/literature` and `prc vault scan`. PDFs are matched by content; existing Zotero attachments and original files remain intact. New papers receive linked attachments. Existing Obsidian paper cards remain read-only external sources, including their AI attribution.
+
+New and imported editable notes are exported under `06_PRC阅读记录/<paper-id>/` as append-only Markdown revisions. Editing an exported revision imports that edit; concurrent edits become explicit conflicts. New Markdown files initially have unconfirmed external authorship. Source PDFs and original cards are never overwritten, and missing cloud files never cause cascading deletion.
+
+`prc service install` enables a macOS login service. It scans the folder every 30 seconds and synchronizes with running Zotero every 5 seconds; sleep/logout pauses work. Use `prc service status` or `prc service stop`. Other platforms can keep `prc serve` running. SQLite and credentials stay outside OneDrive.
+
+New Zotero parents require bibliographic identity verified against the PDF's first page. Crossref and arXiv provide structured metadata; OpenAlex is optional (`prc metadata openalex-key` stores your key in the OS keyring). Only identifiers and titles leave the computer. Unresolved papers remain locally readable and do not block other imports. `prc metadata resolve --paper <id> --refresh` retries a lookup; `prc metadata status` shows source records.

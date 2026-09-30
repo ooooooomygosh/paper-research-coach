@@ -40,11 +40,15 @@ export default function PdfReader({
     [size, setSize] = useState({ width: 620, height: 800 }),
     [region, setRegion] = useState(false),
     [drag, setDrag] = useState<any>(null),
-    [scan, setScan] = useState(false);
+    [scan, setScan] = useState(false),
+    [rendered, setRendered] = useState("");
   const labels = useRef<string[] | null>(null);
   useEffect(() => {
+    let disposed = false;
     setDoc(null);
     setError("");
+    viewport.current = null;
+    setScan(false);
     const load = getDocument({
       url: "/api/pdf/" + paper.id,
       withCredentials: true,
@@ -55,18 +59,31 @@ export default function PdfReader({
     });
     load.promise
       .then(async (d) => {
-        labels.current = await d.getPageLabels();
+        const pageLabels = await d.getPageLabels();
+        if (disposed) return;
+        labels.current = pageLabels;
         setDoc(d);
       })
-      .catch(() =>
-        setError("PDF 暂不可用。请检查文件位置；换版后需要重新确认锚点。"),
-      );
+      .catch(() => {
+        if (!disposed)
+          setError("PDF 暂不可用。请检查文件位置；换版后需要重新确认锚点。");
+      });
     return () => {
+      disposed = true;
       void load.destroy();
     };
   }, [paper.id, paper.source_version]);
   useEffect(() => {
     if (!doc || !canvas.current || !layer.current) return;
+    const bounded = Math.max(0, Math.min(page, doc.numPages - 1));
+    if (bounded !== page) {
+      setPage(bounded);
+      return;
+    }
+    setError("");
+    viewport.current = null;
+    setRendered("");
+    layer.current.replaceChildren();
     let disposed = false,
       render: any,
       text: any;
@@ -75,7 +92,7 @@ export default function PdfReader({
       .then(async (p) => {
         if (disposed) return;
         const v = p.getViewport({ scale: zoom });
-        viewport.current = v;
+        viewport.current = null;
         setSize({ width: v.width, height: v.height });
         const c = canvas.current!;
         c.width = v.width * devicePixelRatio;
@@ -97,7 +114,11 @@ export default function PdfReader({
           container: layer.current!,
           viewport: v,
         });
-        await text.render();
+        await Promise.all([text.render(), render.promise]);
+        if (!disposed) {
+          viewport.current = v;
+          setRendered(paper.source_version + ":" + page);
+        }
       })
       .catch((e) => {
         if (!disposed && e.name !== "RenderingCancelledException")
@@ -125,7 +146,12 @@ export default function PdfReader({
     ];
   }
   function selected() {
-    if (region || !viewport.current) return;
+    if (
+      region ||
+      !viewport.current ||
+      rendered !== paper.source_version + ":" + page
+    )
+      return;
     const s = window.getSelection();
     if (
       !s?.rangeCount ||
@@ -157,7 +183,12 @@ export default function PdfReader({
       );
   }
   function regionEnd(e: React.PointerEvent) {
-    if (!drag) return;
+    if (
+      !drag ||
+      !viewport.current ||
+      rendered !== paper.source_version + ":" + page
+    )
+      return;
     const b = frame.current!.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - b.left, b.width)),
       y = Math.max(0, Math.min(e.clientY - b.top, b.height));
@@ -247,10 +278,13 @@ export default function PdfReader({
         </div>
       )}
       <div className="pdf-scroll">
-        {error ? (
-          <div className="empty">{error}</div>
-        ) : !doc ? (
-          <div className="empty">正在打开论文…</div>
+        {error && (
+          <div className="notice" role="alert">
+            {error}
+          </div>
+        )}
+        {!doc ? (
+          !error && <div className="empty">正在打开论文…</div>
         ) : (
           <div
             ref={frame}

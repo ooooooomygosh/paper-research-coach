@@ -4,7 +4,7 @@
 
 面向研究生的带读 skill 和本地阅读工作台：选论文 → 抓住贡献 → 检验证据 → 留下思考 → 形成研究问题 → 复习与汇报。默认中文，也可跟随用户语言。
 
-**当前为 2.0.0rc1 预览版。** 本地工作台与协议已实现；Zotero 10 真实文献库往返测试仍待完成，因此尚不标记为稳定版。
+**当前为 2.0.0rc1 预览版。** 本地工作台、OneDrive 目录连接与 Zotero 10.0.4 核心往返已实测。不同宿主、特殊批注与真人试读范围见验证记录。
 
 [English](README.en.md) · [完整设计思考](docs/DESIGN.md) · [来源与致谢](docs/SOURCES.md) · [验证记录](docs/TESTING.md)
 
@@ -69,6 +69,28 @@ macOS 完成上述安装后，也可双击仓库中的 `scripts/open-workbench.c
 
 Zotero 的授权键本身可访问所有可编辑文献库，本应用另行限定所选集合。键存系统凭证库或进程内存，不放源码和导出中。真实接口测试范围与仍需确认项见 [TESTING.md](docs/TESTING.md)。
 
+## 连接 OneDrive / Obsidian 文献目录
+
+先在工作台选择 Zotero 集合并授权，再在“Zotero 连接”中填写文献目录。也可运行：
+
+```bash
+prc vault configure --path /path/to/literature
+prc vault scan
+prc vault status
+prc service install
+```
+
+`service install` 在 macOS 注册登录后自动运行的本地服务；关闭阅读窗口仍持续检查，电脑睡眠或退出登录期间暂停。每 30 秒检查目录，Zotero 运行时每 5 秒同步。其他平台运行 `prc serve`。`prc service status` 查看状态，`prc service stop` 停止当前后台服务。
+
+- 新增 PDF 按实际内容去重。已有相同附件时复用 Zotero 条目并保留原分类；新增文件以链接附件关联，原 PDF 不搬动。多条 Zotero 记录对应同一文件时提示处理重复项。
+- 支持已有 `01_论文卡片` 中的 `原文PDF路径` / `原文PDF` 元数据。卡片保留原话和 AI 来源，作为只读外部资料接入；“模型审读完成”不会被视为学生已掌握。
+- 新笔记与可编辑的 Zotero 笔记写入 `06_PRC阅读记录/<论文编号>/`。`r` 后数字表示修订版本，内容文件只追加、不覆盖；编辑已有版本会回读到工作台，同时修改时保留冲突。新建 Markdown 初始标为作者待确认的外部资料。
+- PDF 改版会使旧锚点失效；文件暂时不可用或删除不会删除工作台记录。已有 Zotero 存储附件仍保持原样，只有字节一致的 PDF 才允许写回区域坐标。
+
+SQLite、授权与同步队列留在本机应用目录。只有导出的笔记进入选定文件夹并由 OneDrive 同步。原卡、模板、Obsidian 设置及既有自动化不被改写。
+
+新建 Zotero 书目前，工作台用 PDF 首页核对正式题名，再查询 Crossref、arXiv 和可选的 OpenAlex，按顺序逐人保存作者。查不到可靠信息时保留本地论文并列入待核实，不创建空作者条目，也不阻止其他论文同步。仅发送 DOI 或题名，不上传 PDF。可运行 `prc metadata openalex-key` 把自己的 OpenAlex key 保存在系统钥匙串；`prc metadata resolve --paper <论文ID> --refresh` 重新核实，`prc metadata status` 查看来源记录。
+
 ## 常用操作
 
 ```bash
@@ -101,6 +123,7 @@ cd paper-research-coach
 python3 -m venv .venv
 source .venv/bin/activate
 npm ci --prefix frontend
+npm --prefix frontend test
 npm --prefix frontend run build
 python scripts/prepare_licenses.py
 python -m pip install -e '.[dev]'
@@ -116,7 +139,7 @@ python examples/create_demo.py .prc/demo
 prc --data-dir .prc/demo serve
 ```
 
-构建安装包：`python scripts/package_release.py`。输出的 skill ZIP 与 Python wheel 位于 `dist/`。源码开发需要 Node.js 22.13+，发布包运行不需要。
+构建安装包：`python scripts/package_release.py`。输出的 skill ZIP 与 Python wheel 位于 `dist/`。源码开发需要 Node.js 24.15+，发布包运行不需要。
 
 首个通过全部检查的 main 分支构建自动建立预览版并附上两个安装包。之后的 main 构建保留既有发布物；新版本标签生成各自的预览版。
 

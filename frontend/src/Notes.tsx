@@ -7,7 +7,7 @@ import {
   History,
   Link2,
 } from "lucide-react";
-import { api, put, id, location, type Row } from "./api";
+import { api, put, id, location, ApiError, type Row } from "./api";
 export default function Notes({
   paper,
   notes,
@@ -24,6 +24,14 @@ export default function Notes({
   report: (s: string) => void;
 }) {
   const key = "prc-draft-" + paper.id;
+  const jobKey = key + "-operation";
+  function cachedJob() {
+    try {
+      return JSON.parse(localStorage.getItem(jobKey) || "null");
+    } catch {
+      return null;
+    }
+  }
   function initial() {
     try {
       return (
@@ -50,18 +58,28 @@ export default function Notes({
     }
   }
   const [draft, setDraft] = useState<any>(initial),
-    [status, setStatus] = useState(""),
+    [status, setStatus] = useState(() =>
+      draft.content ? "正在恢复未完成的保存…" : "",
+    ),
     [history, setHistory] = useState<any[] | null>(null);
   const latestNotes = useRef(notes);
   latestNotes.current = notes;
   const current = useRef(draft),
     busy = useRef(false),
     timer = useRef<any>(null),
-    retry = useRef<any>(null),
+    retry = useRef<any>(cachedJob()),
+    attempts = useRef(0),
     alive = useRef(true);
   useEffect(() => {
     alive.current = true;
+    const reconnect = () => {
+      attempts.current = 0;
+      void save();
+    };
+    window.addEventListener("online", reconnect);
+    timer.current = setTimeout(() => void save(), 100);
     return () => {
+      window.removeEventListener("online", reconnect);
       alive.current = false;
       clearTimeout(timer.current);
       void save();
@@ -90,6 +108,11 @@ export default function Notes({
     }
   }, [anchor]);
   function update(next: any) {
+    if (
+      next.content !== current.current.content ||
+      JSON.stringify(next.anchor) !== JSON.stringify(current.current.anchor)
+    )
+      next = { ...next, discussed: false };
     current.current = next;
     setDraft(next);
     localStorage.setItem(key, JSON.stringify(next));
@@ -112,29 +135,53 @@ export default function Notes({
       return;
     }
     busy.current = true;
-    let value = { ...current.current };
-    let job = retry.current || { value, op: id() };
+    const value = { ...current.current };
+    const job = retry.current || { value, op: id() };
+    // Persist the exact transaction before sending it, including unknown-outcome retries.
     try {
+      localStorage.setItem(jobKey, JSON.stringify(job));
       const saved = await put("note", job.value, job.op);
+      // A newer mount owns the shared draft after this component leaves.
+      if (!alive.current || current.current.id !== job.value.id) return;
       retry.current = null;
-      const next = { ...current.current, revision: saved.revision };
+      attempts.current = 0;
+      const changed =
+        current.current.content !== job.value.content ||
+        JSON.stringify(current.current.anchor) !==
+          JSON.stringify(job.value.anchor);
+      const next = {
+        ...saved,
+        ...current.current,
+        revision: saved.revision,
+        discussed: changed ? false : saved.discussed,
+      };
+      latestNotes.current = [
+        ...latestNotes.current.filter((n) => n.id !== saved.id),
+        saved,
+      ];
       current.current = next;
       localStorage.setItem(key, JSON.stringify(next));
+      if (cachedJob()?.op === job.op) localStorage.removeItem(jobKey);
       if (alive.current) {
         setDraft(next);
-        setStatus("已保存 · 等待讨论");
+        setStatus(next.discussed ? "已保存 · 已讨论" : "已保存 · 等待讨论");
         refresh();
       }
-      if (
-        next.content !== job.value.content ||
-        JSON.stringify(next.anchor) !== JSON.stringify(job.value.anchor)
-      )
+      if (alive.current && changed)
         timer.current = setTimeout(() => void save(), 50);
     } catch (e) {
       retry.current = job;
       if (alive.current) {
         setStatus("未写入笔记库 · 草稿仍在此浏览器");
-        report(String(e));
+        if (attempts.current === 0) report(String(e));
+        const permanent = e instanceof ApiError && e.status < 500;
+        if (!permanent) {
+          clearTimeout(timer.current);
+          timer.current = setTimeout(
+            () => void save(),
+            Math.min(30000, 1000 * 2 ** Math.min(attempts.current++, 5)),
+          );
+        }
       }
     } finally {
       busy.current = false;
@@ -142,8 +189,16 @@ export default function Notes({
   }
   async function fresh() {
     if (busy.current) return;
+    const snapshot = current.current;
     await save();
-    if (retry.current) return;
+    if (retry.current || busy.current) return;
+    if (
+      snapshot.content !== current.current.content ||
+      JSON.stringify(snapshot.anchor) !== JSON.stringify(current.current.anchor)
+    ) {
+      setStatus("新输入正在保存，请保存后再切换想法");
+      return;
+    }
     const next = {
       id: id(),
       paper_id: paper.id,
@@ -160,14 +215,26 @@ export default function Notes({
   }
   async function edit(n: Row) {
     if (busy.current) return;
+    const snapshot = current.current;
     await save();
-    if (retry.current) return;
+    if (retry.current || busy.current) return;
+    if (
+      snapshot.content !== current.current.content ||
+      JSON.stringify(snapshot.anchor) !== JSON.stringify(current.current.anchor)
+    ) {
+      setStatus("新输入正在保存，请保存后再切换想法");
+      return;
+    }
     current.current = n;
     setDraft(n);
     localStorage.setItem(key, JSON.stringify(n));
     setStatus("编辑会保留原版本");
   }
   async function recover() {
+    if (busy.current) {
+      setStatus("正在完成上次保存，请稍后再保留独立笔记");
+      return;
+    }
     const next = {
       ...current.current,
       id: id(),
@@ -175,6 +242,7 @@ export default function Notes({
       links: [...(current.current.links || []), current.current.id],
     };
     retry.current = null;
+    localStorage.removeItem(jobKey);
     current.current = next;
     update(next);
   }

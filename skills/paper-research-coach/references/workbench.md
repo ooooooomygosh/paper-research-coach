@@ -51,3 +51,11 @@ prc export pdf --paper PAPER_ID
 两边都改过就保留双方并进入冲突处理；删除需明确选择，不级联删除PDF或论文。已核实矩形写原生批注，缺位置写关联笔记；无法编辑的既有批注只读，可另建关联评论。不要直接改 Zotero SQLite。
 
 授权键只放系统凭证库或进程内存，不写源码、配置导出或日志。界面启动地址也含本机访问凭证，不放公开问题报告或论文笔记中。
+
+## 已连接的文献目录
+
+用 `prc vault status` 查看 OneDrive / Obsidian 目录的状态，必要时 `prc vault scan` 获取新文件。现有AI论文卡是只读外部来源，不代表学生回答或已掌握。新增Markdown作者待确认时保持EXTERNAL，不自行改标USER。
+
+先获取工作台最新context再讨论，避免旧的Markdown修订覆盖新笔记。`06_PRC阅读记录` 的r编号表示修订版本；文件冲突在界面或 `prc vault conflicts` 查看。只有用户明确选择后才调用 `prc vault resolve --conflict ID --choice file|local|both`。电脑睡眠/退出登录时后台同步不运行；不要声称离线期间已写回Zotero。
+
+书目信息不全时，先用 `prc metadata resolve --paper <id> --refresh` 核实并检查返回的来源。它只生成核实结果；已绑定条目的修改应根据 Zotero 当前版本提交，保留现有笔记、附件和集合。不可把文件名当正式标题、把整串作者当一人，或编造 DOI。`prc metadata status` 可定位待核实记录。OpenAlex key 只通过 `prc metadata openalex-key` 的隐藏输入保存，不放入命令参数、Markdown 或导出。

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -39,6 +39,7 @@ class Store:
             CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
             CREATE TABLE IF NOT EXISTS sync_map(server TEXT, local_id TEXT, remote_key TEXT, remote_version INTEGER, base_local_revision INTEGER, base_remote TEXT, PRIMARY KEY(server,local_id), UNIQUE(server,remote_key));
             CREATE TABLE IF NOT EXISTS sync_conflicts(id TEXT PRIMARY KEY, server TEXT, local_id TEXT, remote_key TEXT, local_data TEXT, remote_data TEXT, reason TEXT, resolved INTEGER DEFAULT 0);
+            CREATE TABLE IF NOT EXISTS sync_outbox(server TEXT, local_id TEXT, marker TEXT UNIQUE, token TEXT, note TEXT, payload TEXT, state TEXT, PRIMARY KEY(server,local_id));
             PRAGMA user_version=1;
             """)
         try:
@@ -95,13 +96,16 @@ class Store:
                 (key, json.dumps(value, ensure_ascii=False)),
             )
 
-    def commit(self, payload: Commit | dict, origin="local"):
+    def commit(self, payload: Commit | dict, origin="local", *, connection=None):
         payload = (
             payload if isinstance(payload, Commit) else Commit.model_validate(payload)
         )
         encoded = json.dumps(payload.model_dump(), ensure_ascii=False, sort_keys=True)
-        with self.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
+        with (
+            nullcontext(connection) if connection is not None else self.connect()
+        ) as db:
+            if not db.in_transaction:
+                db.execute("BEGIN IMMEDIATE")
             prior = db.execute(
                 "SELECT payload,result FROM operations WHERE id=?",
                 (payload.operation_id,),
@@ -137,6 +141,16 @@ class Store:
                         or old["provenance"] != obj.provenance
                     ):
                         raise Conflict("Authorship and provenance cannot be rewritten")
+                if (
+                    kind == "note"
+                    and old
+                    and (
+                        old["content"] != obj.content
+                        or old.get("anchor")
+                        != (obj.anchor.model_dump() if obj.anchor else None)
+                    )
+                ):
+                    obj.discussed = False
                 paper_id = obj.id if kind == "paper" else obj.paper_id
                 if kind != "paper":
                     paper_row = db.execute(
@@ -212,7 +226,15 @@ class Store:
             )
         return answer
 
-    def put(self, kind: str, data: dict, expected_revision=0, origin="local"):
+    def put(
+        self,
+        kind: str,
+        data: dict,
+        expected_revision=0,
+        origin="local",
+        *,
+        connection=None,
+    ):
         return self.commit(
             {
                 "mutations": [
@@ -220,6 +242,7 @@ class Store:
                 ]
             },
             origin,
+            connection=connection,
         )["records"][0]
 
     def add_paper(self, title: str, source_path="", **metadata):
@@ -308,14 +331,18 @@ class Store:
             page_count=len(reader.pages),
             access_scope="full",
         )
-        # Preserve stale old-page anchors even when the new paper has fewer pages.
-        if mutations:
+        # Source replacement and all invalidated anchors commit or roll back together.
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             for offset in range(0, len(mutations), 100):
                 self.commit(
                     {"mutations": mutations[offset : offset + 100]},
                     origin="source-version",
+                    connection=db,
                 )
-        return self.put("paper", p, p["revision"], origin="source-version")
+            return self.put(
+                "paper", p, p["revision"], origin="source-version", connection=db
+            )
 
     def events(self, since=0):
         with self.connect() as db:

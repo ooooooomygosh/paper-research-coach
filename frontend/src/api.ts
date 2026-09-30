@@ -1,5 +1,13 @@
 export type Row = { id: string; revision: number; [key: string]: any };
 export const id = () => crypto.randomUUID().replaceAll("-", "");
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
 export async function api(path: string, body?: any): Promise<any> {
   const r = await fetch(
     "/api/" + path,
@@ -13,11 +21,12 @@ export async function api(path: string, body?: any): Promise<any> {
   );
   if (!r.ok) {
     const d = await r.json().catch(() => ({}));
-    throw new Error(
+    throw new ApiError(
       d.error ||
         (typeof d.detail === "string"
           ? d.detail
           : "操作未完成，请检查内容或重新打开工作台。"),
+      r.status,
     );
   }
   return r.json();

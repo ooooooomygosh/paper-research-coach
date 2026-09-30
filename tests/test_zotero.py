@@ -65,11 +65,14 @@ class LocalAPI:
                 return response(401, {})
             assert path == "users/0/items"
             data = json.loads(request.content)[0]
+            if "key" not in data:
+                data["key"] = f"TEST{len(self.items):04d}"
+                data["version"] = 0
             old = self.items.get(data["key"])
             if old and old["version"] != data["version"]:
                 return response(data={"failed": {"0": {"code": 412}}})
             self.version += 1
-            data = copy.deepcopy(data)
+            data = copy.deepcopy((old or {}) | data)
             data["version"] = self.version
             self.items[data["key"]] = data
             self.writes.append(copy.deepcopy(data))
@@ -92,14 +95,34 @@ class LocalAPI:
         if path == "users/0/collections/COLLECT1/items/top":
             return response(data=[{"data": self.items["PARENT01"]}])
         if path.endswith("/file/view/url"):
-            return response(body=self.pdf.as_uri())
+            from pathlib import Path
+
+            item = self.items.get(path.split("/")[-4], {})
+            return response(body=Path(item.get("path", str(self.pdf))).as_uri())
+        if path == "users/0/items":
+            kind = request.url.params.get("itemType")
+            return response(
+                data=[
+                    {"data": d}
+                    for d in self.items.values()
+                    if not kind or d["itemType"] == kind
+                ]
+            )
         if path.endswith("/children"):
             parent = path.split("/")[-2]
             return response(
                 data=[
                     {"data": d}
                     for d in self.items.values()
-                    if d.get("parentItem") == parent and not d.get("deleted")
+                    if d.get("parentItem") == parent
+                    and (
+                        not d.get("deleted")
+                        or request.url.params.get("includeTrashed") == "1"
+                    )
+                    and (
+                        d.get("itemType") != "annotation"
+                        or request.url.params.get("itemType") == "annotation"
+                    )
                 ]
             )
         key = path.split("/")[-1]
@@ -342,3 +365,344 @@ def test_existing_metadata_item_gets_later_downloaded_pdf(synced, store):
     )
     assert sync.run()["state"] == "connected"
     assert store.get("paper", p["id"])["page_count"] == 2
+
+
+def test_rich_note_and_empty_highlight_survive_discussion(synced, store):
+    sync, fake, p = synced
+    rich = "<p>Important finding</p><pre>code</pre><p>Critical caveat</p>"
+    fake.items["RICHNOTE"] = dict(
+        key="RICHNOTE",
+        version=2,
+        itemType="note",
+        parentItem="PARENT01",
+        note=rich,
+        tags=[],
+    )
+    fake.items["HIGHLITE"] = dict(
+        key="HIGHLITE",
+        version=2,
+        itemType="annotation",
+        parentItem="ATTACH01",
+        annotationType="highlight",
+        annotationComment="",
+        annotationText="Original excerpt",
+        annotationColor="#ffda75",
+        annotationPageLabel="1",
+        annotationSortIndex="00000|000000|00000",
+        annotationPosition=json.dumps({"pageIndex": 0, "rects": [[60, 700, 200, 720]]}),
+        tags=[],
+    )
+    sync.run()
+    notes = store.list("note")
+    assert notes[0]["content"] == "Important finding\ncode\nCritical caveat"
+    for n in notes:
+        store.put("note", n | {"discussed": True}, n["revision"])
+    sync.run()
+    assert not fake.writes
+    assert fake.items["RICHNOTE"]["note"] == rich
+    assert fake.items["HIGHLITE"]["annotationComment"] == ""
+
+
+def test_replaced_pdf_never_writes_regions_to_old_zotero_attachment(
+    synced, store, tmp_path
+):
+    from pypdf import PdfWriter
+
+    sync, fake, p = synced
+    new = tmp_path / "new.pdf"
+    writer = PdfWriter()
+    writer.add_blank_page(width=600, height=800)
+    writer.write(new)
+    p = store.replace_source(p["id"], str(new))
+    anchor = dict(
+        paper_id=p["id"],
+        source_version=p["source_version"],
+        page_index=0,
+        rects=[[50, 600, 200, 620]],
+        status="verified",
+    )
+    store.put("note", dict(paper_id=p["id"], content="new region", anchor=anchor))
+    assert sync.run()["state"] == "attention"
+    assert not fake.writes
+
+
+@pytest.mark.parametrize(
+    "local_change", [{"content": "local text"}, {"archived": True}]
+)
+def test_remote_tags_are_part_of_conflict_detection(synced, store, local_change):
+    sync, fake, p = synced
+    n = store.put("note", dict(paper_id=p["id"], content="base", tags=["old"]))
+    sync.run()
+    m = sync.mapped(fake.sid, local_id=n["id"])
+    store.put("note", n | local_change, n["revision"])
+    fake.mutate(m["remote_key"], tags=[{"tag": "remote tag"}])
+    sync.run()
+    assert len(sync.conflicts()) == 1 and len(fake.writes) == 1
+    assert fake.items[m["remote_key"]]["tags"] == [{"tag": "remote tag"}]
+    assert not fake.items[m["remote_key"]].get("deleted")
+
+
+def test_concurrent_first_pull_creates_one_local_record(synced, store, monkeypatch):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    sync, fake, p = synced
+    data = dict(
+        key="RACENOTE",
+        version=3,
+        itemType="note",
+        parentItem="PARENT01",
+        note="<p>one thought</p>",
+        tags=[],
+    )
+    fake.items[data["key"]] = data
+    other = ZoteroSync(Store(store.root), sync.client)
+    barrier = threading.Barrier(2)
+    for obj in (sync, other):
+        original = obj.mapped
+
+        def mapped(sid, local_id=None, remote_key=None, _original=original):
+            result = _original(sid, local_id, remote_key)
+            if remote_key == "RACENOTE" and result is None:
+                barrier.wait(timeout=5)
+            return result
+
+        monkeypatch.setattr(obj, "mapped", mapped)
+    with ThreadPoolExecutor(2) as pool:
+        list(pool.map(lambda obj: obj.pull_note(fake.sid, p, data), [sync, other]))
+    assert len(store.list("note")) == 1
+    sync.run()
+    assert not fake.writes
+
+
+def test_parent_deletion_resolution_keeps_notes_and_ignores_restored_parent(
+    synced, store
+):
+    sync, fake, p = synced
+    n = store.put("note", dict(paper_id=p["id"], content="preserve"))
+    sync.run()
+    fake.mutate("PARENT01", deleted=1)
+    sync.run()
+    c = sync.conflicts()[0]
+    assert (
+        c["reason"] == "paper-remote-delete"
+        and not store.get("paper", p["id"])["archived"]
+    )
+    fake.mutate("PARENT01", deleted=0)
+    sync.resolve(c["id"], "remote")
+    assert not store.get("paper", p["id"])["archived"]
+    fake.mutate("PARENT01", deleted=1)
+    sync.run()
+    sync.resolve(sync.conflicts()[0]["id"], "remote")
+    assert (
+        store.get("paper", p["id"])["archived"]
+        and store.get("note", n["id"])["content"] == "preserve"
+    )
+    fake.mutate("PARENT01", deleted=0)
+    sync.run()
+    assert len(store.list("paper", archived=True)) == 1 and fake.pdf.is_file()
+
+
+def test_explicit_local_conflict_choice_survives_discussion_revision(synced, store):
+    sync, fake, p = synced
+    n = store.put("note", dict(paper_id=p["id"], content="base"))
+    sync.run()
+    key = sync.mapped(fake.sid, local_id=n["id"])["remote_key"]
+    n = store.put("note", n | {"content": "LOCAL CHOICE"}, n["revision"])
+    fake.mutate(key, note="<p>REMOTE CHOICE</p>")
+    sync.run()
+    n = store.put("note", n | {"discussed": True}, n["revision"])
+    sync.resolve(sync.conflicts()[0]["id"], "local")
+    sync.run()
+    from paper_research_coach.zotero import remote_content
+
+    assert remote_content(fake.items[key]) == "LOCAL CHOICE"
+    assert not sync.conflicts()
+
+
+def test_unkeyed_create_keeps_persistent_marker(synced, store):
+    sync, fake, p = synced
+    n = store.put("note", dict(paper_id=p["id"], content="new"))
+    sync.run()
+    assert fake.writes[0]["relations"]["owl:sameAs"].startswith(
+        "urn:paper-research-coach:"
+    )
+    assert sync.mapped(fake.sid, local_id=n["id"])["remote_key"].startswith("TEST")
+
+
+def test_unknown_create_is_not_blindly_replayed(synced, store):
+    sync, fake, p = synced
+    n = store.put("note", dict(paper_id=p["id"], content="keep pending"))
+
+    def timeout(request):
+        if request.method == "POST":
+            raise httpx.ReadTimeout("unknown", request=request)
+        return fake.handle(request)
+
+    sync.client = httpx.Client(
+        base_url="http://127.0.0.1:23119/api/", transport=httpx.MockTransport(timeout)
+    )
+    assert sync.run()["state"] == "attention"
+    sync.client = httpx.Client(
+        base_url="http://127.0.0.1:23119/api/",
+        transport=httpx.MockTransport(fake.handle),
+    )
+    assert sync.run()["state"] == "attention" and not fake.writes
+    assert store.get("note", n["id"])["content"] == "keep pending"
+
+
+def test_folder_binding_checks_instance_and_actual_attachment_bytes(
+    synced, store, tmp_path, monkeypatch
+):
+    from paper_research_coach.metadata import MetadataResolver
+
+    monkeypatch.setattr(
+        MetadataResolver,
+        "resolve",
+        lambda self, p: {
+            "payload": {
+                "itemType": "journalArticle",
+                "title": p["title"],
+                "creators": [
+                    {"creatorType": "author", "name": "Synthetic Test Author"}
+                ],
+            }
+        },
+    )
+    from pypdf import PdfWriter
+
+    sync, fake, linked = synced
+    # Warm A's cache using another local record with identical source bytes.
+    p = store.put(
+        "paper",
+        {
+            k: v
+            for k, v in linked.items()
+            if k
+            not in (
+                "id",
+                "revision",
+                "zotero_key",
+                "zotero_attachment",
+                "zotero_server",
+                "zotero_collection",
+            )
+        },
+    )
+    bound = sync.bind_local_paper(p, "COLLECT1", fake.sid)
+    assert bound["zotero_attachment"] == "ATTACH01"
+    different = tmp_path / "different.pdf"
+    w = PdfWriter()
+    w.add_blank_page(width=700, height=800)
+    w.write(different)
+    fake.sid = "instance-B"
+    fake.pdf = different
+    sync.keys[fake.sid] = "test-key"
+    p = store.put(
+        "paper",
+        {
+            k: v
+            for k, v in linked.items()
+            if k
+            not in (
+                "id",
+                "revision",
+                "zotero_key",
+                "zotero_attachment",
+                "zotero_server",
+                "zotero_collection",
+            )
+        },
+    )
+    bound = sync.bind_local_paper(p, "COLLECT1", fake.sid)
+    assert bound["zotero_attachment"] != "ATTACH01"
+    assert sync.attachment_version(bound) == bound["source_version"]
+
+
+def test_rejected_object_creation_can_use_new_collection(synced):
+    sync, fake, _ = synced
+    payload = {"itemType": "journalArticle", "title": "new", "collections": ["OLD"]}
+    fake.auth = False
+    with pytest.raises(SyncError):
+        sync.create_object(fake.sid, "object", payload)
+    fake.auth = True
+    sync.keys[fake.sid] = "test-key"
+    result = sync.create_object(fake.sid, "object", payload | {"collections": ["NEW"]})
+    assert result["collections"] == ["NEW"]
+
+
+def test_unknown_create_recovery_preserves_edits_during_disconnect(synced, store):
+    sync, fake, p = synced
+    n = store.put("note", {"paper_id": p["id"], "content": "submitted"})
+    fake.fail_after_write = True
+    sync.run()
+    n = store.put("note", n | {"content": "typed after sending"}, n["revision"])
+    key = fake.writes[0]["key"]
+    fake.mutate(key, note="<p>remote edit too</p>")
+    sync.run()
+    assert store.get("note", n["id"])["content"] == "typed after sending"
+    assert (
+        fake.items[key]["note"] == "<p>remote edit too</p>"
+        and len(sync.conflicts()) == 1
+    )
+    assert len(store.list("note")) == 1
+
+
+def test_new_parent_requires_verified_metadata_before_any_write(
+    synced, store, tmp_path, monkeypatch
+):
+    from paper_research_coach.metadata import MetadataResolver, MetadataPending
+    from pypdf import PdfWriter
+
+    sync, fake, _ = synced
+    file = tmp_path / "unknown.pdf"
+    writer = PdfWriter()
+    writer.add_blank_page(width=700, height=700)
+    writer.write(file)
+    p = store.add_paper("Unverified paper", str(file), authors="None, Author et al.")
+
+    def pending(*a, **kw):
+        raise MetadataPending("needs verification")
+
+    monkeypatch.setattr(MetadataResolver, "resolve", pending)
+    with pytest.raises(MetadataPending):
+        sync.bind_local_paper(p, "COLLECT1", fake.sid)
+    assert not fake.writes and not store.get("paper", p["id"])["zotero_key"]
+
+
+def test_unknown_legacy_parent_recovers_then_repairs_without_duplicate(
+    synced, store, tmp_path, monkeypatch
+):
+    from paper_research_coach.metadata import MetadataResolver
+    from pypdf import PdfWriter
+
+    sync, fake, _ = synced
+    file = tmp_path / "legacy.pdf"
+    w = PdfWriter()
+    w.add_blank_page(width=700, height=700)
+    w.write(file)
+    p = store.add_paper("Legacy paper", str(file))
+    old = {"itemType": "document", "title": "Legacy paper", "collections": ["COLLECT1"]}
+    fake.fail_after_write = True
+    with pytest.raises(httpx.ReadError):
+        sync.create_object(fake.sid, p["id"] + ":parent", old)
+    key = fake.writes[-1]["key"]
+    verified = {
+        "itemType": "journalArticle",
+        "title": "Verified legacy paper",
+        "creators": [
+            {"creatorType": "author", "firstName": "Ada", "lastName": "Example"}
+        ],
+    }
+    monkeypatch.setattr(
+        MetadataResolver, "resolve", lambda self, p: {"payload": verified}
+    )
+    bound = sync.bind_local_paper(p, "COLLECT1", fake.sid)
+    assert (
+        bound["zotero_key"] == key
+        and fake.items[key]["creators"] == verified["creators"]
+    )
+    assert (
+        sum(x.get("title") == "Verified legacy paper" for x in fake.items.values()) == 1
+    )
+    assert fake.items[bound["zotero_attachment"]]["parentItem"] == key

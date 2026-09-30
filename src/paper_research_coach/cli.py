@@ -77,6 +77,20 @@ def parser():
     z.add_argument("--collection")
     z.add_argument("--conflict")
     z.add_argument("--choice", choices=["local", "remote"])
+    v = sub.add_parser("vault", help="连接 OneDrive / Obsidian 文献目录")
+    v.add_argument(
+        "action", choices=["status", "configure", "scan", "conflicts", "resolve"]
+    )
+    v.add_argument("--path")
+    v.add_argument("--conflict")
+    v.add_argument("--choice", choices=["file", "local", "both"])
+    bg = sub.add_parser("service", help="macOS 登录后持续运行工作台与目录同步")
+    bg.add_argument("action", choices=["install", "status", "stop"])
+    bg.add_argument("--port", type=int, default=8765)
+    meta = sub.add_parser("metadata", help="核实 PDF 书目或设置 OpenAlex（不上传全文）")
+    meta.add_argument("action", choices=["status", "resolve", "openalex-key"])
+    meta.add_argument("--paper")
+    meta.add_argument("--refresh", action="store_true")
     i = sub.add_parser("install-skill")
     i.add_argument("--host", choices=["codex", "claude", "pi"], required=True)
     i.add_argument("--force", action="store_true")
@@ -194,6 +208,62 @@ def main():
                 port=args.port,
                 access_log=False,
             )
+        elif cmd == "service":
+            from .service import manage
+
+            output(manage(args.action, store, args.port))
+        elif cmd == "metadata":
+            from .metadata import MetadataResolver
+
+            if args.action == "openalex-key":
+                import getpass, keyring
+
+                value = getpass.getpass("OpenAlex API key（不回显）：").strip()
+                if not value:
+                    raise ValueError("API key 不能为空")
+                keyring.set_password("paper-research-coach-metadata", "openalex", value)
+                output({"saved": True, "location": "system keyring"})
+            elif args.action == "resolve":
+                if not args.paper:
+                    raise ValueError("指定 --paper 论文 ID")
+                output(
+                    MetadataResolver(store).resolve(
+                        store.get("paper", args.paper), force=args.refresh
+                    )
+                )
+            else:
+                output(
+                    [
+                        {
+                            "paper_id": p["id"],
+                            "title": p["title"],
+                            "bibliography": store.setting(
+                                "bibliography:" + p["id"], {}
+                            ),
+                        }
+                        for p in store.list("paper")
+                    ]
+                )
+        elif cmd == "vault":
+            from .vault import VaultSync
+            from .zotero import ZoteroSync
+
+            sync = ZoteroSync(store)
+            vault = VaultSync(store, sync)
+            if args.action == "configure":
+                output(
+                    vault.configure(
+                        args.path, sync.state()["collection"], sync.state()["server_id"]
+                    )
+                )
+            elif args.action == "scan":
+                output(vault.run())
+            elif args.action == "conflicts":
+                output(vault.conflicts())
+            elif args.action == "resolve":
+                output(vault.resolve(args.conflict, args.choice))
+            else:
+                output(vault.state())
         elif cmd == "sync":
             from .zotero import ZoteroSync
 

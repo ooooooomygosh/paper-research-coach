@@ -27,6 +27,7 @@ class Record(BaseModel):
 class Paper(Record):
     title: str = Field(min_length=1, max_length=2000)
     authors: str = ""
+    publication: str = ""
     year: str = ""
     doi: str = ""
     url: str = ""
@@ -41,6 +42,7 @@ class Paper(Record):
     zotero_key: str = ""
     zotero_attachment: str = ""
     zotero_server: str = ""
+    zotero_collection: str = ""
 
 
 class Anchor(BaseModel):

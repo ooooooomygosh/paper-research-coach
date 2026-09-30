@@ -240,3 +240,11 @@ def test_duplicate_pdf_does_not_cross_zotero_instances(store, pdf):
         ]
         == b["id"]
     )
+
+
+def test_changed_words_return_to_pending_discussion(store, paper):
+    n = store.put(
+        "note", dict(paper_id=paper["id"], content="original", discussed=True)
+    )
+    n = store.put("note", n | {"content": "new words"}, n["revision"])
+    assert not n["discussed"]

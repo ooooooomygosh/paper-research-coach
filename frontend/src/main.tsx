@@ -38,7 +38,7 @@ const nav = [
   ["review", "复习队列", RotateCcw],
   ["export", "导出", Download],
 ] as const;
-function App() {
+export function App() {
   const [ready, setReady] = useState(false),
     [state, setState] = useState<any>({ papers: [], sync: {}, conflicts: [] }),
     [selected, setSelected] = useState(
@@ -64,14 +64,21 @@ function App() {
   async function refresh() {
     const s = await api("state");
     setState(s);
-    const chosen = selectedRef.current || s.papers[0]?.id;
+    const chosen = s.papers.some((p: Row) => p.id === selectedRef.current)
+      ? selectedRef.current
+      : s.papers[0]?.id;
     if (chosen) {
-      if (!selectedRef.current) {
+      if (selectedRef.current !== chosen) {
         selectedRef.current = chosen;
         setSelected(chosen);
       }
       const c = await api("context/" + chosen);
       if (chosen === selectedRef.current) setContext(c);
+    } else {
+      selectedRef.current = "";
+      setSelected("");
+      setContext(null);
+      localStorage.removeItem("prc-selected");
     }
   }
   async function start(token?: string) {
@@ -89,7 +96,7 @@ function App() {
     void start(t || undefined);
   }, []);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !selected) return;
     let disposed = false;
     api("context/" + selected)
       .then((c) => {
@@ -131,6 +138,20 @@ function App() {
   }, [ready]);
   const paper = context?.paper,
     session = context?.session?.[0];
+  const sourceRef = useRef<any>(null);
+  useEffect(() => {
+    if (!paper) return;
+    if (
+      sourceRef.current?.id === paper.id &&
+      sourceRef.current.source_version !== paper.source_version
+    ) {
+      clearTimeout(pageTimer.current);
+      setPage(0);
+      setAnchor(null);
+      setFocusAnchor(null);
+    }
+    sourceRef.current = { id: paper.id, source_version: paper.source_version };
+  }, [paper?.id, paper?.source_version]);
   function select(id: string) {
     setContext(null);
     setSelected(id);
@@ -386,6 +407,7 @@ function App() {
                 <p>
                   {paper.authors || "作者信息待补充"}{" "}
                   {paper.year && " / " + paper.year}
+                  {paper.publication && " / " + paper.publication}
                 </p>
               </div>
               <div className="button-row">
@@ -476,6 +498,7 @@ function App() {
               </>
             ) : tab === "lineage" ? (
               <Lineage
+                seq={context?.seq}
                 key={paper.id}
                 paper={paper}
                 papers={state.papers}
@@ -484,9 +507,15 @@ function App() {
                 onSelect={select}
               />
             ) : tab === "ideas" ? (
-              <Ideas key={paper.id} paper={paper} report={report} />
+              <Ideas
+                seq={context?.seq}
+                key={paper.id}
+                paper={paper}
+                report={report}
+              />
             ) : tab === "review" ? (
               <Reviews
+                seq={context?.seq}
                 key={paper.id}
                 paper={paper}
                 report={report}

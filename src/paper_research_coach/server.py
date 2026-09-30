@@ -14,6 +14,7 @@ from .exports import export
 from .models import Commit, uid
 from .store import Conflict, Store
 from .zotero import ZoteroSync
+from .vault import VaultSync
 
 
 def session_token(store: Store):
@@ -34,6 +35,7 @@ def session_token(store: Store):
 def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None = None):
     token = token or session_token(store)
     sync = sync or ZoteroSync(store)
+    vault = VaultSync(store, sync)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -44,11 +46,30 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                     await asyncio.to_thread(sync.run)
                 await asyncio.sleep(state["poll_seconds"])
 
+        async def folder_loop():
+            while True:
+                if vault.state()["enabled"]:
+                    try:
+                        await asyncio.to_thread(vault.run)
+                    except Exception:
+                        # A transient folder/API failure must not stop future scans.
+                        store.set_setting(
+                            "vault",
+                            vault.state()
+                            | {
+                                "state": "attention",
+                                "message": "目录检查暂未完成，内容已保留；下一轮将重试。",
+                            },
+                        )
+                await asyncio.sleep(30)
+
+        folder_task = asyncio.create_task(folder_loop())
         task = asyncio.create_task(loop())
         yield
         task.cancel()
+        folder_task.cancel()
         try:
-            await task
+            await asyncio.gather(task, folder_task)
         except asyncio.CancelledError:
             pass
 
@@ -130,6 +151,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             "sync": sync.state(),
             "conflicts": sync.conflicts(),
             "version": "2.0.0rc1",
+            "vault": vault.state(),
+            "vault_conflicts": vault.conflicts(),
         }
 
     @app.post("/api/commit")
@@ -311,6 +334,26 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def resolve(conflict_id: str, request: Request):
         return await asyncio.to_thread(
             sync.resolve, conflict_id, (await request.json())["choice"]
+        )
+
+    @app.post("/api/vault/configure")
+    async def vault_configure(request: Request):
+        data = await request.json()
+        return await asyncio.to_thread(
+            vault.configure,
+            data["root"],
+            sync.state()["collection"],
+            sync.state()["server_id"],
+        )
+
+    @app.post("/api/vault/scan")
+    async def vault_scan():
+        return await asyncio.to_thread(vault.run)
+
+    @app.post("/api/vault/conflict/{conflict_id}")
+    async def vault_resolve(conflict_id: str, request: Request):
+        return await asyncio.to_thread(
+            vault.resolve, conflict_id, (await request.json())["choice"]
         )
 
     static = Path(__file__).parent / "static"
