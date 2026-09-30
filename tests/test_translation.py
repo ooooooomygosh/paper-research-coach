@@ -150,7 +150,7 @@ def test_jobs_are_idempotent_configuration_is_frozen_and_queued_stop_is_durable(
         assert resumed["model"] == "gpt-6-luna"
         await trans.close()
         restored = Translation(store)
-        assert restored.job(job["id"])["state"] == "interrupted"
+        assert restored.job(job["id"])["state"] == "queued"
         await restored.close()
 
     asyncio.run(run())
@@ -232,13 +232,19 @@ def test_translation_endpoints_authenticate_and_check_anchor_version(
     directory = store.root / "translations" / "finished"
     directory.mkdir(parents=True)
     (directory / "mapping.json").write_text(json.dumps(mapping(), ensure_ascii=False))
+    for kind in ("mono", "dual"):
+        (directory / f"{kind}.pdf").write_bytes(b"%PDF-1.4\n")
     job = {
         "id": "finished",
         "paper_id": paper["id"],
         "operation_id": "finished",
         "source_version": paper["source_version"],
         "state": "completed",
-        "artifacts": {"mapping": str(directory / "mapping.json")},
+        "artifacts": {
+            "mapping": str(directory / "mapping.json"),
+            "mono": str(directory / "mono.pdf"),
+            "dual": str(directory / "dual.pdf"),
+        },
     }
     with store.connect() as db:
         db.execute(

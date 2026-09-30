@@ -18,6 +18,7 @@ from .store import Conflict, Store
 from .translation import (
     SelectionRequest,
     Translation,
+    TranslationBatch,
     TranslationRequest,
     TranslationSettings,
 )
@@ -49,6 +50,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
 
     @asynccontextmanager
     async def lifespan(app):
+        await translation.resume()
         async def loop():
             while True:
                 state = sync.state()
@@ -301,6 +303,14 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     @app.post("/api/translation/settings")
     async def update_translation_settings(body: TranslationSettings):
         return translation.settings(body.model_dump())
+
+    @app.get("/api/translation/jobs")
+    async def all_translation_jobs():
+        return await asyncio.to_thread(translation.overview)
+
+    @app.post("/api/translation/batch")
+    async def batch_translation(body: TranslationBatch):
+        return await translation.batch(body)
 
     @app.get("/api/translation/{paper_id}/jobs")
     async def translation_jobs(paper_id: str):

@@ -10,6 +10,7 @@ import re
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,6 +26,8 @@ DEFAULTS = {
     "effort": "low",
     "lang_in": "en",
     "lang_out": "zh-CN",
+    "paper_concurrency": 2,
+    "request_concurrency": 4,
 }
 
 
@@ -34,12 +37,26 @@ class TranslationSettings(BaseModel):
     effort: str = Field(default="low", max_length=30)
     lang_in: str = Field(default="en", max_length=20)
     lang_out: str = Field(default="zh-CN", max_length=20)
+    paper_concurrency: int = Field(default=2, ge=1, le=4)
+    request_concurrency: int = Field(default=4, ge=1, le=8)
 
 
 class TranslationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     operation_id: str = Field(min_length=1, max_length=120)
     source_version: str = Field(min_length=1, max_length=120)
+
+
+class BatchPaper(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    paper_id: str = Field(min_length=1, max_length=120)
+    source_version: str = Field(min_length=1, max_length=120)
+
+
+class TranslationBatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    operation_id: str = Field(min_length=1, max_length=80)
+    papers: list[BatchPaper] = Field(min_length=1, max_length=500)
 
 
 class SelectionRequest(BaseModel):
@@ -300,7 +317,11 @@ class Translation:
     def __init__(self, store, text_factory=CodexText):
         self.store, self.text_factory = store, text_factory
         self.tasks, self.processes = {}, {}
-        self.semaphore = asyncio.Semaphore(1)
+        self.capacity = asyncio.Condition()
+        self.running_papers, self.running_requests = 0, 0
+        self.cache_locks = {}
+        self.source_checks = {}
+        self.verified_interpreter = None
         self.closing = False
         with store.connect() as db:
             db.executescript("""
@@ -309,10 +330,11 @@ class Translation:
             """)
             for row in db.execute("SELECT id,data FROM translation_jobs").fetchall():
                 job = json.loads(row["data"])
-                if job["state"] in ACTIVE:
+                resume_on_start = job.pop("resume_on_start", False)
+                if job["state"] in ACTIVE | {"interrupted"} or resume_on_start:
                     job.update(
-                        state="interrupted",
-                        message="工作台已重启，已完成翻译保留，可以重试。",
+                        state="queued",
+                        message="工作台已重启，正在从已保存的进度继续。",
                     )
                     db.execute(
                         "UPDATE translation_jobs SET data=? WHERE id=?",
@@ -325,9 +347,49 @@ class Translation:
                 "translation-settings",
                 TranslationSettings.model_validate(value).model_dump(),
             )
+            try:
+                asyncio.get_running_loop().create_task(self.wake())
+            except RuntimeError:
+                pass
         return {**DEFAULTS, **self.store.setting("translation-settings", {})}
 
+    async def wake(self):
+        async with self.capacity:
+            self.capacity.notify_all()
+
+    @contextlib.asynccontextmanager
+    async def slot(self, kind):
+        attribute = "running_" + kind
+        setting = "paper_concurrency" if kind == "papers" else "request_concurrency"
+        async with self.capacity:
+            await self.capacity.wait_for(
+                lambda: (
+                    self.closing or getattr(self, attribute) < self.settings()[setting]
+                )
+            )
+            if self.closing:
+                raise asyncio.CancelledError()
+            setattr(self, attribute, getattr(self, attribute) + 1)
+        try:
+            yield
+        finally:
+            async with self.capacity:
+                setattr(self, attribute, getattr(self, attribute) - 1)
+                self.capacity.notify_all()
+
+    async def resume(self):
+        with self.store.connect() as db:
+            jobs = [
+                json.loads(r[0])
+                for r in db.execute("SELECT data FROM translation_jobs ORDER BY rowid")
+            ]
+        for job in jobs:
+            if job["state"] == "queued":
+                self.schedule(job)
+
     def interpreter(self):
+        if self.verified_interpreter and Path(self.verified_interpreter).is_file():
+            return self.verified_interpreter
         explicit = os.environ.get("PRC_BABELDOC_PYTHON")
         candidates = (
             [explicit]
@@ -358,6 +420,7 @@ class Translation:
                         result.returncode == 0
                         and result.stdout.decode().strip() == BABELDOC_VERSION
                     ):
+                        self.verified_interpreter = candidate
                         return candidate
                 except (OSError, subprocess.TimeoutExpired):
                     pass
@@ -387,31 +450,135 @@ class Translation:
             raise KeyError("翻译任务不存在")
         return json.loads(row[0])
 
-    def jobs(self, paper_id):
-        self.store.get("paper", paper_id)
+    def jobs(self, paper_id=None):
+        if paper_id:
+            self.store.get("paper", paper_id)
         with self.store.connect() as db:
             return [
                 json.loads(r[0])
                 for r in db.execute(
-                    "SELECT data FROM translation_jobs WHERE paper_id=? ORDER BY rowid DESC",
-                    (paper_id,),
+                    "SELECT data FROM translation_jobs"
+                    + (" WHERE paper_id=?" if paper_id else "")
+                    + " ORDER BY rowid DESC",
+                    (paper_id,) if paper_id else (),
                 )
             ]
 
     def public(self, job):
+        paper = self.store.get("paper", job["paper_id"])
+        path = Path(paper.get("source_path") or "")
+        try:
+            stat = path.stat()
+            signature = (
+                str(path),
+                stat.st_size,
+                stat.st_mtime_ns,
+                stat.st_ctime_ns,
+                paper["source_version"],
+            )
+        except OSError:
+            signature = None
+        check = self.source_checks.get(paper["id"])
+        if not check or check[0] != signature:
+            check = (
+                signature,
+                self.store.check_source(paper["id"])["status"] == "current",
+            )
+            self.source_checks[paper["id"]] = check
         current = (
-            job["source_version"]
-            == self.store.get("paper", job["paper_id"])["source_version"]
+            job["source_version"] == paper["source_version"]
             and job.get("engine_version", BABELDOC_VERSION) == BABELDOC_VERSION
-            and self.store.check_source(job["paper_id"])["status"] == "current"
+            and check[1]
         )
+        pdf_ready = current and self.ready_artifacts(job)
         return {
             k: v
-            for k, v in {**job, "current": current}.items()
+            for k, v in {**job, "current": current, "pdf_ready": pdf_ready}.items()
             if k not in ("artifacts", "source_path", "provider", "fingerprint")
         }
 
-    async def create(self, paper_id, request):
+    def ready_artifacts(self, job):
+        directory = (self.store.root / "translations" / job["id"]).resolve()
+        return all(
+            job.get("artifacts", {}).get(kind)
+            and Path(job["artifacts"][kind]).resolve().is_relative_to(directory)
+            and Path(job["artifacts"][kind]).is_file()
+            for kind in ("mono", "dual", "mapping")
+        )
+
+    def overview(self):
+        jobs, papers = [], {}
+        existing = {p["id"] for p in self.store.list("paper")}
+        for job in self.jobs():
+            if job["paper_id"] not in existing:
+                continue
+            public = self.public(job)
+            jobs.append(public)
+            if public["current"]:
+                previous = papers.get(job["paper_id"])
+                if previous is None or (
+                    public["pdf_ready"] and not previous["pdf_ready"]
+                ):
+                    papers[job["paper_id"]] = public
+        return {"data": jobs, "papers": papers}
+
+    async def batch(self, request):
+        result, seen = [], set()
+        profile = self.settings()
+        for item in request.papers:
+            if item.paper_id in seen:
+                continue
+            seen.add(item.paper_id)
+            try:
+                paper = self.store.get("paper", item.paper_id)
+                if (
+                    paper["source_version"] != item.source_version
+                    or self.store.check_source(item.paper_id)["status"] != "current"
+                ):
+                    raise Conflict("PDF 已改变，请刷新文献库后重试。")
+                compatible = [
+                    j
+                    for j in self.jobs(item.paper_id)
+                    if j["source_version"] == item.source_version
+                    and j.get("engine_version", BABELDOC_VERSION) == BABELDOC_VERSION
+                ]
+                existing = next(
+                    (
+                        j
+                        for j in compatible
+                        if j["state"] in ACTIVE
+                        or (
+                            self.ready_artifacts(j)
+                            and j.get("lang_out") == profile["lang_out"]
+                        )
+                    ),
+                    None,
+                )
+                if existing:
+                    job, outcome = self.public(existing), "existing"
+                else:
+                    job = await self.create(
+                        item.paper_id,
+                        TranslationRequest(
+                            operation_id=request.operation_id
+                            + ":"
+                            + hashlib.sha256(item.paper_id.encode()).hexdigest()[:32],
+                            source_version=item.source_version,
+                        ),
+                        profile=profile,
+                        reuse_active=True,
+                    )
+                    outcome = "queued"
+                result.append(
+                    {"paper_id": item.paper_id, "outcome": outcome, "job": job}
+                )
+            except (ValueError, KeyError) as exc:
+                result.append(
+                    {"paper_id": item.paper_id, "outcome": "error", "message": str(exc)}
+                )
+        return {"data": result}
+
+    async def create(self, paper_id, request, profile=None, reuse_active=False):
         paper = self.store.get("paper", paper_id)
         fingerprint = hashlib.sha256(
             json.dumps(
@@ -435,7 +602,7 @@ class Translation:
         ):
             raise Conflict("PDF 已改变，请重新打开当前版本后翻译。")
         await asyncio.to_thread(self.interpreter)
-        settings = self.settings()
+        settings = profile or self.settings()
         job = {
             "id": uid(),
             "paper_id": paper_id,
@@ -469,10 +636,18 @@ class Translation:
                     "SELECT data FROM translation_jobs WHERE paper_id=?", (paper_id,)
                 )
             ]
-            if any(
-                j["state"] in ACTIVE and j["source_version"] == request.source_version
-                for j in running
-            ):
+            existing = next(
+                (
+                    j
+                    for j in running
+                    if j["state"] in ACTIVE
+                    and j["source_version"] == request.source_version
+                ),
+                None,
+            )
+            if existing:
+                if reuse_active:
+                    return self.public(existing)
                 raise Conflict("这篇论文已经在翻译，可以查看当前任务。")
             db.execute(
                 "INSERT INTO translation_jobs VALUES (?,?,?,?)",
@@ -487,6 +662,8 @@ class Translation:
         return self.public(job)
 
     def schedule(self, job):
+        if job["id"] in self.tasks:
+            return
         task = asyncio.create_task(self.run(job))
         self.tasks[job["id"]] = task
         task.add_done_callback(lambda _: self.tasks.pop(job["id"], None))
@@ -505,6 +682,13 @@ class Translation:
             raise Conflict("旧版本翻译不能继续，请为当前版本新建任务。")
         if job["state"] == "completed":
             return self.public(job)
+        if any(
+            j["id"] != job_id
+            and j["state"] in ACTIVE
+            and j["source_version"] == job["source_version"]
+            for j in self.jobs(job["paper_id"])
+        ):
+            raise Conflict("这篇论文已有另一个翻译任务，请先查看或停止当前任务。")
         job.update(state="queued", message="", stage="等待继续")
         self.save(job)
         self.schedule(job)
@@ -547,20 +731,37 @@ class Translation:
                 sort_keys=True,
             ).encode()
         ).hexdigest()
-        with self.store.connect() as db:
-            cached = db.execute(
-                "SELECT value FROM translation_cache WHERE key=?", (key,)
-            ).fetchone()
-        if cached:
-            return cached[0]
-        text = await engine.text(prompt, schema=schema, instructions=instructions)
-        with self.store.connect() as db:
-            db.execute(
-                "INSERT OR REPLACE INTO translation_cache VALUES (?,?)", (key, text)
-            )
-        return text
+        async with self.cache_locks.setdefault(key, asyncio.Lock()):
+            with self.store.connect() as db:
+                cached = db.execute(
+                    "SELECT value FROM translation_cache WHERE key=?", (key,)
+                ).fetchone()
+            metrics = job.setdefault("metrics", {})
+            if cached:
+                metrics["cache_hits"] = metrics.get("cache_hits", 0) + 1
+                return cached[0]
+            async with self.slot("requests"):
+                started = time.monotonic()
+                text = await engine.text(
+                    prompt, schema=schema, instructions=instructions
+                )
+                metrics["model_calls"] = metrics.get("model_calls", 0) + 1
+                metrics["model_seconds"] = round(
+                    metrics.get("model_seconds", 0) + time.monotonic() - started, 2
+                )
+            with self.store.connect() as db:
+                db.execute(
+                    "INSERT OR REPLACE INTO translation_cache VALUES (?,?)", (key, text)
+                )
+            return text
 
-    async def align(self, engine, job, mapping):
+    @staticmethod
+    def write_mapping(path, mapping):
+        temporary = path.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(mapping, ensure_ascii=False))
+        temporary.replace(path)
+
+    async def align(self, engine, job, mapping, mapping_path=None):
         schema = {
             "type": "object",
             "properties": {
@@ -587,13 +788,19 @@ class Translation:
             "required": ["links"],
             "additionalProperties": False,
         }
-        for segment in mapping["segments"]:
-            if not segment["translated"]:
-                continue
+        segments = [s for s in mapping["segments"] if s["translated"]]
+        queue = asyncio.Queue()
+        for segment in segments:
+            queue.put_nowait(segment)
+        completed, unavailable = 0, False
+
+        async def segment_alignment(segment):
             source, target = (
                 sentences(segment["source"]["text"]),
                 sentences(segment["target"]["text"]),
             )
+            if segment.get("links"):
+                return
             if len(source) == len(target) == 1:
                 segment["links"] = [{"source_ids": [0], "target_ids": [0]}]
             elif source and target:
@@ -613,18 +820,49 @@ class Translation:
                     )
                     segment["links"] = validate_links(json.loads(text), source, target)
                 except (ValueError, KeyError, TypeError, AttributeError):
-                    job["message"] = "部分句子暂未完成对应，仍可查看对应段落。"
-                    break
+                    nonlocal unavailable
+                    unavailable = True
+                    job["message"] = (
+                        "部分句子暂未完成对应，仍可阅读双语 PDF 和对应段落。"
+                    )
+
+        async def worker():
+            nonlocal completed
+            while not queue.empty() and not unavailable:
+                segment = queue.get_nowait()
+                await segment_alignment(segment)
+                completed += 1
+                job.update(
+                    stage=f"双语 PDF 可读 · 句子对应 {completed}/{len(segments)}",
+                    progress=96 + 3 * completed / max(1, len(segments)),
+                )
+                if completed % 10 == 0:
+                    if mapping_path:
+                        self.write_mapping(mapping_path, mapping)
+                    self.save(job)
+
+        workers = [
+            asyncio.create_task(worker())
+            for _ in range(self.settings()["request_concurrency"])
+        ]
+        try:
+            await asyncio.gather(*workers)
+        finally:
+            for task in workers:
+                task.cancel()
+            await asyncio.gather(*workers, return_exceptions=True)
+            if mapping_path:
+                self.write_mapping(mapping_path, mapping)
 
     async def run(self, job):
         process, engine = None, None
+        responses = set()
         try:
-            async with self.semaphore:
+            async with self.slot("papers"):
                 if self.closing:
                     raise asyncio.CancelledError()
                 if digest(Path(job["source_path"])) != job["source_version"]:
                     raise Conflict("PDF 已改变。")
-                interpreter = await asyncio.to_thread(self.interpreter)
                 directory = self.store.root / "translations" / job["id"]
                 directory.mkdir(parents=True, exist_ok=True)
                 engine = self.text_factory(directory, job["model"], job["effort"])
@@ -661,77 +899,114 @@ class Translation:
                     job.get("provider") or config.get("model_provider") or "openai"
                 )
                 engine.provider = job["provider"]
-                job.update(state="running", stage="准备 PDF", message="")
-                self.save(job)
-                worker = Path(__file__).with_name("babeldoc_worker.py")
-                with (directory / "worker.log").open("ab") as log:
-                    process = await asyncio.create_subprocess_exec(
-                        interpreter,
-                        "-u",
-                        str(worker),
-                        stdin=asyncio.subprocess.PIPE,
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=log,
-                        limit=8 * 1024 * 1024,
-                        start_new_session=os.name != "nt",
-                    )
-                self.processes[job["id"]] = process
-                worker_config = {
-                    k: job[k] for k in ("source_path", "model", "lang_in", "lang_out")
-                }
-                worker_config["output_dir"] = str(directory)
-                process.stdin.write(
-                    (json.dumps(worker_config, ensure_ascii=False) + "\n").encode()
+                job.update(
+                    state="running", stage="准备 PDF", message="", started_at=now()
                 )
-                await process.stdin.drain()
-                artifacts = None
-                while True:
-                    try:
-                        line = await asyncio.wait_for(process.stdout.readline(), 300)
-                    except asyncio.TimeoutError:
-                        raise ValueError(
-                            "翻译组件长时间没有进展，已完成内容保留，可以继续翻译。"
-                        ) from None
-                    if not line:
-                        break
-                    try:
-                        event = json.loads(line)
-                    except ValueError:
-                        continue
-                    if event.get("type") == "translate":
-                        text = await self.cached_text(engine, job, event["text"])
-                        process.stdin.write(
-                            (
-                                json.dumps({"text": text}, ensure_ascii=False) + "\n"
-                            ).encode()
+                self.save(job)
+                artifacts = job["artifacts"] if self.ready_artifacts(job) else None
+                if not artifacts:
+                    pdf_started = time.monotonic()
+                    interpreter = await asyncio.to_thread(self.interpreter)
+                    worker = Path(__file__).with_name("babeldoc_worker.py")
+                    with (directory / "worker.log").open("ab") as log:
+                        process = await asyncio.create_subprocess_exec(
+                            interpreter,
+                            "-u",
+                            str(worker),
+                            stdin=asyncio.subprocess.PIPE,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=log,
+                            limit=8 * 1024 * 1024,
+                            start_new_session=os.name != "nt",
                         )
-                        await process.stdin.drain()
-                    elif event.get("type") == "progress":
-                        job.update(
-                            stage="生成双语 PDF",
-                            progress=max(
-                                0, min(95, float(event.get("progress", 0)) * 0.95)
-                            ),
-                        )
-                        self.save(job)
-                    elif event.get("type") == "error":
-                        raise ValueError(event["message"])
-                    elif event.get("type") == "finish":
-                        artifacts = {k: event[k] for k in ("mono", "dual", "mapping")}
-                if await process.wait() != 0 or not artifacts:
-                    raise ValueError("翻译组件未完成处理，已完成内容保留。")
+                    self.processes[job["id"]] = process
+                    worker_config = {
+                        k: job[k]
+                        for k in ("source_path", "model", "lang_in", "lang_out")
+                    }
+                    worker_config.update(
+                        output_dir=str(directory),
+                        request_concurrency=self.settings()["request_concurrency"],
+                    )
+                    process.stdin.write(
+                        (json.dumps(worker_config, ensure_ascii=False) + "\n").encode()
+                    )
+                    await process.stdin.drain()
+                    write_lock = asyncio.Lock()
+
+                    async def respond(event):
+                        reply = {"request_id": event["request_id"]}
+                        try:
+                            reply["text"] = await self.cached_text(
+                                engine, job, event["text"]
+                            )
+                        except Exception:  # noqa: BLE001 -- Never send provider diagnostics into the worker.
+                            reply["error"] = (
+                                "翻译模型请求未完成，请检查登录、额度或连接后重试。"
+                            )
+                        async with write_lock:
+                            process.stdin.write(
+                                (json.dumps(reply, ensure_ascii=False) + "\n").encode()
+                            )
+                            await process.stdin.drain()
+
+                    while True:
+                        try:
+                            line = await asyncio.wait_for(
+                                process.stdout.readline(), 300
+                            )
+                        except asyncio.TimeoutError:
+                            raise ValueError(
+                                "翻译组件长时间没有进展，已完成内容保留，可以继续翻译。"
+                            ) from None
+                        if not line:
+                            break
+                        try:
+                            event = json.loads(line)
+                        except ValueError:
+                            continue
+                        if event.get("type") == "translate":
+                            task = asyncio.create_task(respond(event))
+                            responses.add(task)
+                        elif event.get("type") == "progress":
+                            job.update(
+                                stage="翻译与排版",
+                                progress=max(
+                                    0, min(95, float(event.get("progress", 0)) * 0.95)
+                                ),
+                            )
+                            self.save(job)
+                        elif event.get("type") == "error":
+                            raise ValueError(event["message"])
+                        elif event.get("type") == "finish":
+                            artifacts = {
+                                k: event[k] for k in ("mono", "dual", "mapping")
+                            }
+                    await asyncio.gather(*responses)
+                    if await process.wait() != 0 or not artifacts:
+                        raise ValueError("翻译组件未完成处理，已完成内容保留。")
+                    job.setdefault("metrics", {})["pdf_seconds"] = round(
+                        time.monotonic() - pdf_started, 2
+                    )
                 for path in artifacts.values():
                     if (
                         not Path(path).resolve().is_relative_to(directory.resolve())
                         or not Path(path).is_file()
                     ):
                         raise ValueError("翻译输出文件无效。")
-                job.update(artifacts=artifacts, stage="对应中英句子", progress=96)
+                job.update(
+                    artifacts=artifacts,
+                    stage="双语 PDF 可读 · 正在对应中英句子",
+                    progress=96,
+                )
                 self.save(job)
                 mapping_path = Path(artifacts["mapping"])
                 mapping = json.loads(mapping_path.read_text())
-                await self.align(engine, job, mapping)
-                mapping_path.write_text(json.dumps(mapping, ensure_ascii=False))
+                align_started = time.monotonic()
+                await self.align(engine, job, mapping, mapping_path)
+                job.setdefault("metrics", {})["alignment_seconds"] = round(
+                    time.monotonic() - align_started, 2
+                )
                 if (
                     digest(Path(job["source_path"])) != job["source_version"]
                     or job["source_version"]
@@ -743,7 +1018,10 @@ class Translation:
         except asyncio.CancelledError:
             job.update(
                 state="interrupted" if self.closing else "cancelled",
-                message="翻译已停止，已完成内容保留。",
+                message="工作台已关闭，启动后将自动继续。"
+                if self.closing
+                else "翻译已停止，已完成内容保留。",
+                resume_on_start=self.closing,
             )
             self.save(job)
         except Exception as exc:  # noqa: BLE001 -- Persist failures without exposing provider diagnostics.
@@ -755,6 +1033,9 @@ class Translation:
             job.update(state="failed", message=safe)
             self.save(job)
         finally:
+            for task in responses:
+                task.cancel()
+            await asyncio.gather(*responses, return_exceptions=True)
             if process and process.returncode is None:
                 if os.name != "nt":
                     with contextlib.suppress(ProcessLookupError):
@@ -776,7 +1057,7 @@ class Translation:
 
     def artifact(self, job_id, kind):
         job = self.job(job_id)
-        if kind not in ("mono", "dual") or job["state"] != "completed":
+        if kind not in ("mono", "dual") or not self.ready_artifacts(job):
             raise ValueError("译文 PDF 尚未完成。")
         path = Path(job["artifacts"][kind]).resolve()
         if not path.is_relative_to(
@@ -797,7 +1078,7 @@ class Translation:
             or anchor.status == "stale"
         ):
             raise Conflict("选区与译文不属于当前论文版本。")
-        if job["state"] != "completed":
+        if not self.ready_artifacts(job):
             return {
                 "status": "unavailable",
                 "message": "整篇翻译完成后，这里会显示对应中文。",
@@ -825,4 +1106,5 @@ class Translation:
             job = self.job(job_id)
             if job["state"] in ACTIVE:
                 job.update(state="interrupted", message="工作台已关闭，可以继续翻译。")
+                job["resume_on_start"] = True
                 self.save(job)

@@ -1,5 +1,8 @@
 # Changelog
 
+- Add searchable batch background translation and bilingual library badges; share a persistent queue across browser sessions and automatically resume pending work after service restart.
+- Run multiple paper workers and multiplex independent Codex translation/alignment requests with configurable global limits (default two papers / four requests). Make finished PDFs readable before alignment completes and reuse saved PDFs on resume.
+
 ## Unreleased
 
 - Automatic Zotero and literature-folder checks default to every 10 minutes, with a manual refresh in the reading tools drawer. Index each sync poll's paper list once and limit the translation layout worker's CPU threads.

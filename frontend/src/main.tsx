@@ -36,6 +36,7 @@ import {
   TranslationPopover,
   type PdfView,
 } from "./ReadingTools";
+import { hasTranslation, TranslationBadge } from "./TranslationLibrary";
 const stages: Record<string, string> = {
   orient: "确定当前需要",
   insight: "抓住独特贡献",
@@ -90,6 +91,9 @@ export function App() {
     ),
   );
   const [translationJob, setTranslationJob] = useState<any>(null);
+  const [translationPdfJob, setTranslationPdfJob] = useState<any>(null);
+  const [translationIndex, setTranslationIndex] = useState<any>({});
+  const translatedRead = useRef("");
   const [pdfView, setPdfView] = useState<PdfView>("original");
   const [selection, setSelection] = useState<any>(null);
   const layout = useRef<HTMLDivElement>(null);
@@ -289,34 +293,45 @@ export function App() {
   const paper = context?.paper,
     session = context?.session?.[0];
   async function reloadTranslation() {
-    if (!paper) return;
-    const pid = paper.id,
-      version = paper.source_version;
+    const pid = paper?.id,
+      version = paper?.source_version;
     try {
-      const result = await api("translation/" + pid + "/jobs");
+      const result = await api("translation/jobs");
+      setTranslationIndex(result.papers || {});
+      if (!pid) return;
       if (
         selectedRef.current !== pid ||
         sourceRef.current?.source_version !== version
       )
         return;
       const current = result.data.find(
-        (j: any) => j.source_version === version && j.current !== false,
+        (j: any) =>
+          j.paper_id === pid &&
+          j.source_version === version &&
+          j.current !== false,
       );
       setTranslationJob(current || null);
-      if (!current || current.state !== "completed") setPdfView("original");
+      const readable = result.papers?.[pid];
+      setTranslationPdfJob(hasTranslation(readable) ? readable : null);
+      if (!hasTranslation(readable)) setPdfView("original");
+      else if (translatedRead.current === pid) {
+        setPdfView("dual");
+        translatedRead.current = "";
+      }
     } catch {
       /* Translation is optional; reading stays available. */
     }
   }
   useEffect(() => {
     setTranslationJob(null);
+    setTranslationPdfJob(null);
     setPdfView("original");
     setSelection(null);
-    if (!paper) return;
+    if (!ready) return;
     void reloadTranslation();
     const poll = setInterval(() => void reloadTranslation(), 4000);
     return () => clearInterval(poll);
-  }, [paper?.id, paper?.source_version]);
+  }, [ready, paper?.id, paper?.source_version]);
   const sourceRef = useRef<any>(null);
   useEffect(() => {
     if (!paper) return;
@@ -534,6 +549,7 @@ export function App() {
                       )[p.status]
                     }
                   </small>
+                  <TranslationBadge job={translationIndex[p.id]} />
                 </div>
               </button>
             ))}
@@ -656,6 +672,13 @@ export function App() {
             state={state}
             refresh={() => void refresh()}
             report={report}
+            onTranslationUpdate={() => void reloadTranslation()}
+            onReadTranslated={(pid) => {
+              translatedRead.current = pid;
+              select(pid);
+              setTab("read");
+              if (pid === paper?.id) void reloadTranslation();
+            }}
           />
         ) : !paper ? (
           <div className="welcome">
@@ -817,14 +840,14 @@ export function App() {
                       fitRequest={fitRequest}
                       fileUrl={
                         pdfView !== "original" &&
-                        translationJob?.state === "completed"
-                          ? `/api/translation/jobs/${translationJob.id}/pdf/${pdfView}`
+                        hasTranslation(translationPdfJob)
+                          ? `/api/translation/jobs/${translationPdfJob.id}/pdf/${pdfView}`
                           : undefined
                       }
                       documentKey={
                         pdfView === "original"
                           ? "original"
-                          : translationJob?.id + ":" + pdfView
+                          : translationPdfJob?.id + ":" + pdfView
                       }
                       derived={pdfView !== "original"}
                       focusAnchor={focusAnchor}
@@ -971,6 +994,7 @@ export function App() {
                       <TranslationTools
                         paper={paper}
                         job={translationJob}
+                        readableJob={translationPdfJob}
                         reload={() => void reloadTranslation()}
                         view={pdfView}
                         setView={(v) => {
@@ -980,6 +1004,16 @@ export function App() {
                         }}
                         open={toolsOpen && toolsTab === "translate"}
                       />
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setToolsOpen(false);
+                          setImmersive(false);
+                          setTab("settings");
+                        }}
+                      >
+                        打开文献库，批量后台翻译
+                      </button>
                     </div>
                     <section
                       ref={setCoachTools}
@@ -1040,7 +1074,7 @@ export function App() {
                 {selection && (
                   <TranslationPopover
                     selection={selection}
-                    job={translationJob}
+                    job={translationPdfJob}
                     onClose={() => setSelection(null)}
                     onSource={(a) => {
                       if (selection.view !== "original") setAnchor(a);

@@ -466,3 +466,118 @@
 .immersive .coach-compose-footer {
   justify-content: flex-end;
 }
+.translation-badge {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  background: #f0f1f3;
+  color: #59616b;
+}
+.translation-badge.ready {
+  background: #e8f2ec;
+  color: #386d50;
+}
+.translation-library h3 {
+  margin-top: 0;
+}
+.translation-library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 10px;
+}
+.translation-library-controls input {
+  flex: 1 1 240px;
+  min-width: 140px;
+}
+.translation-library-controls select {
+  width: auto;
+}
+.translation-library-list {
+  max-height: 420px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line, #e7e8eb);
+}
+.translation-library-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line, #e7e8eb);
+}
+.translation-paper-choice {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  cursor: pointer;
+  min-width: 0;
+}
+.translation-paper-choice input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 4px 0;
+  accent-color: #386d50;
+}
+.translation-paper-choice strong {
+  font-size: 13px;
+  line-height: 1.5;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.translation-paper-choice small {
+  display: block;
+  color: var(--muted, #7b8088);
+  margin-top: 3px;
+}
+.translation-paper-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 40%;
+}
+.translation-paper-status small {
+  flex-basis: 100%;
+  font-size: 11px;
+  color: var(--muted, #7b8088);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.translation-paper-status button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.translation-batch-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .translation-library-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .translation-paper-status {
+    max-width: 100%;
+    padding-left: 26px;
+    justify-content: flex-start;
+  }
+  .translation-paper-status small {
+    text-align: left;
+  }
+  .translation-batch-footer {
+    flex-wrap: wrap;
+  }
+}

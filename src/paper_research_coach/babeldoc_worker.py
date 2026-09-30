@@ -129,6 +129,23 @@ def run(config):
     if "document" not in inspect.signature(PDFCreater.__init__).parameters:
         raise ValueError("翻译组件接口不兼容。")
     request_lock = threading.Lock()
+    pending = {}
+    sequence = 0
+
+    def replies():
+        for line in sys.stdin:
+            reply = json.loads(line)
+            with request_lock:
+                item = pending.get(reply.get("request_id"))
+                if item:
+                    item["reply"] = reply
+                    item["ready"].set()
+        with request_lock:
+            for item in pending.values():
+                item["reply"] = {"error": "翻译连接已关闭，已完成内容保留。"}
+                item["ready"].set()
+
+    threading.Thread(target=replies, daemon=True).start()
 
     class CodexTranslator(BaseTranslator):
         name = "prc-codex"
@@ -138,12 +155,23 @@ def run(config):
             self.model = config["model"]
 
         def request(self, prompt):
+            nonlocal sequence
             with request_lock:
-                emit({"type": "translate", "text": prompt})
-                reply = json.loads(sys.stdin.readline())
+                sequence += 1
+                request_id = sequence
+                item = {"ready": threading.Event()}
+                pending[request_id] = item
+            try:
+                emit({"type": "translate", "request_id": request_id, "text": prompt})
+                if not item["ready"].wait(600):
+                    raise ValueError("翻译请求等待超时，已完成内容保留。")
+                reply = item["reply"]
                 if "error" in reply:
                     raise ValueError(reply["error"])
                 return reply["text"]
+            finally:
+                with request_lock:
+                    pending.pop(request_id, None)
 
         def do_translate(self, text, rate_limit_params=None):
             return self.request(
@@ -192,7 +220,8 @@ def run(config):
         working_dir=out / "work",
         debug=False,
         watermark_output_mode=WatermarkOutputMode.NoWatermark,
-        pool_max_workers=1,
+        pool_max_workers=max(1, min(8, config.get("request_concurrency", 4))),
+        qps=max(1, min(8, config.get("request_concurrency", 4))),
         term_pool_max_workers=1,
         auto_extract_glossary=False,
         use_alternating_pages_dual=False,

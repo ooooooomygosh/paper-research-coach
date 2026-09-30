@@ -9,6 +9,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { api, put, type Row, location } from "./api";
+import TranslationLibrary from "./TranslationLibrary";
 const fields: Record<string, string> = {
   problem: "研究问题",
   unique_observation: "独特观察",
@@ -659,10 +660,14 @@ export function Settings({
   state,
   refresh,
   report,
+  onTranslationUpdate,
+  onReadTranslated,
 }: {
   state: any;
   refresh: () => void;
   report: (s: string) => void;
+  onTranslationUpdate?: () => void;
+  onReadTranslated?: (paperId: string) => void;
 }) {
   const [collections, setCollections] = useState<any>(null),
     [selected, setSelected] = useState(state.sync.collection || ""),
@@ -682,6 +687,11 @@ export function Settings({
   }
   return (
     <div className="workspace-view settings">
+      <TranslationLibrary
+        papers={state.papers || []}
+        onUpdate={onTranslationUpdate}
+        onRead={onReadTranslated}
+      />
       <div className="view-heading">
         <span className="eyebrow">本机保存，按所选集合同步</span>
         <h2>Zotero 连接</h2>
@@ -723,7 +733,11 @@ export function Settings({
               ? "目录与 Zotero 已绑定。"
               : "仅目录已连接；选择 Zotero 集合后重新连接目录以完成绑定。"}{" "}
             已发现 {state.vault.pdf_count || 0} 份 PDF、
-            {state.vault.card_count || 0} 张论文卡。服务运行时每 30 秒检查一次。
+            {state.vault.card_count || 0} 张论文卡。服务运行时每{" "}
+            {(state.vault.poll_seconds || 600) >= 60
+              ? (state.vault.poll_seconds || 600) / 60 + " 分钟"
+              : state.vault.poll_seconds + " 秒"}
+            检查一次。
             {state.vault.message}
           </p>
         )}

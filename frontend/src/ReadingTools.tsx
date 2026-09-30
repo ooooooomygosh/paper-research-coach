@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api, id, type Row } from "./api";
+import { hasTranslation } from "./TranslationLibrary";
 
 export type PdfView = "original" | "mono" | "dual";
 
 export function TranslationTools({
   paper,
   job,
+  readableJob,
   reload,
   view,
   setView,
@@ -14,6 +16,7 @@ export function TranslationTools({
 }: {
   paper: Row;
   job: any;
+  readableJob?: any;
   reload: () => void;
   view: PdfView;
   setView: (v: PdfView) => void;
@@ -51,6 +54,8 @@ export function TranslationTools({
         effort: next.effort,
         lang_in: next.lang_in,
         lang_out: next.lang_out,
+        paper_concurrency: next.paper_concurrency ?? 2,
+        request_concurrency: next.request_concurrency ?? 4,
       });
       setError("");
     } catch (e) {
@@ -84,6 +89,8 @@ export function TranslationTools({
   }
   const selected = models.find((m) => m.model === profile?.model);
   const running = job && ["queued", "running"].includes(job.state);
+  const readJob = hasTranslation(job) ? job : readableJob;
+  const readable = hasTranslation(readJob);
   return (
     <section className="translation-tools">
       <h3>整篇双语翻译</h3>
@@ -160,6 +167,7 @@ export function TranslationTools({
               )[job.state]
             }
           </p>
+          {running && job.stage && <small>{job.stage}</small>}
           {running && (
             <progress
               aria-label="翻译进度"
@@ -194,7 +202,7 @@ export function TranslationTools({
           {job?.state === "completed" ? "重新生成整篇译文" : "生成整篇双语 PDF"}
         </button>
       )}
-      {job?.state === "completed" && (
+      {readable && (
         <>
           <label>
             阅读视图
@@ -210,13 +218,13 @@ export function TranslationTools({
           </label>
           <div className="translation-downloads">
             <a
-              href={`/api/translation/jobs/${job.id}/pdf/dual`}
+              href={`/api/translation/jobs/${readJob.id}/pdf/dual`}
               download={`${paper.title}.双语.pdf`}
             >
               下载双语 PDF
             </a>
             <a
-              href={`/api/translation/jobs/${job.id}/pdf/mono`}
+              href={`/api/translation/jobs/${readJob.id}/pdf/mono`}
               download={`${paper.title}.中文.pdf`}
             >
               下载中文 PDF
@@ -248,7 +256,7 @@ export function TranslationPopover({
     let disposed = false;
     setResult(null);
     setError("");
-    if (job?.state !== "completed") return;
+    if (!hasTranslation(job)) return;
     api(`translation/jobs/${job.id}/selection`, {
       anchor: selection.anchor,
       view: selection.view,
@@ -265,7 +273,7 @@ export function TranslationPopover({
     return () => {
       disposed = true;
     };
-  }, [job?.id, job?.state, selection]);
+  }, [job?.id, job?.state, job?.pdf_ready, selection]);
   useEffect(() => {
     function escape(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -300,7 +308,7 @@ export function TranslationPopover({
         {error ||
           result?.text ||
           result?.message ||
-          (job?.state === "completed"
+          (hasTranslation(job)
             ? "正在查找对应译文…"
             : "生成整篇双语 PDF 后，这里会显示对应中文。")}
       </p>
