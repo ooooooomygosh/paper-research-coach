@@ -1,4 +1,8 @@
-"""Build a wheel with prebuilt UI plus a portable skill ZIP. No private state is included."""
+"""Build the UI wheel, reproducible source distribution and portable skill ZIP.
+
+The source distribution uses the allowlist in pyproject.toml; no private state,
+credentials or node_modules are included.
+"""
 
 import shutil, subprocess, sys, zipfile
 from pathlib import Path
@@ -25,7 +29,7 @@ for package in ["pdfjs-dist", "react", "react-dom", "scheduler", "lucide-react"]
     if not source:
         raise RuntimeError("Missing third-party license: " + package)
     shutil.copyfile(source, licenses / (package + ".txt"))
-subprocess.run([sys.executable, "-m", "build", "--wheel"], check=True, cwd=root)
+subprocess.run([sys.executable, "-m", "build", "--sdist", "--wheel"], check=True, cwd=root)
 out = root / "dist"
 out.mkdir(exist_ok=True)
 version = "2.0.0rc4"
@@ -38,5 +42,5 @@ with zipfile.ZipFile(
     archive.write(root / "LICENSE", "paper-research-coach/LICENSE")
 print(
     "Release artifacts:",
-    *[p.name for p in out.iterdir() if p.suffix in (".zip", ".whl")],
+    *[p.name for p in out.iterdir() if p.suffix in (".zip", ".whl") or p.name.endswith(".tar.gz")],
 )
