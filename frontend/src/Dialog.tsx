@@ -29,7 +29,7 @@ export default function Dialog({ label, onClose, children, canClose = true }: {
         if (e.key === "Tab") {
           const dialog = e.currentTarget;
           const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
-            "button, [href], input, select, textarea, [tabindex]",
+            "button, [href], input, select, textarea, summary, [tabindex]",
           )).filter((element) => element.tabIndex >= 0 && !element.matches(":disabled") && element.getClientRects().length > 0);
           const first = controls[0], last = controls.at(-1);
           if (!first) { e.preventDefault(); dialog.focus(); }
