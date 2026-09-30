@@ -5,7 +5,7 @@
 .coach-mainline > .coach-pending-question { display: block; max-height: 90px; overflow: auto; }
 .reading-receipt p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .reading-receipt button { font-size: 11px; }
-.reader-toolbar { min-height: 51px; height: auto; flex-wrap: wrap; padding: 8px 12px; }
+.reader .reader-toolbar { min-height: 51px; height: auto; flex-wrap: wrap; padding: 8px 12px; }
 .reader-annotations { background: var(--tint); padding: 7px 14px; font-size: 12px; border-bottom: 1px solid var(--line); }
 .reader-annotations > div { max-height: 180px; overflow: auto; display: grid; gap: 5px; margin-top: 6px; }
 .reader-annotations button { text-align: left; min-width: 0; padding: 7px; }
