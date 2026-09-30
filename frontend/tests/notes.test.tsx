@@ -39,6 +39,37 @@ const tick = (ms: number) =>
     await vi.advanceTimersByTimeAsync(ms);
   });
 
+it("selecting a location waits for words instead of claiming an ongoing save", async () => {
+  render(
+    <Notes {...props} anchor={{ page_index: 0, quote: "Selected words" }} />,
+  );
+  await tick(600);
+  expect(write).not.toHaveBeenCalled();
+  expect(screen.getByText("位置已选，输入后自动保存")).toBeTruthy();
+  expect(screen.queryByText("正在保存…")).toBeNull();
+});
+
+it("retries the pending words even if the current editor was cleared", async () => {
+  write.mockRejectedValueOnce(new TypeError("offline"));
+  render(<Notes {...props} />);
+  fireEvent.change(screen.getByLabelText("记录想法"), {
+    target: { value: "pending words" },
+  });
+  await tick(450);
+  const first = write.mock.calls[0];
+  fireEvent.change(screen.getByLabelText("记录想法"), {
+    target: { value: "" },
+  });
+  await tick(600);
+  expect(write).toHaveBeenCalledTimes(2);
+  expect(write.mock.calls[1]).toEqual(first);
+  expect(localStorage.getItem("prc-draft-p-operation")).toBeNull();
+  expect(screen.getByText("内容为空，原笔记保持不变")).toBeTruthy();
+  expect((screen.getByLabelText("记录想法") as HTMLTextAreaElement).value).toBe(
+    "",
+  );
+});
+
 it("retries a disconnected save with exactly the same transaction", async () => {
   write.mockRejectedValueOnce(new TypeError("offline"));
   render(<Notes {...props} />);

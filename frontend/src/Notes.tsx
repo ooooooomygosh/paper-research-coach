@@ -107,6 +107,13 @@ export default function Notes({
       update(next);
     }
   }, [anchor]);
+  function emptyStatus(value: any) {
+    return value.revision > 0
+      ? "内容为空，原笔记保持不变"
+      : value.anchor
+        ? "位置已选，输入后自动保存"
+        : "";
+  }
   function update(next: any) {
     if (
       next.content !== current.current.content ||
@@ -116,12 +123,16 @@ export default function Notes({
     current.current = next;
     setDraft(next);
     localStorage.setItem(key, JSON.stringify(next));
-    setStatus("正在保存…");
+    setStatus(next.content.trim() ? "正在保存…" : emptyStatus(next));
     clearTimeout(timer.current);
     timer.current = setTimeout(() => void save(), 450);
   }
   async function save() {
-    if (busy.current || !current.current.content.trim()) return;
+    if (busy.current) return;
+    if (!current.current.content.trim() && !retry.current) {
+      if (alive.current) setStatus(emptyStatus(current.current));
+      return;
+    }
     const same = latestNotes.current.find(
       (n) =>
         n.id === current.current.id &&
@@ -164,7 +175,13 @@ export default function Notes({
       if (cachedJob()?.op === job.op) localStorage.removeItem(jobKey);
       if (alive.current) {
         setDraft(next);
-        setStatus(next.discussed ? "已保存 · 已讨论" : "已保存 · 等待讨论");
+        setStatus(
+          next.content.trim()
+            ? next.discussed
+              ? "已保存 · 已讨论"
+              : "已保存 · 等待讨论"
+            : emptyStatus(next),
+        );
         refresh();
       }
       if (alive.current && changed)

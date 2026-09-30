@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0rc3 (release candidate)
+
+- Show a waiting-for-input message when a PDF location is selected without note text.
+- Complete an interrupted note transaction even when its editor has since been cleared, while preserving the saved original. Added two regression checks; 17 frontend checks pass.
+
 ## 2.0.0rc2 (release candidate)
 
 - Resolve arXiv metadata from the exact PDF version, with structured authors and verified arXiv DOI, when registry lookup is incomplete.

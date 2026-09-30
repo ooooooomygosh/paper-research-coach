@@ -30,7 +30,7 @@ for package in ["pdfjs-dist", "react", "react-dom", "scheduler", "lucide-react"]
 subprocess.run([sys.executable, "-m", "build", "--wheel"], check=True, cwd=root)
 out = root / "dist"
 out.mkdir(exist_ok=True)
-version = "2.0.0rc2"
+version = "2.0.0rc3"
 with zipfile.ZipFile(
     out / f"paper-research-coach-skill-{version}.zip", "w", zipfile.ZIP_DEFLATED
 ) as archive:

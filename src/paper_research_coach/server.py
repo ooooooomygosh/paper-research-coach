@@ -150,7 +150,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             "papers": store.list("paper"),
             "sync": sync.state(),
             "conflicts": sync.conflicts(),
-            "version": "2.0.0rc2",
+            "version": "2.0.0rc3",
             "vault": vault.state(),
             "vault_conflicts": vault.conflicts(),
         }

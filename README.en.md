@@ -2,7 +2,7 @@
 
 A portable Agent Skill and local reading workbench for graduate researchers. Move from choosing a paper to explaining its contribution, testing its evidence, preserving your own thoughts, developing falsifiable questions, and preparing recall or presentations.
 
-**2.0.0rc2 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
+**2.0.0rc3 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
 
 [中文](README.md) · [Design rationale](docs/DESIGN.md) · [Sources](docs/SOURCES.md) · [Verification scope](docs/TESTING.md)
 
@@ -31,7 +31,7 @@ Python 3.10+ is required. Download the wheel from Releases:
 ```bash
 python3 -m venv ~/.venvs/paper-research-coach
 source ~/.venvs/paper-research-coach/bin/activate
-python -m pip install /path/to/paper_research_coach-2.0.0rc2-py3-none-any.whl
+python -m pip install /path/to/paper_research_coach-2.0.0rc3-py3-none-any.whl
 prc install-skill --host codex
 prc serve
 ```
