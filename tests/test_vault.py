@@ -238,3 +238,13 @@ def test_metadata_pending_does_not_block_other_papers(tmp_path, store, pdf):
     state = v.run()
     assert seen == [p["id"] for p in papers] and state["state"] == "attention"
     assert len(state["pending_metadata"]) == 1
+
+
+def test_manual_scan_works_while_automatic_sync_is_paused(tmp_path, store, pdf):
+    v, root, paper = setup(tmp_path, store, pdf)
+    state = v.state() | {"enabled": False, "last_scan": "paused"}
+    store.set_setting("vault", state)
+    assert v.run()["last_scan"] == "paused"
+    assert v.run(manual=True)["last_scan"] != "paused"
+    assert not v.state()["enabled"]
+    assert store.get("paper", paper["id"])["source_version"]

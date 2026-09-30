@@ -17,7 +17,12 @@ vi.mock("../src/api", async (original) => ({
   api: vi.fn(),
 }));
 beforeEach(() => {
-  vi.stubGlobal("EventSource", class { close() {} });
+  vi.stubGlobal(
+    "EventSource",
+    class {
+      close() {}
+    },
+  );
 });
 afterEach(() => {
   cleanup();
@@ -101,14 +106,81 @@ it("forgets a selected paper that belongs to a different local library", async (
 });
 
 it("keeps the library hidden across reloads and brings it back on demand", async () => {
-  vi.mocked(api).mockImplementation(async (path) => path === "state" ? { papers: [], sync: {}, conflicts: [] } : {});
+  vi.mocked(api).mockImplementation(async (path) =>
+    path === "state" ? { papers: [], sync: {}, conflicts: [] } : {},
+  );
   const first = render(<App />);
-  fireEvent.click(await screen.findByRole("button", {name: "隐藏论文栏"}));
+  expect(screen.queryByRole("heading", { name: "我的论文" })).toBeNull();
+  fireEvent.click(await screen.findByRole("button", { name: "显示论文栏" }));
+  fireEvent.click(screen.getByRole("button", { name: "隐藏论文栏" }));
   expect(localStorage.getItem("prc-sidebar-hidden")).toBe("true");
-  expect(screen.queryByRole("heading", {name: "我的论文"})).toBeNull();
+  expect(screen.queryByRole("heading", { name: "我的论文" })).toBeNull();
   first.unmount();
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", {name: "显示论文栏"}));
-  expect(screen.getByRole("heading", {name: "我的论文"})).toBeTruthy();
+  fireEvent.click(await screen.findByRole("button", { name: "显示论文栏" }));
+  expect(screen.getByRole("heading", { name: "我的论文" })).toBeTruthy();
   expect(localStorage.getItem("prc-sidebar-hidden")).toBe("false");
+});
+
+it("preserves the draft and mounted conversation across immersive mode", async () => {
+  const paper = {
+    id: "p",
+    revision: 1,
+    title: "Quiet reading",
+    source_version: "v",
+    source_path: "source.pdf",
+    page_count: 2,
+    status: "reading",
+  };
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "state")
+      return {
+        papers: [paper],
+        sync: { collection: "configured" },
+        conflicts: [],
+      };
+    if (path === "context/p")
+      return {
+        paper,
+        session: [
+          { id: "s", revision: 1, goal: "Check evidence", stage: "evidence" },
+        ],
+        notes: [],
+        seq: 1,
+      };
+    if (path === "coach/status")
+      return { state: "ready", models: [], message: "Connected" };
+    if (path.startsWith("coach/conversation/"))
+      return {
+        conversation_id: "c",
+        canonical_conversation_id: "c",
+        conversations: [{ id: "c", title: "阅读" }],
+        messages: [],
+        busy: false,
+      };
+    if (path === "translation/p/jobs") return { data: [] };
+    if (path === "translation/settings")
+      return { model: "gpt-6-luna", effort: "low", component: { ready: true } };
+    return {};
+  });
+  const rendered = render(<App />);
+  const input = (await screen.findByLabelText(
+    "发给论文教练的消息",
+  )) as HTMLTextAreaElement;
+  fireEvent.change(input, { target: { value: "An unfinished thought" } });
+  expect(screen.queryByRole("combobox", { name: "教练模型" })).toBeNull();
+  fireEvent.click(screen.getByLabelText("进入沉浸模式"));
+  expect(rendered.container.querySelector(".immersive")).toBeTruthy();
+  expect(screen.getByLabelText("发给论文教练的消息")).toBe(input);
+  fireEvent.click(screen.getByLabelText("更多阅读工具"));
+  fireEvent.click(screen.getByRole("button", { name: "刷新同步" }));
+  await waitFor(() =>
+    expect(vi.mocked(api)).toHaveBeenCalledWith("sync/refresh", {}),
+  );
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(rendered.container.querySelector(".immersive")).toBeTruthy();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(rendered.container.querySelector(".immersive")).toBeNull();
+  expect(screen.getByLabelText("发给论文教练的消息")).toBe(input);
+  expect(input.value).toBe("An unfinished thought");
 });

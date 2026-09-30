@@ -91,7 +91,7 @@ async def drained(coach):
     await asyncio.gather(*list(coach.tasks))
 
 
-def test_send_persists_exact_words_loads_skill_and_deduplicates(store, paper, anchor):
+def test_send_persists_exact_words_and_small_prompt_once(store, paper, anchor):
     async def run():
         coach = Coach(store, FakeRPC)
         body = Send(operation_id="once", content="  原话\n不是总结。  ", anchor=anchor)
@@ -104,10 +104,14 @@ def test_send_persists_exact_words_loads_skill_and_deduplicates(store, paper, an
         assert messages[1]["status"] == "completed"
         assert not store.list("note", paper["id"])
         turn = next(p for m, p in coach.rpc.calls if m == "turn/start")
-        assert turn["input"][0]["type"] == "skill"
-        assert turn["input"][0]["path"].endswith("paper-research-coach/SKILL.md")
-        assert turn["input"][1]["text"].endswith(body.content)
-        assert paper["source_path"] not in turn["input"][1]["text"]
+        started = next(p for m,p in coach.rpc.calls if m == "thread/start")
+        assert len(started["developerInstructions"]) <= 3000
+        assert len(turn["input"][0]["text"]) <= 300
+        assert turn["input"][-1]["text"] == body.content
+        assert "Budget-matched evidence" in turn["input"][1]["text"]
+        assert all(x["type"] == "text" for x in turn["input"])
+        assert "Synthetic research paper" not in str(turn)
+        assert paper["source_path"] not in str(turn)
         with pytest.raises(Conflict):
             await coach.send(
                 paper["id"], body.model_copy(update={"content": "不同内容"})
@@ -338,7 +342,7 @@ def test_workbench_tools_are_scoped_and_keep_original_words(store, paper):
         coach.tool_call(state, "prc_next_action", args, "late")
 
 
-def test_only_reuses_threads_bound_to_this_paper_and_new_dialogue_is_empty(
+def test_only_reuses_threads_bound_to_this_paper_and_connect_is_idempotent(
     store, paper
 ):
     async def run():
@@ -362,8 +366,8 @@ def test_only_reuses_threads_bound_to_this_paper_and_new_dialogue_is_empty(
         with pytest.raises(ValueError, match="当前论文"):
             await coach.connect(paper["id"], "unrelated-cli")
         fresh = await coach.connect(paper["id"], new=True)
-        assert fresh["id"] != first["id"]
-        assert coach.messages(fresh["id"]) == []
+        assert fresh["id"] == first["id"]
+        assert coach.messages(fresh["id"])[0]["content"] == "Original question"
         assert coach.messages(first["id"])[0]["content"] == "Original question"
         assert not coach.rpc.calls
         with pytest.raises(ValueError):
@@ -440,7 +444,7 @@ def test_cli_uses_the_conversation_selected_in_the_workbench(store, paper):
     asyncio.run(run())
 
 
-def test_provider_change_keeps_dialogue_and_loads_skill_in_new_native_thread(
+def test_provider_change_resumes_same_native_thread_without_history_copy(
     store, paper
 ):
     async def run():
@@ -466,11 +470,12 @@ def test_provider_change_keeps_dialogue_and_loads_skill_in_new_native_thread(
         await drained(coach)
         assert again["conversation_id"] == sent["conversation_id"]
         new = coach.conversation(conversation["id"])
-        assert new["thread_id"] != old_thread
-        assert new["previous_thread_ids"] == [old_thread]
+        assert new["thread_id"] == old_thread
+        assert not new.get("previous_thread_ids")
+        assert any(m == "thread/resume" and p["threadId"] == old_thread for m,p in coach.rpc.calls)
         turn = [p for m, p in coach.rpc.calls if m == "turn/start"][-1]
-        assert turn["input"][0]["type"] == "skill"
-        assert "Keep this thought" in turn["input"][1]["text"]
+        assert turn["input"][-1]["text"] == "Continue"
+        assert "Keep this thought" not in str(turn)
 
     asyncio.run(run())
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   getDocument,
   GlobalWorkerOptions,
@@ -28,14 +29,24 @@ export default function PdfReader({
   focusAnchor,
   notes = [],
   onLocateNote,
+  toolsContainer,
+  fitRequest = 0,
+  fileUrl,
+  documentKey = "original",
+  derived = false,
 }: {
   paper: Row;
   page: number;
   setPage: (n: number) => void;
-  onAnchor: (a: any) => void;
+  onAnchor: (a: any, placement?: { x: number; y: number }) => void;
   focusAnchor: any;
   notes?: Row[];
   onLocateNote?: (a: any) => void;
+  toolsContainer?: HTMLElement | null;
+  fitRequest?: number;
+  fileUrl?: string;
+  documentKey?: string;
+  derived?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     layer = useRef<HTMLDivElement>(null),
@@ -51,8 +62,82 @@ export default function PdfReader({
     [rendered, setRendered] = useState("");
   const labels = useRef<string[] | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  const [fitWidth, setFitWidth] = useState(false);
-  const renderKey = paper.id + ":" + paper.source_version + ":" + page;
+  const [fitWidth, setFitWidth] = useState(true);
+  const positionKey = "prc-viewport-" + paper.id + ":" + paper.source_version;
+  const savedScroll = useRef({ top: 0, left: 0 });
+  const restoredPage = useRef<number | null>(null);
+  const restoring = useRef(true);
+  const renderKey =
+    paper.id + ":" + paper.source_version + ":" + documentKey + ":" + page;
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(positionKey) || "{}");
+      setFitWidth(saved.fit !== false);
+      if (Number.isFinite(saved.zoom))
+        setZoom(Math.max(0.25, Math.min(2.5, saved.zoom)));
+      savedScroll.current = {
+        top: Number(saved.top) || 0,
+        left: Number(saved.left) || 0,
+      };
+      restoredPage.current = Number.isInteger(saved.page) ? saved.page : null;
+    } catch {
+      savedScroll.current = { top: 0, left: 0 };
+    }
+    restoring.current = true;
+  }, [positionKey]);
+  useEffect(() => {
+    restoring.current = true;
+  }, [documentKey]);
+  const lastPosition = useRef({ key: positionKey, page });
+  useEffect(() => {
+    const loadingSavedPage = restoredPage.current === page;
+    if (
+      lastPosition.current.key === positionKey &&
+      lastPosition.current.page !== page &&
+      !loadingSavedPage
+    ) {
+      savedScroll.current = { top: 0, left: 0 };
+      restoring.current = true;
+    }
+    if (loadingSavedPage) restoredPage.current = null;
+    lastPosition.current = { key: positionKey, page };
+  }, [page, positionKey]);
+  useEffect(() => {
+    if (fitRequest) {
+      setFitWidth(true);
+      fit();
+    }
+  }, [fitRequest]);
+  function rememberScroll() {
+    const box = scroller.current;
+    if (!box || restoring.current || rendered !== renderKey) return;
+    savedScroll.current = {
+      top: box.scrollTop / Math.max(1, box.scrollHeight - box.clientHeight),
+      left: box.scrollLeft / Math.max(1, box.scrollWidth - box.clientWidth),
+    };
+    localStorage.setItem(
+      positionKey,
+      JSON.stringify({ ...savedScroll.current, zoom, fit: fitWidth, page }),
+    );
+  }
+  useEffect(() => {
+    if (rendered !== renderKey || !scroller.current) return;
+    if (fitWidth) fit();
+    if (restoring.current) {
+      const box = scroller.current;
+      box.scrollTop =
+        savedScroll.current.top *
+        Math.max(0, box.scrollHeight - box.clientHeight);
+      box.scrollLeft =
+        savedScroll.current.left *
+        Math.max(0, box.scrollWidth - box.clientWidth);
+      restoring.current = false;
+    }
+    localStorage.setItem(
+      positionKey,
+      JSON.stringify({ ...savedScroll.current, zoom, fit: fitWidth, page }),
+    );
+  }, [rendered, zoom, fitWidth]);
   function fit() {
     const v = viewport.current,
       box = scroller.current;
@@ -62,8 +147,13 @@ export default function PdfReader({
       box.clientWidth -
       parseFloat(style.paddingLeft || "0") -
       parseFloat(style.paddingRight || "0");
-    if (width > 0)
-      setZoom(Math.max(0.25, Math.min(2.5, (width * zoom) / v.width)));
+    if (width > 0) {
+      const next = Math.max(0.25, Math.min(2.5, (width * v.scale) / v.width));
+      if (Math.abs(next - zoom) > 0.005) {
+        restoring.current = true;
+        setZoom(next);
+      }
+    }
   }
   useEffect(() => {
     if (!fitWidth || !scroller.current || typeof ResizeObserver === "undefined")
@@ -72,7 +162,7 @@ export default function PdfReader({
     observer.observe(scroller.current);
     return () => observer.disconnect();
   }, [fitWidth, zoom, rendered]);
-  const pageNotes = notes.filter(
+  const pageNotes = (derived ? [] : notes).filter(
     (n) =>
       n.paper_id === paper.id &&
       n.anchor?.paper_id === paper.id &&
@@ -103,7 +193,7 @@ export default function PdfReader({
     setRegion(false);
     labels.current = null;
     const load = getDocument({
-      url: "/api/pdf/" + paper.id,
+      url: fileUrl || "/api/pdf/" + paper.id,
       withCredentials: true,
       cMapUrl: "/pdf-assets/cmaps/",
       cMapPacked: true,
@@ -125,7 +215,7 @@ export default function PdfReader({
       disposed = true;
       void load.destroy();
     };
-  }, [paper.id, paper.source_version]);
+  }, [paper.id, paper.source_version, fileUrl, documentKey]);
   useEffect(() => {
     if (!doc || !canvas.current || !layer.current) return;
     const bounded = Math.max(0, Math.min(page, doc.numPages - 1));
@@ -157,6 +247,8 @@ export default function PdfReader({
           viewport: v,
           transform: [devicePixelRatio, 0, 0, devicePixelRatio, 0, 0],
         });
+        // Cancellation may happen while text content is still loading.
+        void render.promise.catch(() => {});
         const content = await p.getTextContent();
         if (disposed) return;
         setScan(!content.items.length);
@@ -182,7 +274,7 @@ export default function PdfReader({
       render?.cancel();
       text?.cancel();
     };
-  }, [doc, page, zoom, paper.id, paper.source_version]);
+  }, [doc, page, zoom, paper.id, paper.source_version, documentKey]);
   function coords(
     rect:
       DOMRect | { left: number; top: number; right: number; bottom: number },
@@ -228,6 +320,10 @@ export default function PdfReader({
           rects,
           page_label: labels.current?.[page] || "",
         }),
+        {
+          x: s.getRangeAt(0).getBoundingClientRect().left,
+          y: s.getRangeAt(0).getBoundingClientRect().bottom + 8,
+        },
       );
   }
   function regionEnd(e: React.PointerEvent) {
@@ -253,6 +349,7 @@ export default function PdfReader({
     setRegion(false);
   }
   const focused =
+    !derived &&
     rendered === renderKey &&
     focusAnchor?.paper_id === paper.id &&
     focusAnchor?.status === "verified" &&
@@ -262,6 +359,7 @@ export default function PdfReader({
       : [];
   useEffect(() => {
     if (
+      !derived &&
       rendered === renderKey &&
       focusAnchor?.paper_id === paper.id &&
       focusAnchor?.status === "verified" &&
@@ -304,113 +402,237 @@ export default function PdfReader({
         }
       }}
     >
-      <div className="reader-toolbar">
-        <button
-          aria-label="上一页"
-          disabled={page === 0}
-          onClick={() => setPage(page - 1)}
-        >
-          <ChevronLeft size={17} />
-        </button>
-        <label>
-          第{" "}
-          <input
-            aria-label="PDF 页码"
-            type="number"
-            min="1"
-            max={paper.page_count || 1}
-            value={page + 1}
-            onChange={(e) =>
-              setPage(
-                Math.max(
-                  0,
-                  Math.min(paper.page_count - 1, Number(e.target.value) - 1),
-                ),
-              )
-            }
-          />{" "}
-          / {paper.page_count} 页
-        </label>
-        <button
-          aria-label="下一页"
-          disabled={page >= paper.page_count - 1}
-          onClick={() => setPage(page + 1)}
-        >
-          <ChevronRight size={17} />
-        </button>
-        <span className="toolbar-space" />
-        <button
-          aria-label="缩小"
-          onClick={() => {
-            setFitWidth(false);
-            setZoom(Math.max(0.25, zoom - 0.15));
-          }}
-        >
-          <ZoomOut size={16} />
-        </button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button
-          aria-label="放大"
-          onClick={() => {
-            setFitWidth(false);
-            setZoom(Math.min(2.5, zoom + 0.15));
-          }}
-        >
-          <ZoomIn size={16} />
-        </button>
-        <button
-          aria-label="适应宽度"
-          aria-pressed={fitWidth}
-          onClick={() => {
-            setFitWidth(true);
-            fit();
-          }}
-        >
-          适宽
-        </button>
-        <button
-          className={region ? "active" : ""}
-          onClick={() => setRegion(!region)}
-        >
-          {region ? <MousePointer2 size={16} /> : <Scan size={16} />}框选
-        </button>
-      </div>
-      <PdfNavigation
-        doc={doc}
-        sourceKey={paper.id + ":" + paper.source_version}
-        page={page}
-        onNavigate={setPage}
-      />
-      {scan && (
-        <div className="notice">
-          这一页没有可提取文字。可以框选图表或扫描文字，在教练对话中附上整页图像一起阅读。
-        </div>
-      )}
-      {!!pageNotes.length && (
-        <details className="reader-annotations">
-          <summary>本页批注 · {pageNotes.length}</summary>
-          <div>
-            {pageNotes.map((n) => (
+      {toolsContainer ? (
+        createPortal(
+          <div className="pdf-tools-content">
+            {" "}
+            <div className="reader-toolbar">
               <button
-                key={n.id}
-                onClick={() => onLocateNote?.(n.anchor)}
-                title={n.content}
+                aria-label="上一页"
+                disabled={page === 0}
+                onClick={() => setPage(page - 1)}
               >
-                <b>
-                  {n.author === "assistant"
-                    ? "AI 评论"
-                    : n.author === "external"
-                      ? "Zotero 笔记"
-                      : "我的原话"}
-                  {n.read_only ? " · 只读" : ""}
-                </b>
-                <span>{n.content}</span>
+                <ChevronLeft size={17} />
               </button>
-            ))}
+              <label>
+                第{" "}
+                <input
+                  aria-label="PDF 页码"
+                  type="number"
+                  min="1"
+                  max={paper.page_count || 1}
+                  value={page + 1}
+                  onChange={(e) =>
+                    setPage(
+                      Math.max(
+                        0,
+                        Math.min(
+                          paper.page_count - 1,
+                          Number(e.target.value) - 1,
+                        ),
+                      ),
+                    )
+                  }
+                />{" "}
+                / {paper.page_count} 页
+              </label>
+              <button
+                aria-label="下一页"
+                disabled={page >= paper.page_count - 1}
+                onClick={() => setPage(page + 1)}
+              >
+                <ChevronRight size={17} />
+              </button>
+              <span className="toolbar-space" />
+              <button
+                aria-label="缩小"
+                onClick={() => {
+                  setFitWidth(false);
+                  setZoom(Math.max(0.25, zoom - 0.15));
+                }}
+              >
+                <ZoomOut size={16} />
+              </button>
+              <span>{Math.round(zoom * 100)}%</span>
+              <button
+                aria-label="放大"
+                onClick={() => {
+                  setFitWidth(false);
+                  setZoom(Math.min(2.5, zoom + 0.15));
+                }}
+              >
+                <ZoomIn size={16} />
+              </button>
+              <button
+                aria-label="适应宽度"
+                aria-pressed={fitWidth}
+                onClick={() => {
+                  setFitWidth(true);
+                  fit();
+                }}
+              >
+                适宽
+              </button>
+              <button
+                className={region ? "active" : ""}
+                onClick={() => setRegion(!region)}
+              >
+                {region ? <MousePointer2 size={16} /> : <Scan size={16} />}框选
+              </button>
+            </div>
+            <PdfNavigation
+              doc={doc}
+              sourceKey={paper.id + ":" + paper.source_version}
+              page={page}
+              onNavigate={setPage}
+            />
+            {scan && (
+              <div className="notice">
+                这一页没有可提取文字。可以框选图表或扫描文字，在教练对话中附上整页图像一起阅读。
+              </div>
+            )}
+            {!!pageNotes.length && (
+              <details className="reader-annotations">
+                <summary>本页批注 · {pageNotes.length}</summary>
+                <div>
+                  {pageNotes.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => onLocateNote?.(n.anchor)}
+                      title={n.content}
+                    >
+                      <b>
+                        {n.author === "assistant"
+                          ? "AI 评论"
+                          : n.author === "external"
+                            ? "Zotero 笔记"
+                            : "我的原话"}
+                        {n.read_only ? " · 只读" : ""}
+                      </b>
+                      <span>{n.content}</span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>,
+          toolsContainer,
+        )
+      ) : (
+        <>
+          {" "}
+          <div className="reader-toolbar">
+            <button
+              aria-label="上一页"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
+              <ChevronLeft size={17} />
+            </button>
+            <label>
+              第{" "}
+              <input
+                aria-label="PDF 页码"
+                type="number"
+                min="1"
+                max={paper.page_count || 1}
+                value={page + 1}
+                onChange={(e) =>
+                  setPage(
+                    Math.max(
+                      0,
+                      Math.min(
+                        paper.page_count - 1,
+                        Number(e.target.value) - 1,
+                      ),
+                    ),
+                  )
+                }
+              />{" "}
+              / {paper.page_count} 页
+            </label>
+            <button
+              aria-label="下一页"
+              disabled={page >= paper.page_count - 1}
+              onClick={() => setPage(page + 1)}
+            >
+              <ChevronRight size={17} />
+            </button>
+            <span className="toolbar-space" />
+            <button
+              aria-label="缩小"
+              onClick={() => {
+                setFitWidth(false);
+                setZoom(Math.max(0.25, zoom - 0.15));
+              }}
+            >
+              <ZoomOut size={16} />
+            </button>
+            <span>{Math.round(zoom * 100)}%</span>
+            <button
+              aria-label="放大"
+              onClick={() => {
+                setFitWidth(false);
+                setZoom(Math.min(2.5, zoom + 0.15));
+              }}
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              aria-label="适应宽度"
+              aria-pressed={fitWidth}
+              onClick={() => {
+                setFitWidth(true);
+                fit();
+              }}
+            >
+              适宽
+            </button>
+            <button
+              className={region ? "active" : ""}
+              onClick={() => setRegion(!region)}
+            >
+              {region ? <MousePointer2 size={16} /> : <Scan size={16} />}框选
+            </button>
           </div>
-        </details>
+          <PdfNavigation
+            doc={doc}
+            sourceKey={paper.id + ":" + paper.source_version}
+            page={page}
+            onNavigate={setPage}
+          />
+          {scan && (
+            <div className="notice">
+              这一页没有可提取文字。可以框选图表或扫描文字，在教练对话中附上整页图像一起阅读。
+            </div>
+          )}
+          {!!pageNotes.length && (
+            <details className="reader-annotations">
+              <summary>本页批注 · {pageNotes.length}</summary>
+              <div>
+                {pageNotes.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => onLocateNote?.(n.anchor)}
+                    title={n.content}
+                  >
+                    <b>
+                      {n.author === "assistant"
+                        ? "AI 评论"
+                        : n.author === "external"
+                          ? "Zotero 笔记"
+                          : "我的原话"}
+                      {n.read_only ? " · 只读" : ""}
+                    </b>
+                    <span>{n.content}</span>
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
+        </>
       )}
-      <div className="pdf-scroll" ref={scroller}>
+      <div className="pdf-scroll" ref={scroller} onScroll={rememberScroll}>
         {error && (
           <div className="notice" role="alert">
             {error}
@@ -423,10 +645,13 @@ export default function PdfReader({
             ref={frame}
             className="pdf-page"
             data-paper-id={paper.id}
-            data-source-version={paper.source_version}
+            data-source-version={derived ? documentKey : paper.source_version}
+            data-derived={derived ? documentKey : undefined}
             data-page-index={rendered === renderKey ? page : -1}
             style={size}
             onMouseUp={selected}
+            onKeyUp={selected}
+            onTouchEnd={() => window.setTimeout(selected, 200)}
           >
             <canvas ref={canvas} />
             <div ref={layer} className="textLayer" />
@@ -506,9 +731,11 @@ export default function PdfReader({
           </div>
         )}
       </div>
-      <div className="reader-footer">
-        选中文字或框选区域，让想法有出处。原始 PDF 保持完整。
-      </div>
+      {!toolsContainer && (
+        <div className="reader-footer">
+          选中文字或框选区域，让想法有出处。原始 PDF 保持完整。
+        </div>
+      )}
     </div>
   );
 }

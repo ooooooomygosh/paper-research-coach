@@ -44,7 +44,9 @@ def test_omitted_notes_can_be_read_in_exact_scoped_chunks(store, paper):
         for i in range(30):
             store.put("note", {"id": f"note-{i}", "paper_id": paper["id"], "content": f"完整原话 {i}\n" * 1000})
         context = coach.tool_call(state, "prc_context", {}, "context")
-        included = {n["id"] for n in context["notes"]}
+        assert context["notes_total"] == 30
+        assert "notes" not in context
+        included = set()
         omitted = next(n for n in store.list("note", paper["id"]) if n["id"] not in included)
         chunk = coach.tool_call(state, "prc_read_note", {"note_id": omitted["id"], "start": 200, "length": 500}, "read")
         assert chunk["content"] == omitted["content"][200:700]

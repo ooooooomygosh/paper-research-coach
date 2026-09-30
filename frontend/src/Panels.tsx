@@ -635,7 +635,14 @@ export function Reviews({
               r.attempts.map((a: any, i: number) => (
                 <blockquote key={i}>
                   <span className="small">
-                    {new Date(a.at).toLocaleString()} · {({none: "独立完成", hint: "看了提示", worked: "看了完整解释"} as Record<string, string>)[a.assistance] || "帮助程度待确认"}
+                    {new Date(a.at).toLocaleString()} ·{" "}
+                    {(
+                      {
+                        none: "独立完成",
+                        hint: "看了提示",
+                        worked: "看了完整解释",
+                      } as Record<string, string>
+                    )[a.assistance] || "帮助程度待确认"}
                   </span>
                   <p className="preserve">{a.answer}</p>
                 </blockquote>
@@ -776,8 +783,8 @@ export function Settings({
         </div>
         {state.sync.message && <p className="notice">{state.sync.message}</p>}
         <p className="muted">
-          笔记先保存在本机。工作台运行时自动同步所选集合，关闭 Zotero
-          后仍可阅读和记笔记。
+          笔记先保存在本机。工作台运行时每 10
+          分钟自动同步，也可立即手动同步。关闭 Zotero 后仍可阅读和记笔记。
         </p>
         <button
           disabled={busy}

@@ -1,0 +1,468 @@
+/* Reading surfaces stay mounted across mode changes. */
+.main-shell.reading-open {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.reading-open .paper-heading,
+.reading-open > .current-task {
+  display: none;
+}
+.reading-open .topbar {
+  height: 52px;
+  min-height: 52px;
+  padding: 6px 14px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.reading-open .topbar-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  min-width: 40px;
+}
+.reading-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.reading-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  background: transparent;
+  border: 0;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.reading-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.reading-toolbar input {
+  width: 48px;
+  padding: 5px;
+  text-align: center;
+  font-size: 12px;
+}
+.reading-open .reading-layout {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+}
+.reading-open .reader {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+}
+.reading-open .pdf-scroll {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+  overscroll-behavior: contain;
+}
+.reading-open .research-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 0;
+}
+.reading-open .coach-surface {
+  height: 100%;
+  min-height: 0;
+}
+.reading-open .coach-panel {
+  height: 100%;
+  min-height: 0;
+}
+.reading-open .coach-heading {
+  padding: 10px 16px;
+  min-height: 40px;
+}
+.reading-open .coach-heading > div {
+  font-size: 13px;
+}
+.reading-open .coach-ready {
+  display: none;
+}
+.reading-open .coach-messages {
+  min-height: 0;
+  padding: 12px 18px;
+}
+.reading-open .coach-compose {
+  flex-shrink: 0;
+  max-height: 45%;
+  overflow: auto;
+  padding: 10px 14px;
+}
+.reading-open .coach-compose textarea {
+  min-height: 68px;
+  max-height: 130px;
+}
+.reading-open .coach-compose > .coach-discuss {
+  display: none;
+}
+.reading-open .coach-message {
+  padding: 8px 0;
+  margin-bottom: 18px;
+}
+.reading-open .coach-message.user {
+  padding: 10px 12px;
+}
+.reading-open .coach-message-label {
+  font-size: 11px;
+}
+.reading-open .coach-message-label span {
+  font-size: 10px;
+}
+.reading-open .coach-prose {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.reading-divider {
+  background: var(--line);
+  cursor: col-resize;
+  touch-action: none;
+}
+.reading-divider:hover,
+.reading-divider:focus-visible {
+  background: #8ca07f;
+  outline: 0;
+}
+.reading-drawer {
+  position: fixed;
+  z-index: 45;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(420px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: #fdfdf9;
+  border-left: 1px solid var(--line);
+  box-shadow: -5px 0 30px #20352018;
+}
+.reading-drawer > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  font-size: 14px;
+}
+.reading-drawer > header button {
+  padding: 6px;
+  border: 0;
+  background: transparent;
+}
+.reading-drawer > nav {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.reading-drawer > nav button {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+.reading-drawer > nav button[aria-pressed="true"] {
+  color: var(--green);
+  background: var(--tint);
+}
+.drawer-body {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+  padding: 18px;
+}
+.drawer-body h3 {
+  font-size: 14px;
+  margin: 16px 0 12px;
+}
+.drawer-body p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.drawer-body label {
+  font-size: 12px;
+  margin: 12px 0;
+}
+.drawer-body select {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}
+.drawer-body section > button {
+  margin: 4px 8px 4px 0;
+  font-size: 12px;
+}
+.drawer-body .coach-session-row {
+  margin: 0 0 12px;
+}
+.drawer-body .coach-mainline {
+  border: 0;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  padding: 12px;
+}
+.drawer-body .coach-options {
+  margin: 16px 0;
+}
+.drawer-body .coach-options > summary {
+  font-size: 13px;
+}
+.drawer-body .notes-panel {
+  border: 0;
+  max-height: none;
+  padding: 0;
+}
+.drawer-body .reader-toolbar {
+  height: auto;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  gap: 6px;
+  border: 0;
+}
+.drawer-body .pdf-navigation {
+  border: 0;
+  margin-top: 12px;
+}
+.translation-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  margin-top: 14px;
+}
+.translation-job {
+  padding: 10px 12px;
+  background: var(--tint);
+  border-radius: 6px;
+  margin: 12px 0;
+}
+.translation-job p {
+  margin: 4px 0;
+}
+.translation-job progress {
+  width: 100%;
+}
+.translation-job small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.translation-tools [role="alert"] {
+  color: #954b3c;
+}
+.translation-popover {
+  position: fixed;
+  z-index: 50;
+  width: min(340px, calc(100vw - 24px));
+  padding: 12px 14px;
+  background: #fffefb;
+  border: 1px solid #d7dfce;
+  border-radius: 9px;
+  box-shadow: 0 8px 28px #253a2524;
+}
+.translation-popover-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+.translation-popover-heading button {
+  border: 0;
+  padding: 4px;
+  background: transparent;
+}
+.translation-popover p {
+  font-size: 14px;
+  line-height: 1.75;
+  margin: 8px 0 12px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.translation-popover > button {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.immersive .sidebar,
+.immersive .coach-heading,
+.immersive .reader-footer,
+.immersive .coach-compose-footer > span {
+  display: none;
+}
+.immersive .main-shell {
+  width: 100%;
+  margin-left: 0;
+}
+.immersive .topbar.immersive-controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  opacity: 0;
+  transform: translateY(-40px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  background: #fdfdf9f5;
+}
+.immersive .topbar.immersive-controls:hover,
+.immersive .topbar.immersive-controls:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+.immersive .reading-layout {
+  flex: 1;
+}
+.immersive .pdf-scroll {
+  padding: 12px;
+}
+.immersive .coach-compose {
+  border-top: 0;
+  background: #fdfdf9;
+}
+@media (max-width: 949px) {
+  .reading-open .reading-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 58fr) minmax(0, 42fr);
+  }
+  .reading-open .reading-divider {
+    display: none;
+  }
+  .reading-open .research-pane {
+    border-top: 1px solid var(--line);
+  }
+  .reading-open .coach-panel {
+    height: 100%;
+  }
+  .reading-open .coach-compose {
+    max-height: 60%;
+  }
+  .reading-open .topbar {
+    gap: 5px;
+    padding: 6px;
+  }
+  .reading-toolbar {
+    gap: 2px;
+  }
+  .reading-toolbar label {
+    font-size: 10px;
+  }
+}
+@media (max-width: 600px) {
+  .reading-open .topbar-title {
+    display: none;
+  }
+  .reading-toolbar {
+    margin-left: auto;
+  }
+  .reading-open .pdf-scroll {
+    padding: 8px;
+  }
+  .reading-open .coach-heading {
+    display: none;
+  }
+  .reading-open .coach-prose {
+    font-size: 13px;
+  }
+}
+@media (pointer: coarse) {
+  .immersive .topbar.immersive-controls {
+    top: 4px;
+    left: auto;
+    right: 4px;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    opacity: 0.35;
+    transform: none;
+    border-radius: 50%;
+  }
+  .immersive-controls > :not(.reading-toolbar),
+  .immersive-controls .reading-toolbar > :not(:last-child) {
+    display: none;
+  }
+  .immersive-controls .reading-toolbar {
+    margin: 0;
+  }
+  .immersive-controls .reading-toolbar > :last-child {
+    width: 44px;
+    height: 44px;
+    font-size: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .immersive .topbar.immersive-controls {
+    transition: none;
+  }
+}
+
+.compact-pages {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+}
+.compact-pages input {
+  width: 48px;
+  padding: 5px;
+  font-size: 12px;
+  text-align: center;
+}
+.reading-open .topbar .reading-toolbar {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+.coach-compose-footer .primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.reading-open .coach-saved-action {
+  display: none;
+}
+.reading-open .coach-message > .coach-discuss {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.reading-open .coach-message:hover > .coach-discuss,
+.reading-open .coach-message:focus-within > .coach-discuss {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .reading-open .coach-message > .coach-discuss {
+    opacity: 0.6;
+  }
+}
+
+.immersive .coach-compose-footer {
+  justify-content: flex-end;
+}

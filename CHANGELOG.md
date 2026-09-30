@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Automatic Zotero and literature-folder checks default to every 10 minutes, with a manual refresh in the reading tools drawer. Index each sync poll's paper list once and limit the translation layout worker's CPU threads.
+
+- Bind each paper to one durable workbench conversation and native Codex thread; resume across restarts/model changes and reconcile unknown creation without duplicating threads. Keep previous chats as read-only history.
+- Bound initialization and per-turn automatic context, preserving exact user messages while retrieving pages, notes and methods on demand.
+- Add optional BabelDOC 0.6.4 whole-paper translation through separate Codex login connections, independent model settings, resumable cached tasks, mono/dual PDFs and saved sentence/paragraph source mappings.
+- Default to a quiet, resizable PDF/chat reading surface, secondary tools drawer and immersive mode with persistent drafts, selections and viewport position.
+
 ## 2.0.0rc5 (release candidate)
 
 - Ground legacy durable text sends in their selected PDF page while preserving retry fingerprints; keep cross-page images rejected.

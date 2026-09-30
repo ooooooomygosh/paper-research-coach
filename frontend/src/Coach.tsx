@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
@@ -57,6 +58,9 @@ type Snapshot = {
   conversations: Row[];
   messages: Message[];
   busy: boolean;
+  read_only?: boolean;
+  canonical_conversation_id?: string;
+  thread_id?: string;
   reading_flow?: any;
 };
 
@@ -77,6 +81,8 @@ export default function CoachPanel({
   refresh,
   report,
   initialConversation = "",
+  toolsContainer,
+  onOpenTools,
 }: {
   paper: Row;
   context: any;
@@ -88,6 +94,8 @@ export default function CoachPanel({
   refresh: () => void;
   report: (s: string) => void;
   initialConversation?: string;
+  toolsContainer?: HTMLElement | null;
+  onOpenTools?: () => void;
 }) {
   const key = "prc-chat-draft-" + paper.id;
   const jobKey = "prc-chat-send-" + paper.id;
@@ -229,6 +237,7 @@ export default function CoachPanel({
     intent = effectiveIntent as string,
   ) {
     if (
+      snapshot.read_only ||
       sending ||
       connecting ||
       snapshot.busy ||
@@ -303,7 +312,11 @@ export default function CoachPanel({
       const c = fresh
         ? await api("coach/connect/" + paper.id, { new: true })
         : { id: conversationId };
-      await api("coach/active", { paper_id: paper.id, conversation_id: c.id });
+      if (!c.id || c.id === snapshot.canonical_conversation_id)
+        await api("coach/active", {
+          paper_id: paper.id,
+          conversation_id: c.id,
+        });
       const next = await api(
         "coach/conversation/" +
           paper.id +
@@ -363,7 +376,7 @@ export default function CoachPanel({
             className="coach-ready"
             title={
               status?.skill_loaded
-                ? "本机教练已连接，每轮加载 paper-research-coach"
+                ? "本机教练已连接，沿用这篇论文的持久会话"
                 : "正在连接"
             }
           >
@@ -376,9 +389,21 @@ export default function CoachPanel({
           </span>
         </div>
         <button
-          aria-label={expanded ? "收起教练对话" : "展开教练对话"}
-          title={expanded ? "收起教练对话" : "展开教练对话"}
-          onClick={() => setExpanded(!expanded)}
+          aria-label={
+            onOpenTools
+              ? "教练设置"
+              : expanded
+                ? "收起教练对话"
+                : "展开教练对话"
+          }
+          title={
+            onOpenTools
+              ? "教练设置"
+              : expanded
+                ? "收起教练对话"
+                : "展开教练对话"
+          }
+          onClick={() => (onOpenTools ? onOpenTools() : setExpanded(!expanded))}
         >
           {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>
@@ -400,125 +425,248 @@ export default function CoachPanel({
           </button>
         </div>
       )}
-      <div className="coach-session-row">
-        <select
-          title="仅列出这篇论文的阅读对话"
-          aria-label="当前阅读对话"
-          value={snapshot.conversation_id}
-          disabled={snapshot.busy || pending || connecting || sending}
-          onChange={(e) => void chooseConversation(e.target.value)}
-        >
-          {!snapshot.conversations.length && (
-            <option value="">从新对话开始</option>
-          )}
-          {snapshot.conversations.map((c, index: number) => (
-            <option key={c.id} value={c.id}>
-              {c.title} ·{" "}
-              {new Date(c.created_at).toLocaleString(undefined, {
-                month: "numeric",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}{" "}
-              · #{index + 1}
-            </option>
-          ))}
-        </select>
-        <button
-          className="text-button"
-          aria-label="新建阅读对话"
-          onClick={() => void chooseConversation("", true)}
-          disabled={snapshot.busy || pending || connecting || sending}
-        >
-          <Plus size={14} />
-          新对话
-        </button>
-      </div>
-      <div className="coach-mainline" aria-label="论文跟读主线">
-        <div className="coach-mainline-heading">
-          <strong>
-            {flowDone
-              ? "本轮跟读已完成"
-              : flowStarted
-                ? flow.label
-                : "这篇论文的跟读主线"}
-          </strong>
-          <span title="核查进度不是掌握度">
-            已核查 {flow?.completed?.length || 0} / {flow?.steps?.length || 8}
-          </span>
-        </div>
-        <p>
-          {flowDone
-            ? "回到复习队列巩固理解，也可以继续讨论新问题。"
-            : flow?.return_action ||
-              flow?.goal ||
-              "从阅读目标到证据、研究启发和复习，按既定流程一起读。"}
-        </p>
-        {flow?.pending_question && (
-          <p className="coach-pending-question">
-            <b>当前问题：</b>
-            {flow.pending_question}
-          </p>
-        )}
-        {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
-        <button
-          className="primary"
-          disabled={unavailable}
-          onClick={() =>
-            void send(text, false, text.trim() ? "answer" : "follow")
-          }
-        >
-          {text.trim()
-            ? "回答并继续主线"
-            : flowDone
-              ? "回顾阅读总结"
-              : flowStarted
-                ? "继续主线"
-                : "开始跟读"}
-        </button>
-        <details>
-          <summary>查看阅读路线</summary>
-          <p>
-            这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。
-          </p>
-          <ol>
-            {(flow?.steps || []).map((step: any) => {
-              const receipt = flow?.completed?.find(
-                (c: any) => c.step === step.id,
-              );
-              return (
-                <li
-                  key={step.id}
-                  aria-current={
-                    !flowDone && flow?.current === step.id ? "step" : undefined
-                  }
-                >
-                  {receipt ? "✓ " : ""}
-                  {step.label}
-                  {receipt && (
-                    <details className="reading-receipt">
-                      <summary>核查依据</summary>
-                      <p>{receipt.evidence}</p>
-                      {flow.source_version === paper.source_version &&
-                        Number.isInteger(receipt.page_index) &&
-                        receipt.page_index >= 0 &&
-                        receipt.page_index < paper.page_count && (
-                          <button
-                            onClick={() =>
-                              onLocate(anchorFor(paper, receipt.page_index))
-                            }
-                          >
-                            查看 PDF 第 {receipt.page_index + 1} 页
-                          </button>
+      {toolsContainer ? (
+        createPortal(
+          <div className="coach-tools-content">
+            {" "}
+            <div className="coach-session-row">
+              <select
+                title="仅列出这篇论文的阅读对话"
+                aria-label="当前阅读对话"
+                value={snapshot.conversation_id}
+                disabled={snapshot.busy || pending || connecting || sending}
+                onChange={(e) => void chooseConversation(e.target.value)}
+              >
+                {!snapshot.conversations.length && (
+                  <option value="">从新对话开始</option>
+                )}
+                {snapshot.conversations.map((c, index: number) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title} ·{" "}
+                    {new Date(c.created_at).toLocaleString(undefined, {
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    · #{index + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="coach-mainline" aria-label="论文跟读主线">
+              <div className="coach-mainline-heading">
+                <strong>
+                  {flowDone
+                    ? "本轮跟读已完成"
+                    : flowStarted
+                      ? flow.label
+                      : "这篇论文的跟读主线"}
+                </strong>
+                <span title="核查进度不是掌握度">
+                  已核查 {flow?.completed?.length || 0} /{" "}
+                  {flow?.steps?.length || 8}
+                </span>
+              </div>
+              <p>
+                {flowDone
+                  ? "回到复习队列巩固理解，也可以继续讨论新问题。"
+                  : flow?.return_action ||
+                    flow?.goal ||
+                    "从阅读目标到证据、研究启发和复习，按既定流程一起读。"}
+              </p>
+              {flow?.pending_question && (
+                <p className="coach-pending-question">
+                  <b>当前问题：</b>
+                  {flow.pending_question}
+                </p>
+              )}
+              {flow?.needs_recheck && (
+                <p>PDF 已换版，主线会从新版本重新核查。</p>
+              )}
+              <button
+                className="primary"
+                disabled={unavailable}
+                onClick={() =>
+                  void send(text, false, text.trim() ? "answer" : "follow")
+                }
+              >
+                {text.trim()
+                  ? "回答并继续主线"
+                  : flowDone
+                    ? "回顾阅读总结"
+                    : flowStarted
+                      ? "继续主线"
+                      : "开始跟读"}
+              </button>
+              <details>
+                <summary>查看阅读路线</summary>
+                <p>
+                  这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。
+                </p>
+                <ol>
+                  {(flow?.steps || []).map((step: any) => {
+                    const receipt = flow?.completed?.find(
+                      (c: any) => c.step === step.id,
+                    );
+                    return (
+                      <li
+                        key={step.id}
+                        aria-current={
+                          !flowDone && flow?.current === step.id
+                            ? "step"
+                            : undefined
+                        }
+                      >
+                        {receipt ? "✓ " : ""}
+                        {step.label}
+                        {receipt && (
+                          <details className="reading-receipt">
+                            <summary>核查依据</summary>
+                            <p>{receipt.evidence}</p>
+                            {flow.source_version === paper.source_version &&
+                              Number.isInteger(receipt.page_index) &&
+                              receipt.page_index >= 0 &&
+                              receipt.page_index < paper.page_count && (
+                                <button
+                                  onClick={() =>
+                                    onLocate(
+                                      anchorFor(paper, receipt.page_index),
+                                    )
+                                  }
+                                >
+                                  查看 PDF 第 {receipt.page_index + 1} 页
+                                </button>
+                              )}
+                          </details>
                         )}
-                    </details>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </details>
+            </div>
+          </div>,
+          toolsContainer,
+        )
+      ) : (
+        <details className="coach-fallback-tools">
+          <summary>阅读工具</summary>{" "}
+          <div className="coach-session-row">
+            <select
+              title="仅列出这篇论文的阅读对话"
+              aria-label="当前阅读对话"
+              value={snapshot.conversation_id}
+              disabled={snapshot.busy || pending || connecting || sending}
+              onChange={(e) => void chooseConversation(e.target.value)}
+            >
+              {!snapshot.conversations.length && (
+                <option value="">从新对话开始</option>
+              )}
+              {snapshot.conversations.map((c, index: number) => (
+                <option key={c.id} value={c.id}>
+                  {c.title} ·{" "}
+                  {new Date(c.created_at).toLocaleString(undefined, {
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  · #{index + 1}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="coach-mainline" aria-label="论文跟读主线">
+            <div className="coach-mainline-heading">
+              <strong>
+                {flowDone
+                  ? "本轮跟读已完成"
+                  : flowStarted
+                    ? flow.label
+                    : "这篇论文的跟读主线"}
+              </strong>
+              <span title="核查进度不是掌握度">
+                已核查 {flow?.completed?.length || 0} /{" "}
+                {flow?.steps?.length || 8}
+              </span>
+            </div>
+            <p>
+              {flowDone
+                ? "回到复习队列巩固理解，也可以继续讨论新问题。"
+                : flow?.return_action ||
+                  flow?.goal ||
+                  "从阅读目标到证据、研究启发和复习，按既定流程一起读。"}
+            </p>
+            {flow?.pending_question && (
+              <p className="coach-pending-question">
+                <b>当前问题：</b>
+                {flow.pending_question}
+              </p>
+            )}
+            {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
+            <button
+              className="primary"
+              disabled={unavailable}
+              onClick={() =>
+                void send(text, false, text.trim() ? "answer" : "follow")
+              }
+            >
+              {text.trim()
+                ? "回答并继续主线"
+                : flowDone
+                  ? "回顾阅读总结"
+                  : flowStarted
+                    ? "继续主线"
+                    : "开始跟读"}
+            </button>
+            <details>
+              <summary>查看阅读路线</summary>
+              <p>
+                这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。
+              </p>
+              <ol>
+                {(flow?.steps || []).map((step: any) => {
+                  const receipt = flow?.completed?.find(
+                    (c: any) => c.step === step.id,
+                  );
+                  return (
+                    <li
+                      key={step.id}
+                      aria-current={
+                        !flowDone && flow?.current === step.id
+                          ? "step"
+                          : undefined
+                      }
+                    >
+                      {receipt ? "✓ " : ""}
+                      {step.label}
+                      {receipt && (
+                        <details className="reading-receipt">
+                          <summary>核查依据</summary>
+                          <p>{receipt.evidence}</p>
+                          {flow.source_version === paper.source_version &&
+                            Number.isInteger(receipt.page_index) &&
+                            receipt.page_index >= 0 &&
+                            receipt.page_index < paper.page_count && (
+                              <button
+                                onClick={() =>
+                                  onLocate(anchorFor(paper, receipt.page_index))
+                                }
+                              >
+                                查看 PDF 第 {receipt.page_index + 1} 页
+                              </button>
+                            )}
+                        </details>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </details>
+          </div>
         </details>
-      </div>
+      )}
       <div
         className="coach-messages"
         ref={scroll}
@@ -533,12 +681,18 @@ export default function CoachPanel({
       >
         {!snapshot.messages.length && (
           <div className="coach-welcome">
-            <span className="eyebrow">每篇论文都有自己的阅读路线</span>
-            <h3>论文在左边，思考在这里。</h3>
+            <span className="eyebrow">从当前疑问开始</span>
+            <h3>想从哪里开始？</h3>
             <p>
-              点“开始跟读”即可按 Skill
-              的完整流程阅读。随时提问或讨论选区，回答后会回到主线；新对话沿用这篇论文的阅读进度。
+              随时提问，或从当前页开始一起读。刷新页面后，也会继续这篇论文的同一段对话。
             </p>
+            <button
+              className="primary"
+              disabled={unavailable}
+              onClick={() => void send("", false, "follow")}
+            >
+              从当前页开始
+            </button>
           </div>
         )}
         {snapshot.messages.map((m) => (
@@ -678,54 +832,125 @@ export default function CoachPanel({
         ))}
       </div>
       <div className="coach-compose">
-        {!!learning.length && (
-          <details className="coach-learning">
-            <summary>本次学习表现 · {learning.length} 项</summary>
-            <p className="small muted">
-              根据实际回答记录，供下次调整帮助；单次表现不等于已掌握。
-            </p>
-            {learning.map(([ability, observation]) => (
-              <article key={ability}>
-                <b>
-                  {abilities[ability] || ability} ·{" "}
-                  {assistance[observation.assistance]} ·{" "}
-                  {
-                    {
-                      supported: "有证据支持",
-                      partial: "还需补充",
-                      revise: "需要修正",
-                    }[
-                      observation.judgment as "supported" | "partial" | "revise"
-                    ]
-                  }
-                </b>
-                <blockquote>{observation.answer_quote}</blockquote>
-                <p>{observation.feedback}</p>
-                <details>
-                  <summary>判断依据</summary>
-                  <p>{observation.criterion}</p>
+        {toolsContainer ? (
+          createPortal(
+            <div>
+              {" "}
+              {!!learning.length && (
+                <details className="coach-learning">
+                  <summary>本次学习表现 · {learning.length} 项</summary>
+                  <p className="small muted">
+                    根据实际回答记录，供下次调整帮助；单次表现不等于已掌握。
+                  </p>
+                  {learning.map(([ability, observation]) => (
+                    <article key={ability}>
+                      <b>
+                        {abilities[ability] || ability} ·{" "}
+                        {assistance[observation.assistance]} ·{" "}
+                        {
+                          {
+                            supported: "有证据支持",
+                            partial: "还需补充",
+                            revise: "需要修正",
+                          }[
+                            observation.judgment as
+                              "supported" | "partial" | "revise"
+                          ]
+                        }
+                      </b>
+                      <blockquote>{observation.answer_quote}</blockquote>
+                      <p>{observation.feedback}</p>
+                      <details>
+                        <summary>判断依据</summary>
+                        <p>{observation.criterion}</p>
+                      </details>
+                      <button
+                        disabled={
+                          observation.anchor.source_version !==
+                          paper.source_version
+                        }
+                        onClick={() => onLocate(observation.anchor)}
+                      >
+                        {observation.anchor.source_version ===
+                        paper.source_version
+                          ? "核对原文证据"
+                          : "旧版本依据，需重新核实"}
+                      </button>
+                      <button
+                        disabled={
+                          snapshot.busy || pending || connecting || sending
+                        }
+                        onClick={() =>
+                          void chooseConversation(observation.conversation_id)
+                        }
+                      >
+                        查看回答所在对话
+                      </button>
+                    </article>
+                  ))}
                 </details>
-                <button
-                  disabled={
-                    observation.anchor.source_version !== paper.source_version
-                  }
-                  onClick={() => onLocate(observation.anchor)}
-                >
-                  {observation.anchor.source_version === paper.source_version
-                    ? "核对原文证据"
-                    : "旧版本依据，需重新核实"}
-                </button>
-                <button
-                  disabled={snapshot.busy || pending || connecting || sending}
-                  onClick={() =>
-                    void chooseConversation(observation.conversation_id)
-                  }
-                >
-                  查看回答所在对话
-                </button>
-              </article>
-            ))}
-          </details>
+              )}
+            </div>,
+            toolsContainer,
+          )
+        ) : (
+          <>
+            {" "}
+            {!!learning.length && (
+              <details className="coach-learning">
+                <summary>本次学习表现 · {learning.length} 项</summary>
+                <p className="small muted">
+                  根据实际回答记录，供下次调整帮助；单次表现不等于已掌握。
+                </p>
+                {learning.map(([ability, observation]) => (
+                  <article key={ability}>
+                    <b>
+                      {abilities[ability] || ability} ·{" "}
+                      {assistance[observation.assistance]} ·{" "}
+                      {
+                        {
+                          supported: "有证据支持",
+                          partial: "还需补充",
+                          revise: "需要修正",
+                        }[
+                          observation.judgment as
+                            "supported" | "partial" | "revise"
+                        ]
+                      }
+                    </b>
+                    <blockquote>{observation.answer_quote}</blockquote>
+                    <p>{observation.feedback}</p>
+                    <details>
+                      <summary>判断依据</summary>
+                      <p>{observation.criterion}</p>
+                    </details>
+                    <button
+                      disabled={
+                        observation.anchor.source_version !==
+                        paper.source_version
+                      }
+                      onClick={() => onLocate(observation.anchor)}
+                    >
+                      {observation.anchor.source_version ===
+                      paper.source_version
+                        ? "核对原文证据"
+                        : "旧版本依据，需重新核实"}
+                    </button>
+                    <button
+                      disabled={
+                        snapshot.busy || pending || connecting || sending
+                      }
+                      onClick={() =>
+                        void chooseConversation(observation.conversation_id)
+                      }
+                    >
+                      查看回答所在对话
+                    </button>
+                  </article>
+                ))}
+              </details>
+            )}
+          </>
         )}
         {error && (
           <div className="coach-error" role="alert">
@@ -744,10 +969,8 @@ export default function CoachPanel({
             确认上次发送 · 使用相同编号恢复
           </button>
         )}
-        <div className="coach-context-chips">
-          <span>
-            本轮来源：PDF 第 {(anchor?.page_index ?? page) + 1} 页 · 附阅读断点
-          </span>
+        <div className="coach-context-chips" hidden={!anchor}>
+          <span>PDF 第 {(anchor?.page_index ?? page) + 1} 页</span>
           {anchor && (
             <div>
               <button className="anchor-label" onClick={() => onLocate(anchor)}>
@@ -763,51 +986,123 @@ export default function CoachPanel({
         {anchor?.quote && (
           <blockquote className="coach-selection">{anchor.quote}</blockquote>
         )}
-        <div className="coach-turn-controls">
-          <label>
-            本轮意图
-            <select
-              aria-label="本轮意图"
-              value={intentChoice}
-              onChange={(e) => setIntentChoice(e.target.value as IntentChoice)}
-            >
-              <option value="auto">
-                自动 · {effectiveIntent === "answer" ? "回答主线" : "插话讨论"}
-              </option>
-              <option value="answer">回答主线</option>
-              <option value="detour">插话讨论 · 保留返回点</option>
-            </select>
-          </label>
-          <label>
-            帮助方式
-            <select
-              aria-label="帮助方式"
-              value={helpMode}
-              onChange={(e) => setHelpMode(e.target.value as HelpMode)}
-            >
-              {Object.entries(helpLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {!canAttachImage && anchor && (
-          <p className="small muted">
-            选区不在当前可附图位置；文字仍使用选区页。点击选区标签返回后再附图。
-          </p>
+        {toolsContainer ? (
+          createPortal(
+            <div className="coach-tools-content">
+              {" "}
+              <div className="coach-turn-controls">
+                <label>
+                  本轮意图
+                  <select
+                    aria-label="本轮意图"
+                    value={intentChoice}
+                    onChange={(e) =>
+                      setIntentChoice(e.target.value as IntentChoice)
+                    }
+                  >
+                    <option value="auto">
+                      自动 ·{" "}
+                      {effectiveIntent === "answer" ? "回答主线" : "插话讨论"}
+                    </option>
+                    <option value="answer">回答主线</option>
+                    <option value="detour">插话讨论 · 保留返回点</option>
+                  </select>
+                </label>
+                <label>
+                  帮助方式
+                  <select
+                    aria-label="帮助方式"
+                    value={helpMode}
+                    onChange={(e) => setHelpMode(e.target.value as HelpMode)}
+                  >
+                    {Object.entries(helpLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {!canAttachImage && anchor && (
+                <p className="small muted">
+                  选区不在当前可附图位置；文字仍使用选区页。点击选区标签返回后再附图。
+                </p>
+              )}
+              <label className="coach-image-check">
+                <input
+                  type="checkbox"
+                  checked={includeImage}
+                  disabled={!canAttachImage}
+                  onChange={(e) => setIncludeImage(e.target.checked)}
+                />
+                同时发送当前整页图像（不只是选区）
+              </label>
+            </div>,
+            toolsContainer,
+          )
+        ) : (
+          <details className="coach-fallback-tools">
+            <summary>帮助偏好</summary>{" "}
+            <div className="coach-turn-controls">
+              <label>
+                本轮意图
+                <select
+                  aria-label="本轮意图"
+                  value={intentChoice}
+                  onChange={(e) =>
+                    setIntentChoice(e.target.value as IntentChoice)
+                  }
+                >
+                  <option value="auto">
+                    自动 ·{" "}
+                    {effectiveIntent === "answer" ? "回答主线" : "插话讨论"}
+                  </option>
+                  <option value="answer">回答主线</option>
+                  <option value="detour">插话讨论 · 保留返回点</option>
+                </select>
+              </label>
+              <label>
+                帮助方式
+                <select
+                  aria-label="帮助方式"
+                  value={helpMode}
+                  onChange={(e) => setHelpMode(e.target.value as HelpMode)}
+                >
+                  {Object.entries(helpLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {!canAttachImage && anchor && (
+              <p className="small muted">
+                选区不在当前可附图位置；文字仍使用选区页。点击选区标签返回后再附图。
+              </p>
+            )}
+            <label className="coach-image-check">
+              <input
+                type="checkbox"
+                checked={includeImage}
+                disabled={!canAttachImage}
+                onChange={(e) => setIncludeImage(e.target.checked)}
+              />
+              同时发送当前整页图像（不只是选区）
+            </label>
+          </details>
         )}
-        <label className="coach-image-check">
-          <input
-            type="checkbox"
-            checked={includeImage}
-            disabled={!canAttachImage}
-            onChange={(e) => setIncludeImage(e.target.checked)}
-          />
-          同时发送当前整页图像（不只是选区）
-        </label>
+        {snapshot.read_only && (
+          <button
+            onClick={() =>
+              void chooseConversation(snapshot.canonical_conversation_id || "")
+            }
+          >
+            历史对话为只读 · 返回当前对话
+          </button>
+        )}
         <textarea
+          disabled={!!snapshot.read_only}
           aria-label="发给论文教练的消息"
           placeholder={
             effectiveIntent === "answer"
@@ -829,10 +1124,7 @@ export default function CoachPanel({
           }}
         />
         <div className="coach-compose-footer">
-          <span>
-            {effectiveIntent === "answer" ? "回答主线" : "插话，不推进主线"} · ⌘
-            / Ctrl + Enter
-          </span>
+          <span>⌘ / Ctrl + Enter</span>
           {snapshot.busy ? (
             <button
               className="coach-stop"
@@ -854,6 +1146,7 @@ export default function CoachPanel({
               disabled={
                 sending ||
                 connecting ||
+                snapshot.read_only ||
                 !text.trim() ||
                 status?.state !== "ready" ||
                 pending
@@ -864,132 +1157,273 @@ export default function CoachPanel({
             </button>
           )}
         </div>
-        <details className="coach-options">
-          <summary>阅读设置与连接</summary>
-          <div className="coach-connection">
-            <span
-              className={
-                "status-dot " + (status?.state === "ready" ? "online" : "")
-              }
-            />
-            <span>{status?.message || "正在连接本机 CLI…"}</span>
-            <button
-              aria-label="重新连接 CLI"
-              title="重新连接 CLI"
-              disabled={snapshot.busy}
-              onClick={async () => {
-                try {
-                  setStatus(await api("coach/reconnect", {}));
-                } catch (e) {
-                  setError(String(e));
-                }
-              }}
-            >
-              <RefreshCw size={13} />
-            </button>
-          </div>
-          <div className="coach-skill">
-            paper-research-coach ·{" "}
-            {status?.skill_loaded
-              ? "skill 已就绪，每轮显式加载"
-              : "正在检查 skill"}
-          </div>
+        {toolsContainer ? (
+          createPortal(
+            <div className="coach-tools-content">
+              {" "}
+              <details className="coach-options">
+                <summary>阅读设置与连接</summary>
+                <div className="coach-connection">
+                  <span
+                    className={
+                      "status-dot " +
+                      (status?.state === "ready" ? "online" : "")
+                    }
+                  />
+                  <span>{status?.message || "正在连接本机 CLI…"}</span>
+                  <button
+                    aria-label="重新连接 CLI"
+                    title="重新连接 CLI"
+                    disabled={snapshot.busy}
+                    onClick={async () => {
+                      try {
+                        setStatus(await api("coach/reconnect", {}));
+                      } catch (e) {
+                        setError(String(e));
+                      }
+                    }}
+                  >
+                    <RefreshCw size={13} />
+                  </button>
+                </div>
+                <div className="coach-skill">
+                  paper-research-coach ·{" "}
+                  {status?.skill_loaded
+                    ? "阅读规则已就绪，按需查询资料"
+                    : "正在检查 skill"}
+                </div>
 
-          <label>
-            模型
-            <select
-              aria-label="教练模型"
-              value={model}
-              onChange={(e) => {
-                setModel(e.target.value);
-                setEffort("");
-                localStorage.setItem("prc-coach-model", e.target.value);
-                localStorage.removeItem("prc-coach-effort");
-              }}
-            >
-              <option value="">沿用 CLI 配置</option>
-              {status?.models?.map((m: any) => (
-                <option key={m.model} value={m.model}>
-                  {m.displayName || m.model}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            思考深度
-            <select
-              aria-label="教练思考深度"
-              value={effort}
-              onChange={(e) => {
-                setEffort(e.target.value);
-                localStorage.setItem("prc-coach-effort", e.target.value);
-              }}
-            >
-              <option value="">沿用 CLI 配置</option>
-              {currentModel?.supportedReasoningEfforts?.map((r: any) => (
-                <option key={r.reasoningEffort} value={r.reasoningEffort}>
-                  {r.reasoningEffort}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={!!context.session?.[0]?.note_consent}
-              onChange={async (e) => {
-                try {
-                  const s = context.session[0];
-                  await api("commit", {
-                    mutations: [
-                      {
-                        kind: "session",
-                        data: { ...s, note_consent: e.target.checked },
-                        expected_revision: s.revision,
-                      },
-                    ],
-                  });
-                  refresh();
-                } catch (err) {
-                  setError(String(err));
+                <label>
+                  模型
+                  <select
+                    aria-label="教练模型"
+                    value={model}
+                    onChange={(e) => {
+                      setModel(e.target.value);
+                      setEffort("");
+                      localStorage.setItem("prc-coach-model", e.target.value);
+                      localStorage.removeItem("prc-coach-effort");
+                    }}
+                  >
+                    <option value="">沿用 CLI 配置</option>
+                    {status?.models?.map((m: any) => (
+                      <option key={m.model} value={m.model}>
+                        {m.displayName || m.model}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  思考深度
+                  <select
+                    aria-label="教练思考深度"
+                    value={effort}
+                    onChange={(e) => {
+                      setEffort(e.target.value);
+                      localStorage.setItem("prc-coach-effort", e.target.value);
+                    }}
+                  >
+                    <option value="">沿用 CLI 配置</option>
+                    {currentModel?.supportedReasoningEfforts?.map((r: any) => (
+                      <option key={r.reasoningEffort} value={r.reasoningEffort}>
+                        {r.reasoningEffort}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={!!context.session?.[0]?.note_consent}
+                    onChange={async (e) => {
+                      try {
+                        const s = context.session[0];
+                        await api("commit", {
+                          mutations: [
+                            {
+                              kind: "session",
+                              data: { ...s, note_consent: e.target.checked },
+                              expected_revision: s.revision,
+                            },
+                          ],
+                        });
+                        refresh();
+                      } catch (err) {
+                        setError(String(err));
+                      }
+                    }}
+                  />
+                  同时把我的对话原话保存为阅读笔记
+                </label>
+                <p>对话记录始终保留；此选项控制是否额外生成原话笔记。</p>
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={!!context.session?.[0]?.learning_consent}
+                    onChange={async (e) => {
+                      try {
+                        const s = context.session[0];
+                        await api("commit", {
+                          mutations: [
+                            {
+                              kind: "session",
+                              data: {
+                                ...s,
+                                learning_consent: e.target.checked,
+                              },
+                              expected_revision: s.revision,
+                            },
+                          ],
+                        });
+                        refresh();
+                      } catch (err) {
+                        setError(String(err));
+                      }
+                    }}
+                  />
+                  记录实际回答与学习反馈，帮助下次调整讲解
+                </label>
+                <p>
+                  可随时关闭。按具体能力保存最近一次表现，原始回答和历史反馈保留在本机。
+                </p>
+                <p>
+                  笔记和断点存于本机。发送时，当前论文的上下文、对话和所选页面会交给
+                  CLI 配置的模型提供方；附图会发送整页。Zotero
+                  同步是另一项独立操作。
+                </p>
+              </details>
+            </div>,
+            toolsContainer,
+          )
+        ) : (
+          <details className="coach-options">
+            <summary>阅读设置与连接</summary>
+            <div className="coach-connection">
+              <span
+                className={
+                  "status-dot " + (status?.state === "ready" ? "online" : "")
                 }
-              }}
-            />
-            同时把我的对话原话保存为阅读笔记
-          </label>
-          <p>对话记录始终保留；此选项控制是否额外生成原话笔记。</p>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={!!context.session?.[0]?.learning_consent}
-              onChange={async (e) => {
-                try {
-                  const s = context.session[0];
-                  await api("commit", {
-                    mutations: [
-                      {
-                        kind: "session",
-                        data: { ...s, learning_consent: e.target.checked },
-                        expected_revision: s.revision,
-                      },
-                    ],
-                  });
-                  refresh();
-                } catch (err) {
-                  setError(String(err));
-                }
-              }}
-            />
-            记录实际回答与学习反馈，帮助下次调整讲解
-          </label>
-          <p>
-            可随时关闭。按具体能力保存最近一次表现，原始回答和历史反馈保留在本机。
-          </p>
-          <p>
-            笔记和断点存于本机。发送时，当前论文的上下文、对话和所选页面会交给
-            CLI 配置的模型提供方；附图会发送整页。Zotero 同步是另一项独立操作。
-          </p>
-        </details>
+              />
+              <span>{status?.message || "正在连接本机 CLI…"}</span>
+              <button
+                aria-label="重新连接 CLI"
+                title="重新连接 CLI"
+                disabled={snapshot.busy}
+                onClick={async () => {
+                  try {
+                    setStatus(await api("coach/reconnect", {}));
+                  } catch (e) {
+                    setError(String(e));
+                  }
+                }}
+              >
+                <RefreshCw size={13} />
+              </button>
+            </div>
+            <div className="coach-skill">
+              paper-research-coach ·{" "}
+              {status?.skill_loaded
+                ? "阅读规则已就绪，按需查询资料"
+                : "正在检查 skill"}
+            </div>
+
+            <label>
+              模型
+              <select
+                aria-label="教练模型"
+                value={model}
+                onChange={(e) => {
+                  setModel(e.target.value);
+                  setEffort("");
+                  localStorage.setItem("prc-coach-model", e.target.value);
+                  localStorage.removeItem("prc-coach-effort");
+                }}
+              >
+                <option value="">沿用 CLI 配置</option>
+                {status?.models?.map((m: any) => (
+                  <option key={m.model} value={m.model}>
+                    {m.displayName || m.model}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              思考深度
+              <select
+                aria-label="教练思考深度"
+                value={effort}
+                onChange={(e) => {
+                  setEffort(e.target.value);
+                  localStorage.setItem("prc-coach-effort", e.target.value);
+                }}
+              >
+                <option value="">沿用 CLI 配置</option>
+                {currentModel?.supportedReasoningEfforts?.map((r: any) => (
+                  <option key={r.reasoningEffort} value={r.reasoningEffort}>
+                    {r.reasoningEffort}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={!!context.session?.[0]?.note_consent}
+                onChange={async (e) => {
+                  try {
+                    const s = context.session[0];
+                    await api("commit", {
+                      mutations: [
+                        {
+                          kind: "session",
+                          data: { ...s, note_consent: e.target.checked },
+                          expected_revision: s.revision,
+                        },
+                      ],
+                    });
+                    refresh();
+                  } catch (err) {
+                    setError(String(err));
+                  }
+                }}
+              />
+              同时把我的对话原话保存为阅读笔记
+            </label>
+            <p>对话记录始终保留；此选项控制是否额外生成原话笔记。</p>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={!!context.session?.[0]?.learning_consent}
+                onChange={async (e) => {
+                  try {
+                    const s = context.session[0];
+                    await api("commit", {
+                      mutations: [
+                        {
+                          kind: "session",
+                          data: { ...s, learning_consent: e.target.checked },
+                          expected_revision: s.revision,
+                        },
+                      ],
+                    });
+                    refresh();
+                  } catch (err) {
+                    setError(String(err));
+                  }
+                }}
+              />
+              记录实际回答与学习反馈，帮助下次调整讲解
+            </label>
+            <p>
+              可随时关闭。按具体能力保存最近一次表现，原始回答和历史反馈保留在本机。
+            </p>
+            <p>
+              笔记和断点存于本机。发送时，当前论文的上下文、对话和所选页面会交给
+              CLI 配置的模型提供方；附图会发送整页。Zotero
+              同步是另一项独立操作。
+            </p>
+          </details>
+        )}
         {!!context.pending_thoughts?.length && (
           <button
             className="coach-discuss"

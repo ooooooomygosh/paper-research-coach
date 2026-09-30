@@ -18,6 +18,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   MoreHorizontal,
+  Maximize2,
+  Minimize2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { api, ApiError, put, anchorFor, type Row } from "./api";
 import { readLaunchInput } from "./launch";
@@ -26,6 +30,12 @@ import Notes from "./Notes";
 import CoachPanel from "./Coach";
 import { Lineage, Ideas, Reviews, Settings, Exports } from "./Panels";
 import "./style.css";
+import "./quiet-reading.css";
+import {
+  TranslationTools,
+  TranslationPopover,
+  type PdfView,
+} from "./ReadingTools";
 const stages: Record<string, string> = {
   orient: "确定当前需要",
   insight: "抓住独特贡献",
@@ -62,7 +72,81 @@ export function App() {
     [login, setLogin] = useState(""),
     [paperEditor, setPaperEditor] = useState<any>(null);
   const [readingPane, setReadingPane] = useState("coach");
-  const [sidebarHidden, setSidebarHidden] = useState(() => localStorage.getItem("prc-sidebar-hidden") === "true");
+  const [sidebarHidden, setSidebarHidden] = useState(
+    () => localStorage.getItem("prc-sidebar-hidden") !== "false",
+  );
+  const [immersive, setImmersive] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsTab, setToolsTab] = useState("translate");
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const [coachTools, setCoachTools] = useState<HTMLElement | null>(null);
+  const [pdfTools, setPdfTools] = useState<HTMLElement | null>(null);
+  const [fitRequest, setFitRequest] = useState(0);
+  const [split, setSplit] = useState(() =>
+    Math.max(
+      0.45,
+      Math.min(0.8, Number(localStorage.getItem("prc-pane-ratio")) || 0.7),
+    ),
+  );
+  const [translationJob, setTranslationJob] = useState<any>(null);
+  const [pdfView, setPdfView] = useState<PdfView>("original");
+  const [selection, setSelection] = useState<any>(null);
+  const layout = useRef<HTMLDivElement>(null);
+  function openTools(section = "translate") {
+    setToolsTab(section);
+    setToolsOpen(true);
+  }
+  async function refreshSync() {
+    setSyncBusy(true);
+    setSyncError("");
+    try {
+      const result = await api("sync/refresh", {});
+      setSyncError(
+        Object.values(result)
+          .filter((s: any) => s.state === "attention")
+          .map((s: any) => s.message)
+          .join("；"),
+      );
+      await refresh();
+    } catch (e) {
+      setSyncError(String(e));
+    } finally {
+      setSyncBusy(false);
+    }
+  }
+  function ratio(value: number) {
+    const next = Math.max(0.45, Math.min(0.8, value));
+    setSplit(next);
+    localStorage.setItem("prc-pane-ratio", String(next));
+  }
+  function immersiveToggle() {
+    setImmersive((v) => !v);
+    setToolsOpen(false);
+  }
+  useEffect(() => {
+    function keyboard(e: KeyboardEvent) {
+      if (e.defaultPrevented) return;
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Enter") {
+        e.preventDefault();
+        immersiveToggle();
+      }
+      if (e.key === "Escape") {
+        if (toolsOpen) {
+          e.preventDefault();
+          setToolsOpen(false);
+        } else if (selection) {
+          e.preventDefault();
+          setSelection(null);
+        } else if (immersive) {
+          e.preventDefault();
+          setImmersive(false);
+        } else if (!sidebarHidden) setSidebarHidden(true);
+      }
+    }
+    document.addEventListener("keydown", keyboard);
+    return () => document.removeEventListener("keydown", keyboard);
+  }, [immersive, toolsOpen, selection, sidebarHidden]);
   const [launchConversation, setLaunchConversation] = useState("");
   const launchRef = useRef("");
   const selectedRef = useRef(selected),
@@ -94,11 +178,6 @@ export function App() {
   async function start(token?: string) {
     try {
       if (token) await api("login", { token });
-      if (launchRef.current && selectedRef.current)
-        await api("coach/active", {
-          paper_id: selectedRef.current,
-          conversation_id: launchRef.current,
-        });
       await refresh();
       setError("");
       setReady(true);
@@ -160,10 +239,22 @@ export function App() {
       .then((c) => {
         if (!disposed) {
           setContext(c);
+          const savedPage = Number(
+            localStorage.getItem(
+              "prc-page-" + c.paper.id + ":" + c.paper.source_version,
+            ),
+          );
           setPage(
-            c.session[0]?.cursor?.status === "stale"
-              ? 0
-              : c.session[0]?.cursor?.page_index || 0,
+            Number.isInteger(savedPage) &&
+              localStorage.getItem(
+                "prc-page-" + c.paper.id + ":" + c.paper.source_version,
+              ) !== null &&
+              savedPage >= 0 &&
+              savedPage < c.paper.page_count
+              ? savedPage
+              : c.session[0]?.cursor?.status === "stale"
+                ? 0
+                : c.session[0]?.cursor?.page_index || 0,
           );
           setAnchor(null);
           setFocusAnchor(null);
@@ -197,6 +288,35 @@ export function App() {
   }, [ready]);
   const paper = context?.paper,
     session = context?.session?.[0];
+  async function reloadTranslation() {
+    if (!paper) return;
+    const pid = paper.id,
+      version = paper.source_version;
+    try {
+      const result = await api("translation/" + pid + "/jobs");
+      if (
+        selectedRef.current !== pid ||
+        sourceRef.current?.source_version !== version
+      )
+        return;
+      const current = result.data.find(
+        (j: any) => j.source_version === version && j.current !== false,
+      );
+      setTranslationJob(current || null);
+      if (!current || current.state !== "completed") setPdfView("original");
+    } catch {
+      /* Translation is optional; reading stays available. */
+    }
+  }
+  useEffect(() => {
+    setTranslationJob(null);
+    setPdfView("original");
+    setSelection(null);
+    if (!paper) return;
+    void reloadTranslation();
+    const poll = setInterval(() => void reloadTranslation(), 4000);
+    return () => clearInterval(poll);
+  }, [paper?.id, paper?.source_version]);
   const sourceRef = useRef<any>(null);
   useEffect(() => {
     if (!paper) return;
@@ -218,9 +338,16 @@ export function App() {
     setSelected(id);
     selectedRef.current = id;
     setTab("read");
+    setSidebarHidden(true);
     setTaskEditor(null);
   }
   function movePage(n: number) {
+    setSelection(null);
+    if (paper)
+      localStorage.setItem(
+        "prc-page-" + paper.id + ":" + paper.source_version,
+        String(n),
+      );
     setPage(n);
     setFocusAnchor(null);
     clearTimeout(pageTimer.current);
@@ -237,6 +364,7 @@ export function App() {
     }, 600);
   }
   function locate(a: any) {
+    setPdfView("original");
     if (a.status === "stale" || a.source_version !== paper.source_version) {
       report("这条笔记属于旧版本。原话仍在，请重新核实位置。");
       return;
@@ -312,7 +440,13 @@ export function App() {
       </main>
     );
   return (
-    <div className={"app-shell" + (sidebarHidden ? " sidebar-hidden" : "")}>
+    <div
+      className={
+        "app-shell" +
+        (sidebarHidden ? " sidebar-hidden" : "") +
+        (immersive ? " immersive" : "")
+      }
+    >
       <aside className="sidebar" id="paper-library" hidden={sidebarHidden}>
         <div className="brand">
           <div className="brand-mark">
@@ -324,24 +458,38 @@ export function App() {
         </div>
         <div className="sidebar-intro">阅读，始于一个好问题。</div>
         <nav>
-          {nav.filter(([id]) => id === "read" || id === "review").map(([id, label, Icon]) => (
-            <button
-              key={id}
-              className={tab === id ? "selected" : ""}
-              onClick={() => setTab(id)}
-            >
-              <Icon size={17} />
-              {label}
-              {id === "read" && <span className="nav-indicator" />}
-            </button>
-          ))}
-          <details className="library-secondary" open={tab === "lineage" || tab === "ideas" || tab === "export"}>
-            <summary>研究与记录 <ChevronDown size={14} /></summary>
-            {nav.filter(([id]) => id !== "read" && id !== "review").map(([id, label, Icon]) => (
-              <button key={id} className={tab === id ? "selected" : ""} onClick={() => setTab(id)}>
-                <Icon size={17} />{label}
+          {nav
+            .filter(([id]) => id === "read" || id === "review")
+            .map(([id, label, Icon]) => (
+              <button
+                key={id}
+                className={tab === id ? "selected" : ""}
+                onClick={() => setTab(id)}
+              >
+                <Icon size={17} />
+                {label}
+                {id === "read" && <span className="nav-indicator" />}
               </button>
             ))}
+          <details
+            className="library-secondary"
+            open={tab === "lineage" || tab === "ideas" || tab === "export"}
+          >
+            <summary>
+              研究与记录 <ChevronDown size={14} />
+            </summary>
+            {nav
+              .filter(([id]) => id !== "read" && id !== "review")
+              .map(([id, label, Icon]) => (
+                <button
+                  key={id}
+                  className={tab === id ? "selected" : ""}
+                  onClick={() => setTab(id)}
+                >
+                  <Icon size={17} />
+                  {label}
+                </button>
+              ))}
           </details>
         </nav>
         <div className="library-heading">
@@ -418,39 +566,82 @@ export function App() {
           "main-shell " + (paper && tab === "read" ? "reading-open" : "")
         }
       >
-        <header className="topbar">
-          <div className="workspace-navigation">
-            <button className="sidebar-toggle" aria-label={sidebarHidden ? "显示论文栏" : "隐藏论文栏"}
-              aria-expanded={!sidebarHidden} aria-controls="paper-library"
-              title={sidebarHidden ? "显示论文栏" : "隐藏论文栏"}
-              onClick={() => {
-                setSidebarHidden(!sidebarHidden);
-                localStorage.setItem("prc-sidebar-hidden", String(!sidebarHidden));
-              }}>
-              {sidebarHidden ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            </button>
-            <span className="topbar-title">论文工作台</span>
-          </div>
-          <div className="mobile-library">
-            <select
-              aria-label="选择论文"
-              value={selected}
-              onChange={(e) => select(e.target.value)}
-            >
-              {!state.papers.length && <option value="">尚未导入论文</option>}
-              {state.papers.map((p: Row) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-            <button aria-label="添加论文" onClick={() => setImporting(true)}>
-              <Plus size={16} />
-            </button>
-          </div>
-          <div>
-            <span className="status-dot online" /> 本机保存
-          </div>
+        <header className={"topbar" + (immersive ? " immersive-controls" : "")}>
+          <button
+            className="sidebar-toggle"
+            aria-label={sidebarHidden ? "显示论文栏" : "隐藏论文栏"}
+            aria-expanded={!sidebarHidden}
+            aria-controls="paper-library"
+            onClick={() => {
+              setSidebarHidden(!sidebarHidden);
+              localStorage.setItem(
+                "prc-sidebar-hidden",
+                String(!sidebarHidden),
+              );
+            }}
+          >
+            {sidebarHidden ? (
+              <PanelLeftOpen size={18} />
+            ) : (
+              <PanelLeftClose size={18} />
+            )}
+          </button>
+          <span className="topbar-title" title={paper?.title}>
+            {paper?.title || "论文工作台"}
+          </span>
+          {paper && tab === "read" ? (
+            <div className="reading-toolbar">
+              <div className="compact-pages">
+                <button
+                  aria-label="上一页"
+                  disabled={page <= 0}
+                  onClick={() => movePage(page - 1)}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <input
+                  aria-label="阅读页码"
+                  type="number"
+                  min={1}
+                  max={paper.page_count || 1}
+                  value={page + 1}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (Number.isFinite(n))
+                      movePage(
+                        Math.max(0, Math.min(paper.page_count - 1, n - 1)),
+                      );
+                  }}
+                />
+                <span>/ {paper.page_count}</span>
+                <button
+                  aria-label="下一页"
+                  disabled={page >= paper.page_count - 1}
+                  onClick={() => movePage(page + 1)}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+              <button
+                onClick={() => setFitRequest((v) => v + 1)}
+                aria-label="PDF 适宽"
+              >
+                适宽
+              </button>
+              <button
+                aria-label={immersive ? "退出沉浸模式" : "进入沉浸模式"}
+                title="⌘ / Ctrl + Shift + Enter"
+                onClick={immersiveToggle}
+              >
+                {immersive ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+              </button>
+              <button aria-label="更多阅读工具" onClick={() => openTools()}>
+                <MoreHorizontal size={20} />
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setTab("read")}>返回阅读</button>
+          )}
         </header>
         {error && (
           <div className="toast" role="status">
@@ -512,16 +703,18 @@ export function App() {
                 </p>
               </div>
               <div className="button-row">
-                {tab !== "read" && <button
-                  className="subtle"
-                  onClick={() => {
-                    setTab("read");
-                    setReadingPane("coach");
-                  }}
-                >
-                  <MessageCircle size={15} />
-                  与教练讨论
-                </button>}
+                {tab !== "read" && (
+                  <button
+                    className="subtle"
+                    onClick={() => {
+                      setTab("read");
+                      setReadingPane("coach");
+                    }}
+                  >
+                    <MessageCircle size={15} />
+                    与教练讨论
+                  </button>
+                )}
                 <button className="subtle" onClick={pause}>
                   {paper.status === "paused" ? (
                     <Play size={15} />
@@ -531,48 +724,109 @@ export function App() {
                   {paper.status === "paused" ? "恢复阅读" : "暂停并保存"}
                 </button>
                 <details className="paper-tools">
-                  <summary aria-label="更多论文操作" title="更多论文操作"><MoreHorizontal size={19} /></summary>
+                  <summary aria-label="更多论文操作" title="更多论文操作">
+                    <MoreHorizontal size={19} />
+                  </summary>
                   <div className="paper-tools-menu">
-                    <button onClick={(e) => { setPaperEditor({ ...paper }); e.currentTarget.closest("details")?.removeAttribute("open"); }}>论文信息与版本</button>
-                    <button onClick={(e) => { setTaskEditor({ ...session }); e.currentTarget.closest("details")?.removeAttribute("open"); }}>阅读目标与深度</button>
-                    <button onClick={(e) => { setTab("export"); e.currentTarget.closest("details")?.removeAttribute("open"); }}>导出阅读记录</button>
+                    <button
+                      onClick={(e) => {
+                        setPaperEditor({ ...paper });
+                        e.currentTarget
+                          .closest("details")
+                          ?.removeAttribute("open");
+                      }}
+                    >
+                      论文信息与版本
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        setTaskEditor({ ...session });
+                        e.currentTarget
+                          .closest("details")
+                          ?.removeAttribute("open");
+                      }}
+                    >
+                      阅读目标与深度
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        setTab("export");
+                        e.currentTarget
+                          .closest("details")
+                          ?.removeAttribute("open");
+                      }}
+                    >
+                      导出阅读记录
+                    </button>
                   </div>
                 </details>
               </div>
             </div>
             {tab === "read" ? (
               <>
-                {readingPane === "notes" && <details className="current-task note-reading-task">
-                  <summary>阅读主线 · {stages[session?.stage] || "开始阅读"}</summary>
-                  <div className="task-number">01</div>
-                  <div>
-                    <span className="eyebrow">现在只做这一件事</span>
-                    <p>
-                      {session?.next_action ||
-                        "点击右侧“开始跟读”，按这篇论文的阅读主线逐步形成判断。"}
-                    </p>
-                    {session?.pending_question && (
-                      <span className="muted small">
-                        正在想：{session.pending_question}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    title="调整当前阅读任务"
-                    onClick={() => setTaskEditor({ ...session })}
-                  >
-                    <ChevronDown size={18} />
-                  </button>
-                </details>}
-                <div className="reading-layout">
+                {readingPane === "notes" && (
+                  <details className="current-task note-reading-task">
+                    <summary>
+                      阅读主线 · {stages[session?.stage] || "开始阅读"}
+                    </summary>
+                    <div className="task-number">01</div>
+                    <div>
+                      <span className="eyebrow">现在只做这一件事</span>
+                      <p>
+                        {session?.next_action ||
+                          "点击右侧“开始跟读”，按这篇论文的阅读主线逐步形成判断。"}
+                      </p>
+                      {session?.pending_question && (
+                        <span className="muted small">
+                          正在想：{session.pending_question}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      title="调整当前阅读任务"
+                      onClick={() => setTaskEditor({ ...session })}
+                    >
+                      <ChevronDown size={18} />
+                    </button>
+                  </details>
+                )}
+                <div
+                  className="reading-layout"
+                  ref={layout}
+                  style={{
+                    gridTemplateColumns: `minmax(400px, ${split * 100}fr) 6px minmax(320px, ${(1 - split) * 100}fr)`,
+                  }}
+                >
                   {paper.source_path ? (
                     <PdfReader
                       paper={paper}
                       page={page}
                       setPage={movePage}
-                      onAnchor={(a) => {
-                        setAnchor(a);
+                      onAnchor={(a, placement) => {
+                        if (pdfView === "original") setAnchor(a);
+                        else setAnchor(null);
+                        if (a.quote)
+                          setSelection({
+                            anchor: a,
+                            view: pdfView,
+                            x: placement?.x || 40,
+                            y: placement?.y || 100,
+                          });
                       }}
+                      toolsContainer={pdfTools}
+                      fitRequest={fitRequest}
+                      fileUrl={
+                        pdfView !== "original" &&
+                        translationJob?.state === "completed"
+                          ? `/api/translation/jobs/${translationJob.id}/pdf/${pdfView}`
+                          : undefined
+                      }
+                      documentKey={
+                        pdfView === "original"
+                          ? "original"
+                          : translationJob?.id + ":" + pdfView
+                      }
+                      derived={pdfView !== "original"}
                       focusAnchor={focusAnchor}
                       notes={context.notes || []}
                       onLocateNote={locate}
@@ -602,49 +856,136 @@ export function App() {
                       <p className="small">输入后按回车连接 PDF。</p>
                     </div>
                   )}
+                  <div
+                    className="reading-divider"
+                    role="separator"
+                    aria-label="调整 PDF 与对话宽度"
+                    aria-orientation="vertical"
+                    aria-valuemin={45}
+                    aria-valuemax={80}
+                    aria-valuenow={Math.round(split * 100)}
+                    tabIndex={0}
+                    onPointerDown={(e) =>
+                      e.currentTarget.setPointerCapture(e.pointerId)
+                    }
+                    onPointerMove={(e) => {
+                      if (
+                        e.currentTarget.hasPointerCapture(e.pointerId) &&
+                        layout.current
+                      ) {
+                        const b = layout.current.getBoundingClientRect();
+                        ratio((e.clientX - b.left) / b.width);
+                      }
+                    }}
+                    onPointerUp={(e) => {
+                      if (e.currentTarget.hasPointerCapture(e.pointerId))
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                        e.preventDefault();
+                        ratio(split + (e.key === "ArrowLeft" ? -0.02 : 0.02));
+                      }
+                    }}
+                  />
                   <aside className="research-pane">
-                    <div
-                      className="research-pane-tabs"
-                      role="tablist"
-                      aria-label="阅读侧栏"
-                    >
-                      <button
-                        role="tab"
-                        aria-selected={readingPane === "coach"}
-                        onClick={() => setReadingPane("coach")}
-                      >
-                        <MessageCircle size={16} />
-                        教练对话
-                      </button>
-                      <button
-                        role="tab"
-                        aria-selected={readingPane === "notes"}
-                        onClick={() => setReadingPane("notes")}
-                      >
-                        <BookOpen size={16} />
-                        阅读笔记<span>{context.notes.length}</span>
-                      </button>
-                    </div>
-                    <div hidden={readingPane !== "coach"}>
+                    <div className="coach-surface">
                       <CoachPanel
                         key={paper.id + launchConversation}
                         initialConversation={launchConversation}
+                        toolsContainer={coachTools}
+                        onOpenTools={() => openTools("coach")}
                         paper={paper}
                         context={context}
                         page={page}
                         anchor={anchor}
-                        onClearAnchor={() => setAnchor(null)}
+                        onClearAnchor={() => {
+                          setAnchor(null);
+                          setSelection(null);
+                        }}
                         onLocate={locate}
                         onAction={(kind) => {
                           if (kind === "idea") setTab("ideas");
                           else if (kind === "review") setTab("review");
-                          else if (kind === "note") setReadingPane("notes");
+                          else if (kind === "note") openTools("notes");
                         }}
                         refresh={() => void refresh()}
                         report={report}
                       />
                     </div>
-                    <div hidden={readingPane !== "notes"}>
+                  </aside>
+                </div>
+                <aside
+                  className="reading-drawer"
+                  hidden={!toolsOpen}
+                  aria-label="阅读工具抽屉"
+                >
+                  <header>
+                    <strong>阅读工具</strong>
+                    <button
+                      disabled={
+                        syncBusy ||
+                        (!state?.sync?.collection && !state?.vault?.root)
+                      }
+                      onClick={() => void refreshSync()}
+                      title="立即同步 Zotero 和文献目录"
+                    >
+                      {syncBusy ? "正在刷新…" : "刷新同步"}
+                    </button>
+                    {immersive && (
+                      <button
+                        onClick={() => {
+                          setImmersive(false);
+                          setToolsOpen(false);
+                        }}
+                      >
+                        退出沉浸
+                      </button>
+                    )}
+                    <button
+                      aria-label="关闭阅读工具"
+                      onClick={() => setToolsOpen(false)}
+                    >
+                      <X size={18} />
+                    </button>
+                  </header>
+                  <nav aria-label="阅读工具分类">
+                    {[
+                      ["translate", "翻译"],
+                      ["coach", "教练"],
+                      ["notes", "笔记"],
+                      ["paper", "更多"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        aria-pressed={toolsTab === value}
+                        onClick={() => setToolsTab(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="drawer-body">
+                    {syncError && <p role="alert">{syncError}</p>}
+                    <div hidden={toolsTab !== "translate"}>
+                      <TranslationTools
+                        paper={paper}
+                        job={translationJob}
+                        reload={() => void reloadTranslation()}
+                        view={pdfView}
+                        setView={(v) => {
+                          setPdfView(v);
+                          setSelection(null);
+                          setAnchor(null);
+                        }}
+                        open={toolsOpen && toolsTab === "translate"}
+                      />
+                    </div>
+                    <section
+                      ref={setCoachTools}
+                      hidden={toolsTab !== "coach"}
+                    />
+                    <div hidden={toolsTab !== "notes"}>
                       <Notes
                         key={paper.id}
                         paper={paper}
@@ -655,8 +996,66 @@ export function App() {
                         report={report}
                       />
                     </div>
-                  </aside>
-                </div>
+
+                    <section hidden={toolsTab !== "paper"}>
+                      <h3>论文与阅读</h3>
+                      <button onClick={() => setTaskEditor({ ...session })}>
+                        阅读目标与深度
+                      </button>
+                      <button onClick={() => setPaperEditor({ ...paper })}>
+                        论文信息与版本
+                      </button>
+                      <button onClick={() => void pause()}>
+                        {paper.status === "paused" ? "恢复阅读" : "暂停并保存"}
+                      </button>
+                      <h3>PDF 工具</h3>
+                      <div ref={setPdfTools} />
+                      <h3>研究与设置</h3>
+                      {nav
+                        .filter(([id]) => id !== "read")
+                        .map(([id, label]) => (
+                          <button
+                            key={id}
+                            onClick={() => {
+                              setToolsOpen(false);
+                              setImmersive(false);
+                              setTab(id);
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      <button
+                        onClick={() => {
+                          setToolsOpen(false);
+                          setImmersive(false);
+                          setTab("settings");
+                        }}
+                      >
+                        Zotero、同步与设置
+                      </button>
+                    </section>
+                  </div>
+                </aside>
+                {selection && (
+                  <TranslationPopover
+                    selection={selection}
+                    job={translationJob}
+                    onClose={() => setSelection(null)}
+                    onSource={(a) => {
+                      if (selection.view !== "original") setAnchor(a);
+                    }}
+                    onDiscuss={(a) => {
+                      setAnchor(a);
+                      setSelection(null);
+                      document
+                        .querySelector<HTMLTextAreaElement>(
+                          ".coach-compose textarea",
+                        )
+                        ?.focus();
+                    }}
+                  />
+                )}
               </>
             ) : tab === "lineage" ? (
               <Lineage

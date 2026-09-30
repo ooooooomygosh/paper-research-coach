@@ -10,13 +10,19 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
+from . import __version__
 from .coach import Coach, Send
 from .exports import export
 from .models import Commit, uid
 from .store import Conflict, Store
+from .translation import (
+    SelectionRequest,
+    Translation,
+    TranslationRequest,
+    TranslationSettings,
+)
 from .vault import VaultSync
 from .zotero import ZoteroSync
-from . import __version__
 
 
 def session_token(store: Store):
@@ -39,6 +45,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     sync = sync or ZoteroSync(store)
     vault = VaultSync(store, sync)
     coach = Coach(store)
+    translation = Translation(store)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -64,7 +71,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                                 "message": "目录检查暂未完成，内容已保留；下一轮将重试。",
                             },
                         )
-                await asyncio.sleep(30)
+                await asyncio.sleep(vault.state()["poll_seconds"])
 
         folder_task = asyncio.create_task(folder_loop())
         task = asyncio.create_task(loop())
@@ -72,6 +79,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         task.cancel()
         folder_task.cancel()
         await coach.close()
+        await translation.close()
         try:
             await asyncio.gather(task, folder_task)
         except asyncio.CancelledError:
@@ -86,6 +94,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     )
     app.state.store, app.state.sync = store, sync
     app.state.coach = coach
+    app.state.translation = translation
+    app.state.vault = vault
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -284,6 +294,42 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         coach.login = await coach.rpc.call("account/login/start", {"type": "chatgpt"})
         return coach.login
 
+    @app.get("/api/translation/settings")
+    async def translation_settings():
+        return {**translation.settings(), "component": await asyncio.to_thread(translation.component)}
+
+    @app.post("/api/translation/settings")
+    async def update_translation_settings(body: TranslationSettings):
+        return translation.settings(body.model_dump())
+
+    @app.get("/api/translation/{paper_id}/jobs")
+    async def translation_jobs(paper_id: str):
+        return {"data": [translation.public(j) for j in translation.jobs(paper_id)]}
+
+    @app.post("/api/translation/{paper_id}/jobs")
+    async def create_translation(paper_id: str, body: TranslationRequest):
+        return await translation.create(paper_id, body)
+
+    @app.get("/api/translation/jobs/{job_id}")
+    async def translation_job(job_id: str):
+        return translation.public(translation.job(job_id))
+
+    @app.post("/api/translation/jobs/{job_id}/stop")
+    async def stop_translation(job_id: str):
+        return await translation.stop(job_id)
+
+    @app.post("/api/translation/jobs/{job_id}/retry")
+    async def retry_translation(job_id: str):
+        return await translation.retry(job_id)
+
+    @app.get("/api/translation/jobs/{job_id}/pdf/{kind}")
+    async def translation_pdf(job_id: str, kind: str):
+        return FileResponse(translation.artifact(job_id, kind), media_type="application/pdf")
+
+    @app.post("/api/translation/jobs/{job_id}/selection")
+    async def translation_selection(job_id: str, body: SelectionRequest):
+        return await asyncio.to_thread(translation.selection, job_id, body)
+
     @app.get("/api/coach/threads")
     async def coach_threads(paper_id: str):
         return {"data": coach.conversations(paper_id), "nextCursor": None}
@@ -297,7 +343,10 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             conversation = coach.conversation(data["conversation_id"])
             if conversation["paper_id"] != paper_id:
                 raise ValueError("对话不属于当前论文")
-            store.set_setting("coach-current:" + paper_id, conversation["id"])
+            canonical = coach.binding(paper_id)["conversation_id"]
+            if conversation["id"] != canonical:
+                raise ValueError("历史对话为只读，请返回当前论文对话。")
+            store.set_setting("coach-current:" + paper_id, canonical)
         store.set_setting("active-paper", paper_id)
         return {"paper_id": paper_id}
 
@@ -427,6 +476,15 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def synchronize():
         return await asyncio.to_thread(sync.run)
 
+    @app.post("/api/sync/refresh")
+    async def refresh_sync():
+        result = {}
+        if vault.state().get("root"):
+            result["vault"] = await asyncio.to_thread(vault.run, manual=True)
+        if sync.state().get("collection"):
+            result["zotero"] = await asyncio.to_thread(sync.run)
+        return result
+
     @app.post("/api/zotero/conflict/{conflict_id}")
     async def resolve(conflict_id: str, request: Request):
         return await asyncio.to_thread(
@@ -445,7 +503,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
 
     @app.post("/api/vault/scan")
     async def vault_scan():
-        return await asyncio.to_thread(vault.run)
+        return await asyncio.to_thread(vault.run, manual=True)
 
     @app.post("/api/vault/conflict/{conflict_id}")
     async def vault_resolve(conflict_id: str, request: Request):

@@ -14,10 +14,10 @@ def test_help_mode_is_per_turn_not_a_rewrite_of_user_words(store, paper):
         second = await coach.send(paper["id"], Send(operation_id="explain", conversation_id=first["conversation_id"], content="现在请解释", help_mode="explain", intent="answer"))
         await drained(coach)
         turns = [p for m, p in coach.rpc.calls if m == "turn/start"]
-        assert "只给一个可操作的提示" in turns[0]["input"][1]["text"]
-        assert "本轮直接回答" in turns[1]["input"][1]["text"]
-        assert "本轮意图：answer" in turns[1]["input"][1]["text"]
-        assert "本轮意图：detour" in turns[0]["input"][1]["text"]
+        assert "只给一个提示" in turns[0]["input"][0]["text"]
+        assert "直接解释" in turns[1]["input"][0]["text"]
+        assert "当前问题的回答" in turns[1]["input"][0]["text"]
+        assert "保留原来的阅读返回点" in turns[0]["input"][0]["text"]
         messages = coach.messages(second["conversation_id"])
         assert messages[0]["content"] == "  我的判断\n待核实  "
         assert messages[0]["help_mode"] == "hint"

@@ -58,9 +58,12 @@ class VaultSync:
             """)
 
     def state(self):
-        return self.store.setting(
-            "vault", {"enabled": False, "root": "", "state": "off", "message": ""}
-        )
+        return {
+            "poll_seconds": 600,
+            **self.store.setting(
+                "vault", {"enabled": False, "root": "", "state": "off", "message": ""}
+            ),
+        }
 
     def configure(self, root, collection="", server=""):
         with self.lock.acquire(timeout=10):
@@ -215,14 +218,14 @@ class VaultSync:
                 )
             return {"resolved": True}
 
-    def run(self):
+    def run(self, *, manual=False):
         try:
             self.lock.acquire(timeout=0)
         except Timeout:
             return self.state()
         state = self.state()
         try:
-            if not state["enabled"]:
+            if not state["enabled"] and not manual:
                 return state
             root = Path(state["root"])
             if not root.is_dir():

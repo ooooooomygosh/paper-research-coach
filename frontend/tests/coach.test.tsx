@@ -21,6 +21,7 @@ const paper = {
 };
 const snapshot = {
   conversation_id: "c",
+  canonical_conversation_id: "c",
   conversations: [{ id: "c", title: "带读", created_at: "2026-09-30" }],
   messages: [],
   busy: false,
@@ -278,22 +279,18 @@ it("restores saved replies, renders mathematics, and navigates a saved action", 
   expect(onAction).toHaveBeenCalledWith("idea");
 });
 
-it("creates and reuses only conversations of the selected paper", async () => {
-  const second = {
-    id: "second",
-    title: "阅读对话 2",
-    created_at: "2026-09-30",
-  };
+it("keeps one canonical conversation and offers old conversations as read-only history", async () => {
+  const old = { id: "old", title: "以前的讨论", created_at: "2026-09-29" };
   vi.mocked(api).mockImplementation(async (path) => {
     if (path === "coach/status") return status;
-    if (path === "coach/connect/p") return second;
-    if (path === "coach/conversation/p?conversation_id=second")
+    if (path.startsWith("coach/conversation/"))
       return {
         ...snapshot,
-        conversation_id: "second",
-        conversations: [...snapshot.conversations, second],
+        conversations: [...snapshot.conversations, old],
+        ...(path.endsWith("=old")
+          ? { conversation_id: "old", read_only: true }
+          : {}),
       };
-    if (path.startsWith("coach/conversation/")) return snapshot;
     return {};
   });
   view();
@@ -302,17 +299,24 @@ it("creates and reuses only conversations of the selected paper", async () => {
       (screen.getByLabelText("当前阅读对话") as HTMLSelectElement).value,
     ).toBe("c"),
   );
-  expect(screen.queryByText("接入 CLI 对话")).toBeNull();
-  fireEvent.click(screen.getByLabelText("新建阅读对话"));
-  await waitFor(() =>
-    expect(
-      (screen.getByLabelText("当前阅读对话") as HTMLSelectElement).value,
-    ).toBe("second"),
-  );
-  expect(vi.mocked(api)).toHaveBeenCalledWith("coach/connect/p", { new: true });
+  expect(screen.queryByLabelText("新建阅读对话")).toBeNull();
   fireEvent.change(screen.getByLabelText("当前阅读对话"), {
-    target: { value: "c" },
+    target: { value: "old" },
   });
+  await screen.findByText("历史对话为只读 · 返回当前对话");
+  expect(
+    (screen.getByLabelText("发给论文教练的消息") as HTMLTextAreaElement)
+      .disabled,
+  ).toBe(true);
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.some(
+        ([path, body]) =>
+          path === "coach/active" && body?.conversation_id === "old",
+      ),
+  ).toBe(false);
+  fireEvent.click(screen.getByText("历史对话为只读 · 返回当前对话"));
   await waitFor(() =>
     expect(
       (screen.getByLabelText("当前阅读对话") as HTMLSelectElement).value,
@@ -325,7 +329,10 @@ it("creates and reuses only conversations of the selected paper", async () => {
   expect(
     vi
       .mocked(api)
-      .mock.calls.some(([path]) => path.startsWith("coach/threads")),
+      .mock.calls.some(
+        ([path]) =>
+          path.startsWith("coach/connect") || path.startsWith("coach/threads"),
+      ),
   ).toBe(false);
 });
 

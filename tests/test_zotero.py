@@ -706,3 +706,36 @@ def test_unknown_legacy_parent_recovers_then_repairs_without_duplicate(
         sum(x.get("title") == "Verified legacy paper" for x in fake.items.values()) == 1
     )
     assert fake.items[bound["zotero_attachment"]]["parentItem"] == key
+
+
+def test_sync_indexes_library_once_per_poll(synced, store, monkeypatch):
+    sync, fake, first = synced
+    parents = [{"data": fake.items["PARENT01"]}]
+    for index in range(30):
+        key = f"PARENT{index + 2:02d}"
+        remote = dict(fake.items["PARENT01"], key=key, title=f"Paper {index}")
+        fake.items[key] = remote
+        parents.append({"data": remote})
+        store.add_paper(
+            remote["title"], zotero_server=fake.sid,
+            zotero_key=key, zotero_collection="COLLECT1",
+        )
+    request = sync.request
+
+    def respond(method, path, sid, *args, **kwargs):
+        if "/collections/COLLECT1/items/top" in path:
+            return httpx.Response(200, json=parents)
+        return request(method, path, sid, *args, **kwargs)
+
+    monkeypatch.setattr(sync, "request", respond)
+    original_list, library_reads = store.list, []
+
+    def list_records(kind, *args, **kwargs):
+        if kind == "paper":
+            library_reads.append(kind)
+        return original_list(kind, *args, **kwargs)
+
+    monkeypatch.setattr(store, "list", list_records)
+    assert sync.run()["state"] == "connected"
+    assert len(library_reads) == 1
+    assert store.get("paper", first["id"])["zotero_key"] == "PARENT01"

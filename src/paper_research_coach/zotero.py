@@ -964,7 +964,16 @@ class ZoteroSync:
             active_keys = {
                 x["data"]["key"] for x in parents if not x["data"].get("deleted")
             }
-            for existing in self.store.list("paper"):
+            # A poll used to re-open SQLite and decode the entire library once
+            # for every parent. Index this poll's snapshot once instead.
+            papers = self.store.list("paper", archived=True)
+            by_zotero = {
+                (p["zotero_server"], p["zotero_key"]): p for p in papers
+                if p["zotero_key"]
+            }
+            for existing in papers:
+                if existing["archived"]:
+                    continue
                 if (
                     existing.get("zotero_server") != sid
                     or existing.get("zotero_collection", config["collection"])
@@ -1007,14 +1016,11 @@ class ZoteroSync:
                     if x["data"].get("itemType") == "attachment"
                     and x["data"].get("contentType") == "application/pdf"
                 ]
-                p = next(
-                    (
-                        p
-                        for p in self.store.list("paper", archived=True)
-                        if p["zotero_server"] == sid and p["zotero_key"] == data["key"]
-                    ),
-                    None,
-                )
+                p = by_zotero.get((sid, data["key"]))
+                # Preserve the optimistic revision check if another client
+                # changes a paper while network requests are in flight.
+                if p:
+                    p = self.store.get("paper", p["id"])
                 if p and p["archived"]:
                     continue
                 meta = {
@@ -1080,6 +1086,7 @@ class ZoteroSync:
                     p = self.store.put("paper", p, p["revision"], origin="zotero")
                 if path and not p["source_path"]:
                     p = self.store.replace_source(p["id"], path)
+                by_zotero[(sid, data["key"])] = p
                 remote_notes = [
                     x["data"] for x in children if x["data"].get("itemType") == "note"
                 ]

@@ -83,7 +83,7 @@ def test_route_requires_order_viewed_evidence_and_a_real_recall_attempt(store, p
             with pytest.raises(ValueError, match="真实回忆"):
                 coach.tool_call(state, "prc_complete_reading_step", args, "empty-answer")
             store.review_answer(review["id"], "Use equal information budgets.", "hint", True, review["revision"])
-            context = coach.tool_call(state, "prc_context", {}, "feedback-context")
+            context = coach.tool_call(state, "prc_context", {"section": "reviews"}, "feedback-context")
             assert not context["due_reviews"]
             assert context["reviews"][-1]["attempts"][-1]["answer"] == "Use equal information budgets."
         coach.tool_call(state, "prc_complete_reading_step", args, "complete-" + step)

@@ -87,3 +87,21 @@ def test_export_path_cannot_escape(store):
     c.headers["Authorization"] = "Bearer test-token"
     assert c.get("/api/download/not-found.pdf").status_code == 404
     assert c.post("/api/commit", json={"mutations": []}).status_code == 422
+
+
+def test_manual_refresh_is_authenticated_and_runs_both_connected_sources(store, monkeypatch):
+    app = create_app(store, token="test-token")
+    assert app.state.sync.state()["poll_seconds"] == 600
+    assert app.state.vault.state()["poll_seconds"] == 600
+    app.state.sync.set_state(collection="chosen", enabled=False)
+    store.set_setting("vault", {"root": "/configured", "enabled": False})
+    calls = []
+    monkeypatch.setattr(app.state.sync, "run", lambda: calls.append("zotero") or {"state": "connected"})
+    monkeypatch.setattr(app.state.vault, "run", lambda **kw: calls.append(("vault", kw["manual"])) or {"state": "connected"})
+    c = TestClient(app, base_url="http://127.0.0.1")
+    assert c.post("/api/sync/refresh").status_code == 401
+    assert not calls
+    result = c.post("/api/sync/refresh", headers={"Authorization": "Bearer test-token"})
+    assert result.status_code == 200
+    assert calls == [("vault", True), "zotero"]
+    assert not app.state.sync.state()["enabled"]

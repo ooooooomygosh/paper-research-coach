@@ -215,7 +215,7 @@ class SyncState(BaseModel):
     server_id: str = ""
     collection: str = ""
     enabled: bool = False
-    poll_seconds: int = Field(default=5, ge=3, le=3600)
+    poll_seconds: int = Field(default=600, ge=3, le=3600)
     last_success: str = ""
     state: str = "disconnected"
     message: str = ""

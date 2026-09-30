@@ -63,7 +63,7 @@ def parser():
     opening.add_argument("--port", type=int, default=8765)
     opening.add_argument("--paper", dest="paper_id", default="")
     opening.add_argument("--conversation", default="", help="继续这篇论文已保存的对话")
-    opening.add_argument("--new", action="store_true", help="为当前论文新建对话")
+    opening.add_argument("--new", action="store_true", help="兼容旧参数：沿用当前论文的持久对话")
     coach = sub.add_parser("coach", help="连接工作台与 Codex CLI 阅读对话")
     coach.add_argument("action", choices=["status", "connect", "send"])
     coach.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
