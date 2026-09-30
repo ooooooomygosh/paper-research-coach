@@ -55,9 +55,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v2.0.0-rc.4' }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
           COMMIT: ${{ github.sha }}
         run: |
+          if [ -z "$TAG" ]; then
+            TAG=$(python -c 'from pathlib import Path; import re; wheels = list(Path("dist").glob("paper_research_coach-*-py3-none-any.whl")); assert len(wheels) == 1; version = wheels[0].name.split("-")[1]; print("v" + re.sub(r"rc(\d+)$", r"-rc.\1", version))')
+          fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists; keeping its original artifacts."
           else

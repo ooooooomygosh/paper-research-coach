@@ -8,6 +8,7 @@ import {
 } from "pdfjs-dist";
 import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "./pdf-text-layer.css";
+import "./reading-experience.css";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { anchorFor, type Row } from "./api";
+import PdfNavigation from "./PdfNavigation";
 GlobalWorkerOptions.workerSrc = worker;
 export default function PdfReader({
   paper,
@@ -24,12 +26,16 @@ export default function PdfReader({
   setPage,
   onAnchor,
   focusAnchor,
+  notes = [],
+  onLocateNote,
 }: {
   paper: Row;
   page: number;
   setPage: (n: number) => void;
   onAnchor: (a: any) => void;
   focusAnchor: any;
+  notes?: Row[];
+  onLocateNote?: (a: any) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     layer = useRef<HTMLDivElement>(null),
@@ -44,12 +50,58 @@ export default function PdfReader({
     [scan, setScan] = useState(false),
     [rendered, setRendered] = useState("");
   const labels = useRef<string[] | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const [fitWidth, setFitWidth] = useState(false);
+  const renderKey = paper.id + ":" + paper.source_version + ":" + page;
+  function fit() {
+    const v = viewport.current,
+      box = scroller.current;
+    if (!v || !box) return;
+    const style = getComputedStyle(box);
+    const width =
+      box.clientWidth -
+      parseFloat(style.paddingLeft || "0") -
+      parseFloat(style.paddingRight || "0");
+    if (width > 0)
+      setZoom(Math.max(0.25, Math.min(2.5, (width * zoom) / v.width)));
+  }
+  useEffect(() => {
+    if (!fitWidth || !scroller.current || typeof ResizeObserver === "undefined")
+      return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(scroller.current);
+    return () => observer.disconnect();
+  }, [fitWidth, zoom, rendered]);
+  const pageNotes = notes.filter(
+    (n) =>
+      n.paper_id === paper.id &&
+      n.anchor?.paper_id === paper.id &&
+      n.anchor?.source_version === paper.source_version &&
+      n.anchor?.status === "verified" &&
+      n.anchor?.page_index === page,
+  );
+  function highlightStyle(r: number[]) {
+    const v = viewport.current;
+    if (!v || r.length !== 4 || !r.every(Number.isFinite)) return undefined;
+    const [x0, y0] = v.convertToViewportPoint(r[0], r[1]);
+    const [x1, y1] = v.convertToViewportPoint(r[2], r[3]);
+    return {
+      left: Math.min(x0, x1),
+      top: Math.min(y0, y1),
+      width: Math.abs(x1 - x0),
+      height: Math.abs(y1 - y0),
+    };
+  }
   useEffect(() => {
     let disposed = false;
     setDoc(null);
     setError("");
     viewport.current = null;
     setScan(false);
+    setRendered("");
+    setDrag(null);
+    setRegion(false);
+    labels.current = null;
     const load = getDocument({
       url: "/api/pdf/" + paper.id,
       withCredentials: true,
@@ -118,7 +170,7 @@ export default function PdfReader({
         await Promise.all([text.render(), render.promise]);
         if (!disposed) {
           viewport.current = v;
-          setRendered(paper.source_version + ":" + page);
+          setRendered(renderKey);
         }
       })
       .catch((e) => {
@@ -130,7 +182,7 @@ export default function PdfReader({
       render?.cancel();
       text?.cancel();
     };
-  }, [doc, page, zoom]);
+  }, [doc, page, zoom, paper.id, paper.source_version]);
   function coords(
     rect:
       DOMRect | { left: number; top: number; right: number; bottom: number },
@@ -147,12 +199,7 @@ export default function PdfReader({
     ];
   }
   function selected() {
-    if (
-      region ||
-      !viewport.current ||
-      rendered !== paper.source_version + ":" + page
-    )
-      return;
+    if (region || !viewport.current || rendered !== renderKey) return;
     const s = window.getSelection();
     if (
       !s?.rangeCount ||
@@ -184,12 +231,7 @@ export default function PdfReader({
       );
   }
   function regionEnd(e: React.PointerEvent) {
-    if (
-      !drag ||
-      !viewport.current ||
-      rendered !== paper.source_version + ":" + page
-    )
-      return;
+    if (!drag || !viewport.current || rendered !== renderKey) return;
     const b = frame.current!.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - b.left, b.width)),
       y = Math.max(0, Math.min(e.clientY - b.top, b.height));
@@ -211,7 +253,8 @@ export default function PdfReader({
     setRegion(false);
   }
   const focused =
-    rendered === paper.source_version + ":" + page &&
+    rendered === renderKey &&
+    focusAnchor?.paper_id === paper.id &&
     focusAnchor?.status === "verified" &&
     focusAnchor.source_version === paper.source_version &&
     focusAnchor.page_index === page
@@ -219,7 +262,8 @@ export default function PdfReader({
       : [];
   useEffect(() => {
     if (
-      rendered === paper.source_version + ":" + page &&
+      rendered === renderKey &&
+      focusAnchor?.paper_id === paper.id &&
       focusAnchor?.status === "verified" &&
       focusAnchor.source_version === paper.source_version &&
       focusAnchor.page_index === page
@@ -230,7 +274,36 @@ export default function PdfReader({
     }
   }, [focusAnchor, rendered, page, paper.source_version]);
   return (
-    <div className="reader">
+    <div
+      className="reader"
+      tabIndex={0}
+      aria-label="PDF 阅读器"
+      onKeyDown={(e) => {
+        if (
+          e.target instanceof HTMLElement &&
+          e.target.closest(
+            "input,textarea,select,button,[contenteditable=true]",
+          )
+        )
+          return;
+        if (e.key === "Escape") {
+          setDrag(null);
+          setRegion(false);
+        }
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+        if (e.key === "ArrowLeft" && page > 0) {
+          e.preventDefault();
+          setPage(page - 1);
+        }
+        if (
+          e.key === "ArrowRight" &&
+          page < (doc?.numPages ?? paper.page_count) - 1
+        ) {
+          e.preventDefault();
+          setPage(page + 1);
+        }
+      }}
+    >
       <div className="reader-toolbar">
         <button
           aria-label="上一页"
@@ -268,16 +341,32 @@ export default function PdfReader({
         <span className="toolbar-space" />
         <button
           aria-label="缩小"
-          onClick={() => setZoom(Math.max(0.5, zoom - 0.15))}
+          onClick={() => {
+            setFitWidth(false);
+            setZoom(Math.max(0.25, zoom - 0.15));
+          }}
         >
           <ZoomOut size={16} />
         </button>
         <span>{Math.round(zoom * 100)}%</span>
         <button
           aria-label="放大"
-          onClick={() => setZoom(Math.min(2.5, zoom + 0.15))}
+          onClick={() => {
+            setFitWidth(false);
+            setZoom(Math.min(2.5, zoom + 0.15));
+          }}
         >
           <ZoomIn size={16} />
+        </button>
+        <button
+          aria-label="适应宽度"
+          aria-pressed={fitWidth}
+          onClick={() => {
+            setFitWidth(true);
+            fit();
+          }}
+        >
+          适宽
         </button>
         <button
           className={region ? "active" : ""}
@@ -286,12 +375,42 @@ export default function PdfReader({
           {region ? <MousePointer2 size={16} /> : <Scan size={16} />}框选
         </button>
       </div>
+      <PdfNavigation
+        doc={doc}
+        sourceKey={paper.id + ":" + paper.source_version}
+        page={page}
+        onNavigate={setPage}
+      />
       {scan && (
         <div className="notice">
-          这一页没有可提取文字。可以框选图表或扫描文字，再在宿主中一起阅读。
+          这一页没有可提取文字。可以框选图表或扫描文字，在教练对话中附上整页图像一起阅读。
         </div>
       )}
-      <div className="pdf-scroll">
+      {!!pageNotes.length && (
+        <details className="reader-annotations">
+          <summary>本页批注 · {pageNotes.length}</summary>
+          <div>
+            {pageNotes.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => onLocateNote?.(n.anchor)}
+                title={n.content}
+              >
+                <b>
+                  {n.author === "assistant"
+                    ? "AI 评论"
+                    : n.author === "external"
+                      ? "Zotero 笔记"
+                      : "我的原话"}
+                  {n.read_only ? " · 只读" : ""}
+                </b>
+                <span>{n.content}</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
+      <div className="pdf-scroll" ref={scroller}>
         {error && (
           <div className="notice" role="alert">
             {error}
@@ -304,12 +423,28 @@ export default function PdfReader({
             ref={frame}
             className="pdf-page"
             data-paper-id={paper.id}
-            data-page-index={rendered === paper.source_version + ":" + page ? page : -1}
+            data-source-version={paper.source_version}
+            data-page-index={rendered === renderKey ? page : -1}
             style={size}
             onMouseUp={selected}
           >
             <canvas ref={canvas} />
             <div ref={layer} className="textLayer" />
+            {rendered === renderKey &&
+              pageNotes.flatMap((n) =>
+                (n.anchor.rects || []).map((r: number[], i: number) => {
+                  const style = highlightStyle(r);
+                  return style ? (
+                    <div
+                      key={n.id + ":" + i}
+                      className="saved-annotation"
+                      data-note-id={n.id}
+                      aria-hidden="true"
+                      style={style}
+                    />
+                  ) : null;
+                }),
+              )}
             {focused.map((r: number[], i: number) => {
               const v = viewport.current;
               if (!v) return null;
@@ -352,6 +487,8 @@ export default function PdfReader({
                   }
                 }}
                 onPointerUp={regionEnd}
+                onPointerCancel={() => setDrag(null)}
+                onLostPointerCapture={() => setDrag(null)}
               >
                 {drag && (
                   <div

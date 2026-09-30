@@ -2,7 +2,7 @@
 
 A portable Agent Skill and local reading workbench for graduate researchers. Move from choosing a paper to explaining its contribution, testing its evidence, preserving your own thoughts, developing falsifiable questions, and preparing recall or presentations.
 
-**2.0.0rc4 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
+**2.0.0rc5 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
 
 [中文](README.md) · [Design rationale](docs/DESIGN.md) · [Sources](docs/SOURCES.md) · [Verification scope](docs/TESTING.md)
 
@@ -31,7 +31,7 @@ Python 3.10+ is required. Download the wheel from Releases:
 ```bash
 python3 -m venv ~/.venvs/paper-research-coach
 source ~/.venvs/paper-research-coach/bin/activate
-python -m pip install /path/to/paper_research_coach-2.0.0rc4-py3-none-any.whl
+python -m pip install /path/to/paper_research_coach-2.0.0rc5-py3-none-any.whl
 prc install-skill --host codex
 prc serve
 ```
@@ -97,3 +97,5 @@ New and imported editable notes are exported under `06_PRC阅读记录/<paper-id
 `prc service install` enables a macOS login service. It scans the folder every 30 seconds and synchronizes with running Zotero every 5 seconds; sleep/logout pauses work. Use `prc service status` or `prc service stop`. Other platforms can keep `prc serve` running. SQLite and credentials stay outside OneDrive.
 
 New Zotero parents require bibliographic identity verified against the PDF's first page. Crossref and arXiv provide structured metadata; OpenAlex is optional (`prc metadata openalex-key` stores your key in the OS keyring). Only identifiers and titles leave the computer. Unresolved papers remain locally readable and do not block other imports. `prc metadata resolve --paper <id> --refresh` retries a lookup; `prc metadata status` shows source records.
+
+The reader includes PDF outlines, cancellable local text search and back/forward reading locations. Optional learning feedback links exact learner answers to checked source pages, actual assistance and explicit criteria; it records a local performance, not mastery.

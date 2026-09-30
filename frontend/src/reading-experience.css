@@ -1,0 +1,155 @@
+/* Reading continuity: secondary controls stay compact; evidence expands on demand. */
+.coach-turn-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.coach-turn-controls label {
+  flex: 1 1 135px;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+}
+.coach-turn-controls select {
+  width: 100%;
+  min-width: 0;
+  margin-top: 3px;
+  padding: 5px;
+  font-size: 12px;
+}
+.coach-mainline > .coach-pending-question {
+  display: block;
+  max-height: 90px;
+  overflow: auto;
+}
+.reading-receipt p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.reading-receipt button {
+  font-size: 11px;
+}
+.reader .reader-toolbar {
+  min-height: 51px;
+  height: auto;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+}
+.reader-annotations {
+  background: var(--tint);
+  padding: 7px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.reader-annotations > div {
+  max-height: 180px;
+  overflow: auto;
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+}
+.reader-annotations button {
+  text-align: left;
+  min-width: 0;
+  padding: 7px;
+}
+.reader-annotations b {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+}
+.reader-annotations span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.saved-annotation {
+  position: absolute;
+  background: #efd76644;
+  border-bottom: 1px solid #a58e3777;
+  pointer-events: none;
+  z-index: 1;
+}
+.reader:focus-visible,
+.reader button:focus-visible,
+.coach-panel select:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .coach-turn-controls label {
+    flex-basis: 100%;
+  }
+}
+.pdf-navigation {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--tint);
+  font-size: 12px;
+}
+.pdf-navigation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 12px;
+}
+.pdf-navigation-actions button {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.pdf-navigation-content {
+  max-height: 260px;
+  overflow: auto;
+  padding: 4px 12px 10px;
+}
+.pdf-navigation-content form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pdf-navigation-content input {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+.pdf-outline,
+.pdf-search-results {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+.pdf-outline button,
+.pdf-search-results button {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  margin-bottom: 5px;
+}
+.pdf-search-results b,
+.pdf-search-results span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.coach-learning {
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.coach-learning article {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.coach-learning blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 6px 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--green);
+}
+.coach-learning p {
+  overflow-wrap: anywhere;
+}

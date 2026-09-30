@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0rc5 (release candidate)
+
+- Ground legacy durable text sends in their selected PDF page while preserving retry fingerprints; keep cross-page images rejected.
+- Bound per-paper model context and migration history with explicit excerpt metadata and scoped, paginated original-note/dialogue retrieval; keep database records intact.
+- Add opt-in evidence-backed local learning feedback, linked to exact learner answers and pages actually read. Keep this separate from note consent and mastery certification.
+- Add PDF outline navigation, cancellable text search, and source-scoped reading history. Preserve new selections and drafts across asynchronous actions.
+- Include per-turn intent and help controls, safer note-source rebinding, persistent page annotations, fit-width reading and Chinese IME handling from the reviewed PR.
+- Strengthen contribution, mechanism, competing-explanation and fair-budget checks in the Skill, and retain stopping decisions for irrelevant papers.
+- Build a source distribution alongside the wheel and portable Skill. Derive release tags and package versions from built artifacts.
+- Report the installed runtime version consistently and keep local access tokens out of service startup output.
+
 ## 2.0.0rc4 (release candidate)
 
 - Add prompt-free, per-paper guided reading with eight persisted steps. Questions and annotations preserve the mainline return point; completion requires a real recall answer from the current round.

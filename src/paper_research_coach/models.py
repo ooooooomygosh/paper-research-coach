@@ -123,6 +123,18 @@ class ReadingFlow(BaseModel):
         return self
 
 
+class LearningEvidence(BaseModel):
+    conversation_id: str
+    message_id: str
+    answer_quote: str = Field(min_length=8, max_length=2000)
+    assistance: Literal["model", "guided", "prompt-only", "independent"]
+    judgment: Literal["supported", "partial", "revise"]
+    criterion: str = Field(min_length=8, max_length=2000)
+    feedback: str = Field(min_length=8, max_length=4000)
+    anchor: Anchor
+    recorded_at: str = Field(default_factory=now)
+
+
 class Session(Record):
     paper_id: str
     goal: str = ""
@@ -146,6 +158,8 @@ class Session(Record):
         Field(default_factory=dict)
     )
     note_consent: bool = False
+    learning_consent: bool = False
+    support_evidence: dict[Literal["contribution", "mechanism", "evidence", "test", "comparison"], LearningEvidence] = Field(default_factory=dict)
     reading_flow: ReadingFlow = Field(default_factory=ReadingFlow)
 
 

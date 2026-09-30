@@ -102,9 +102,8 @@ export default function Notes({
     }
   }, [notes]);
   useEffect(() => {
-    if (anchor) {
-      const next = { ...current.current, anchor };
-      update(next);
+    if (anchor && !current.current.content.trim() && current.current.revision === 0 && !retry.current) {
+      update({ ...current.current, anchor });
     }
   }, [anchor]);
   function emptyStatus(value: any) {
@@ -311,6 +310,9 @@ export default function Notes({
           )}
         </div>
         {draft.anchor?.quote && <blockquote>{draft.anchor.quote}</blockquote>}
+        {anchor && !sameAnchor(anchor, draft.anchor) && <button className="text-button" onClick={() => update({ ...current.current, anchor })}>
+          将此笔记的出处改为当前选区
+        </button>}
         <div className="save-row">
           <span>
             <Check size={12} />
