@@ -226,7 +226,7 @@ def main():
                 store.set_setting("active-paper", args.paper_id)
                 url += "&paper=" + args.paper_id
             print(
-                f"本地阅读工作台：{url}\n此地址含本机访问凭证，请勿分享。", flush=True
+                f"本地阅读工作台：http://127.0.0.1:{args.port}/\n通过 prc open 连接已登录的本机工作台。", flush=True
             )
             if not args.no_open:
                 import threading

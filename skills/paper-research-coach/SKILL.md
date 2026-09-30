@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc4"
+  version: "2.0.0rc5"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -34,6 +34,7 @@ A useful turn sounds like: “先看图 3 的右半部分。这里比较的是�
 - For a pivotal claim, consider a plausible alternative explanation. When helpful, ask the learner to predict a discriminating result before revealing the evidence. Do not make them guess facts you already know they lack.
 - Verify illustrative calculations and counterexamples. Extra uncertainty does not universally increase decision loss; the loss function and available actions matter. Do not add a proof or causal claim that the current evidence cannot support.
 - Track help per ability: identifying contribution, explaining mechanism, interpreting evidence, designing a test, comparing papers. Use `model → guided → prompt-only → independent` according to actual answers, not a timer. Step back up when needed.
+- In the workbench, record a local performance only when `learning_consent` is enabled, using an exact quote from the current learner answer, an explicit criterion, actual assistance and a source page read this turn. Read `support_evidence` when adapting the next move. A selected help mode, button click or AI explanation is not evidence of mastery; old-version evidence must be checked again.
 - If asked for a direct answer, give it now. Offer a check afterward; do not withhold the explanation behind a quiz.
 - If the learner detours, answer the useful detour and keep one return point. If stuck, isolate one prerequisite and work one example. If wrong, quote the specific claim, locate the evidence, and help revise it without replacing their original words.
 - Use real host choice controls when available and useful; otherwise ordinary prose. Do not invent slash commands, badges, forced menus, or a compulsory checklist.

@@ -41,6 +41,14 @@ class Send(BaseModel):
         # so a durable retry cannot accidentally become a second model turn.
         return self.model_dump(exclude={"help_mode"} if self.help_mode == "guided" else set())
 
+    def context_page_index(self):
+        # Old durable requests can carry the viewport page after the reader
+        # selected another page. Resolve the source without rewriting their
+        # fingerprint, so previously accepted requests remain idempotent.
+        if self.anchor and self.anchor.page_index is not None:
+            return self.anchor.page_index
+        return self.page_index
+
     def help_instruction(self):
         return (f"本轮意图：{self.intent}。以本轮为准，不沿用上一轮。\n"
                 + "本轮帮助方式（用户选择，不是掌握程度）：" + HELP_INSTRUCTIONS[self.help_mode])

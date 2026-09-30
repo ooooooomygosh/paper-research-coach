@@ -16,6 +16,7 @@ from .models import Commit, uid
 from .store import Conflict, Store
 from .vault import VaultSync
 from .zotero import ZoteroSync
+from . import __version__
 
 
 def session_token(store: Store):
@@ -154,7 +155,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             "papers": store.list("paper"),
             "sync": sync.state(),
             "conflicts": sync.conflicts(),
-            "version": "2.0.0rc4",
+            "version": __version__,
             "vault": vault.state(),
             "vault_conflicts": vault.conflicts(),
         }

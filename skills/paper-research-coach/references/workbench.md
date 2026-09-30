@@ -45,7 +45,7 @@ prc commit /absolute/path/to/transaction.json
 
 保存用户原话与AI评论为两条 Note，可在同一事务内提交。assistant 的 provenance 不可用 USER，links 指向用户笔记。对话自动捕获为 Note 前检查 Session.note_consent。讨论完成后修改对应笔记 discussed=true，同时保存一个 next_action。不要将尚未回应的笔记一并标记。
 
-Session.stage 与 depth 是独立字段；cursor 使用 Anchor；support 记录能力级别。UI通过事件流看到已提交状态。“讨论待讨论笔记”会启动一轮真实教练对话；已保存且 discussed=false 表示尚未讨论。工作台对话独立持久保存，note_consent 控制是否额外保存原话 Note；AI 评论保持独立作者身份与 links。
+Session.stage 与 depth 是独立字段；cursor 使用 Anchor。learning_consent 控制能力反馈记录；开启后 prc_record_learning_evidence 以真实回答、具体标准、帮助程度和当前证据页保存最近的 support_evidence，不把 Session.support 的无依据旧值当掌握证明。UI通过事件流看到已提交状态。“讨论待讨论笔记”会启动一轮真实教练对话；已保存且 discussed=false 表示尚未讨论。工作台对话独立持久保存，note_consent 控制是否额外保存原话 Note；AI 评论保持独立作者身份与 links。
 
 ## 其他操作
 
@@ -89,3 +89,9 @@ prc export pdf --paper PAPER_ID
 选区跨页后，文字上下文使用选区页；附图只允许与所选位置同页，并明确发送整页图像。发送确认后只消费同一选区，不清除请求期间新选的位置。阅读器显示当前论文、当前版本、当前页的已核实批注；定位一条批注不等于修改笔记。已写下文字的笔记不会因浏览其他选区自动改出处，重新绑定需要点击明确按钮。
 
 本机保存不是“模型计算不出本机”。用户点击发送时，当前论文的上下文和所需页面会送入 CLI 配置的模型提供方；模型还可通过已授权的受限工具请求本论文其他页面。Zotero 写回与其云同步又是另一条数据通路。向用户说明实际范围，不用“local-first”掩盖网络传输。
+
+## 容量节选与原话回查
+
+工作台默认向模型提供有字符预算的研究状态和最近迁移对话。context_scope 说明笔记总数、节选数与遗漏数，truncated 表示这不是全文。需要更多证据时调用 prc_list_notes 分页找记录、prc_read_note 按 start/length 获取精确原话，或 prc_read_dialogue 回查当前论文的旧对话。都只允许当前论文范围；源记录和历史保持完整。不要把未包含的笔记说成不存在，也不把节选改写为用户结论。
+
+阅读器提供目录、正文搜索与前后返回位置。搜索在本机浏览器执行，扫描页未做 OCR；搜索和目录跳转只定位，不自动改变原话笔记出处。

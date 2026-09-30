@@ -4,7 +4,7 @@ The source distribution uses the allowlist in pyproject.toml; no private state,
 credentials or node_modules are included.
 """
 
-import shutil, subprocess, sys, zipfile
+import runpy, shutil, subprocess, sys, zipfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -32,7 +32,7 @@ for package in ["pdfjs-dist", "react", "react-dom", "scheduler", "lucide-react"]
 subprocess.run([sys.executable, "-m", "build", "--sdist", "--wheel"], check=True, cwd=root)
 out = root / "dist"
 out.mkdir(exist_ok=True)
-version = "2.0.0rc4"
+version = runpy.run_path(str(root / "src/paper_research_coach/__init__.py"))["__version__"]
 with zipfile.ZipFile(
     out / f"paper-research-coach-skill-{version}.zip", "w", zipfile.ZIP_DEFLATED
 ) as archive:
