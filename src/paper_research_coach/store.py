@@ -147,7 +147,7 @@ class Store:
                     and (
                         old["content"] != obj.content
                         or old.get("anchor")
-                        != (obj.anchor.model_dump() if obj.anchor else None)
+                        != (obj.anchor.model_dump(mode="json") if obj.anchor else None)
                     )
                 ):
                     obj.discussed = False
@@ -373,7 +373,7 @@ class Store:
             "source_check": self.check_source(paper_id),
             "session": self.list("session", paper_id),
             "pending_thoughts": [
-                n for n in self.list("note", paper_id) if not n["discussed"]
+                n for n in self.list("note", paper_id) if not n["discussed"] and n["author"] != "assistant"
             ],
             "notes": self.list("note", paper_id),
             "ideas": self.list("idea", paper_id),
@@ -381,6 +381,7 @@ class Store:
             "due_reviews": [
                 r for r in self.list("review", paper_id) if r["due_at"] <= now()
             ],
+            "reviews": self.list("review", paper_id),
             "events": self.events(since),
             "seq": seq,
         }

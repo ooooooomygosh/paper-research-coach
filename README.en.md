@@ -2,7 +2,7 @@
 
 A portable Agent Skill and local reading workbench for graduate researchers. Move from choosing a paper to explaining its contribution, testing its evidence, preserving your own thoughts, developing falsifiable questions, and preparing recall or presentations.
 
-**2.0.0rc3 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
+**2.0.0rc4 is a release candidate.** Core note/annotation round trips were verified against Zotero 10.0.4. Host coverage and remaining special-case checks are documented in TESTING.md.
 
 [中文](README.md) · [Design rationale](docs/DESIGN.md) · [Sources](docs/SOURCES.md) · [Verification scope](docs/TESTING.md)
 
@@ -31,7 +31,7 @@ Python 3.10+ is required. Download the wheel from Releases:
 ```bash
 python3 -m venv ~/.venvs/paper-research-coach
 source ~/.venvs/paper-research-coach/bin/activate
-python -m pip install /path/to/paper_research_coach-2.0.0rc3-py3-none-any.whl
+python -m pip install /path/to/paper_research_coach-2.0.0rc4-py3-none-any.whl
 prc install-skill --host codex
 prc serve
 ```
@@ -42,9 +42,17 @@ On macOS, after installation you can also double-click `scripts/open-workbench.c
 
 Import a PDF and use the Coach conversation beside it. The workbench drives your local Codex CLI with its existing provider, model and login configuration. Every turn explicitly loads the bundled paper-research-coach skill and includes the paper, current page, selection and checkpoint. Responses stream, can be interrupted, and survive refreshes and service restarts. Attach the current page image when discussing figures.
 
-Use `prc coach connect --paper PAPER_ID` for a launch link bound to the paper and conversation. `prc coach send --file message.txt --wait` continues that same workbench conversation from the CLI. Existing local Codex text history can be brought into a reading branch through “Connect CLI conversation”; the original remains available. Live workbench conversations currently use Codex; the portable skill still supports Codex, Claude Code and Pi.
+Use `prc open --paper PAPER_ID` to open the browser with local authentication and the selected paper conversation. It reuses the running service or starts one when needed; `--new` creates an empty conversation for that paper. The conversation picker shows only the selected paper's saved conversations and never enumerates global CLI history. `prc coach send --file message.txt --wait` continues that same workbench conversation from the CLI. Live workbench conversations currently use Codex; the portable skill still supports Codex, Claude Code and Pi.
 
 Conversation history is stored locally. Note consent controls additional verbatim learner notes; AI comments remain separate. Next actions, research ideas and recall questions can be saved directly through workbench tools. Selected source material goes to the model service configured in the CLI. Inference starts when the user sends a message. Saved and discussed remain distinct states.
+
+## Guided reading without a custom prompt
+
+Click **Start reading** for a paper. Every paper follows the same eight-step route: reading goal, distinctive contribution, problem setup, mechanism, evidence, scope and judgment, research transfer, and recall. The coach adapts the evidence to the paper type. **Continue the route** resumes the current step; answering its question uses the answer-and-continue action. Ordinary questions, notes and selection discussions are detours that preserve the return point. A round ends only after all eight steps and a real recall answer from this round.
+
+Conversations are scoped to one paper. Creating or switching chats preserves that paper’s notes and reading progress. The workbench does not enumerate global CLI history. Use `prc open` to open an authenticated browser session, and `prc coach send --follow --wait` to continue without entering a prompt.
+
+Import a downloaded PDF in the workbench, or save it to the selected Zotero collection for indexing. Notes and annotations sync to the linked Zotero item when authorized; connected folder exports go to `06_PRC阅读记录`. Conversations, progress and review attempts are stored locally. GitHub contains the software and Skill, not the personal library.
 
 ## Zotero
 

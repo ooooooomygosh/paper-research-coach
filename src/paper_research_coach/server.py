@@ -102,7 +102,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         if request.url.path.startswith("/api/") and request.url.path != "/api/login":
             if not authorized:
                 return JSONResponse(
-                    {"error": "Open the private address shown by prc serve"}, 401
+                    {"error": "这个浏览器尚未连接工作台，请从本机启动器打开。"}, 401
                 )
             if (
                 request.method not in ("GET", "HEAD")
@@ -141,7 +141,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def login(request: Request):
         data = await request.json()
         if not secrets.compare_digest(str(data.get("token", "")), token):
-            return JSONResponse({"error": "Invalid session token"}, 401)
+            return JSONResponse({"error": "启动链接已失效，请从本机启动器重新打开。"}, 401)
         response = JSONResponse({"ok": True})
         response.set_cookie(
             "prc_session", token, httponly=True, samesite="strict", path="/"
@@ -154,7 +154,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             "papers": store.list("paper"),
             "sync": sync.state(),
             "conflicts": sync.conflicts(),
-            "version": "2.0.0rc3",
+            "version": "2.0.0rc4",
             "vault": vault.state(),
             "vault_conflicts": vault.conflicts(),
         }
@@ -284,10 +284,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         return coach.login
 
     @app.get("/api/coach/threads")
-    async def coach_threads(search: str = "", cursor: str | None = None):
-        await coach.rpc.start()
-        result = await coach.rpc.call("thread/list", {"limit": 30, "searchTerm": search or None, "cursor": cursor, "modelProviders": [], "sortKey": "updated_at"})
-        return {"data": [{k: t.get(k) for k in ("id", "name", "preview", "updatedAt")} for t in result.get("data", [])], "nextCursor": result.get("nextCursor")}
+    async def coach_threads(paper_id: str):
+        return {"data": coach.conversations(paper_id), "nextCursor": None}
 
     @app.post("/api/coach/active")
     async def coach_active(request: Request):

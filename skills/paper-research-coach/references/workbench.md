@@ -4,22 +4,25 @@
 
 ## 从宿主建立连接
 
-用户希望在工作台继续交互时，先确认论文，再使用运行中的工作台建立绑定：
+用户希望在工作台继续交互时，先确认论文，再打开带登录与会话绑定的工作台：
 
 ```text
-prc coach connect --paper PAPER_ID
+prc open --paper PAPER_ID
+prc open --paper PAPER_ID --new
 prc coach status
 ```
 
-connect 返回并打开含本机凭证与论文绑定的地址。用户在这个页面发送消息后，工作台直接驱动 CLI，不需要返回宿主说“继续”。已有原生 Codex 对话可通过 `--thread THREAD_ID` 接入最近文字历史，也可在界面的“接入 CLI 对话”中选择；它创建一个加载当前 skill 的论文阅读分支，保留原对话，不重放历史工具调用。不要把其他宿主的会话 ID 当成本机 Codex 的会话 ID。
+open 自动复用已运行的服务，未运行时启动，随后在浏览器打开带本机登录信息的论文会话。不要把含凭证的地址写入聊天或笔记。默认继续这篇论文上次选择的对话；用户要求新对话时才加 --new。也可用 --conversation CONVERSATION_ID 复用当前论文的一条旧对话。会话按论文隔离，不枚举或导入 CLI 全部历史，不把其他论文或宿主的会话混入当前阅读。用户在页面发送消息后，工作台直接驱动 CLI，不需要返回宿主说“继续”。
 
 工作台选择论文后，`prc context` 和 `prc resume` 可省略论文 ID，读取当前论文。要在命令入口继续同一条工作台阅读对话：
 
 ```text
+prc coach send --paper PAPER_ID --follow --wait
+prc coach send --paper PAPER_ID --answer --file /absolute/path/answer.txt --wait
 prc coach send --paper PAPER_ID --file /absolute/path/message.txt --wait
 ```
 
-消息从文件或标准输入读取，经过同一工作台服务发送和保存。纯 skill 模式在 Codex / Claude Code / Pi 中仍可直接带读；工作台实时对话当前接入 Codex CLI。
+follow 无须输入提示词，推进当前论文的固定主线；answer 回应主线问题；普通消息为插话，回答后返回原断点。消息从文件或标准输入读取，经过同一工作台服务发送和保存。主线的八步、按论文保存与结束条件见 reading-flow.md。纯 skill 模式在 Codex / Claude Code / Pi 中仍可直接带读；工作台实时对话当前接入 Codex CLI。
 
 ## 通常的一个带读回合
 

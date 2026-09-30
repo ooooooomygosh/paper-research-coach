@@ -4,7 +4,7 @@
 
 面向研究生的带读 skill 和本地阅读工作台：选论文 → 抓住贡献 → 检验证据 → 留下思考 → 形成研究问题 → 复习与汇报。默认中文，也可跟随用户语言。
 
-**当前为 2.0.0rc3 预览版。** 本地工作台、OneDrive 目录连接与 Zotero 10.0.4 核心往返已实测。不同宿主、特殊批注与真人试读范围见验证记录。
+**当前为 2.0.0rc4 预览版。** 本地工作台、OneDrive 目录连接与 Zotero 10.0.4 核心往返已实测。不同宿主、特殊批注与真人试读范围见验证记录。
 
 [English](README.en.md) · [完整设计思考](docs/DESIGN.md) · [来源与致谢](docs/SOURCES.md) · [验证记录](docs/TESTING.md)
 
@@ -12,7 +12,7 @@
 
 > 先看图 1 中预算相同的两组结果。你刚才怀疑“只是额外信息的收益”，这个对照正好能检验它。先预测一下：如果这个解释成立，预算匹配后差距应该怎样变化？
 
-教练只推进一个具体动作。想直接听答案就直接讲；可以跳读、岔题、暂停，也可以不记笔记。不会把每篇论文都变成固定页数的摘要。
+教练只推进一个具体动作。想直接听答案就直接讲；可以回看材料、插话、暂停，也可以不记笔记。不会把每篇论文都变成固定页数的摘要。
 
 - **贡献与证据**：最少背景后形成暂定判断，核对最近前作、核心机制与最有区分力的证据。
 - **逐渐独立**：按贡献判断、机制解释、证据解读等具体能力，调整“示范／共同完成／仅提示／独立完成”。
@@ -32,7 +32,7 @@
 | Claude Code | `~/.claude/skills/paper-research-coach/` |
 | Pi | `~/.pi/agent/skills/paper-research-coach/` |
 
-在新会话中说：“用 paper-research-coach 陪我读这篇论文。我想判断它是否能解决……，今天有30分钟。”有文件工具时使用 Markdown 笔记；没有工具时也可以纯文本带读。不要只复制主入口，references 和 assets 是完整技能的一部分。
+在新会话中附上论文，说“用 paper-research-coach 开始跟读”即可。研究目标和可用时间可以补充，不要求专门编写 prompt。有文件工具时使用 Markdown 笔记；没有工具时也可以纯文本带读。不要只复制主入口，references 和 assets 是完整技能的一部分。
 
 规范兼容不等于所有模型都已通过实测；具体宿主与模型范围见 [验证记录](docs/TESTING.md)。
 
@@ -43,20 +43,22 @@
 ```bash
 python3 -m venv ~/.venvs/paper-research-coach
 source ~/.venvs/paper-research-coach/bin/activate
-python -m pip install /path/to/paper_research_coach-2.0.0rc3-py3-none-any.whl
+python -m pip install /path/to/paper_research_coach-2.0.0rc4-py3-none-any.whl
 prc install-skill --host codex
 prc serve
 ```
 
 将 `codex` 换成 `claude` 或 `pi` 可安装到相应目录。Windows 使用 `python -m venv`，并运行虚拟环境中的 `Scripts/Activate.ps1`。软件支持 Python 3.10+；跨操作系统实测范围单独记录。
 
-macOS 完成上述安装后，也可双击仓库中的 `scripts/open-workbench.command` 打开界面。
+macOS 完成上述安装后，可双击仓库中的 `scripts/open-workbench.command` 打开界面，也可运行 `prc open`。它复用已经运行的服务，未运行时自动启动，并向浏览器带入本机登录信息。不同浏览器首次连接需要分别通过这个入口打开；不要只复制不含登录信息的普通地址。
 
-浏览器打开后，导入 PDF 或连接 Zotero。在阅读页右侧“教练对话”中直接开始带读；选中文字或框选图表后提问，页码、选区和阅读断点会自动带入。回复逐步显示，可以停止，刷新后恢复。教练使用本机 Codex CLI 的现有配置，并在每轮显式加载本项目 skill。图表讨论可勾选“同时查看当前页图表”。
+浏览器打开后，导入 PDF 或连接 Zotero。在阅读页右侧“教练对话”点击“开始跟读”，无需先输入提示词；选中文字或框选图表后提问，页码、选区和阅读断点会自动带入。回复逐步显示，可以停止，刷新后恢复。教练使用本机 Codex CLI 的现有配置，并在每轮显式加载本项目 skill。图表讨论可勾选“同时查看当前页图表”。
+
+每篇论文沿用八步主线：阅读目标 → 独特贡献 → 问题设定 → 方法机制 → 证据核查 → 边界与判断 → 研究启发 → 回忆与复习。“继续主线”推进当前步骤；回应思考题时点“回答并继续主线”。普通提问、选区讨论和批注属于插话，回答后回到原断点。完整八步和本轮实际回忆记录都完成后，才显示本轮结束；刷新、新建对话或切换旧对话保留这篇论文的主线。
 
 “阅读笔记”保留原话与独立 AI 评论；“讨论待讨论笔记”把记录直接交给教练。下一步、研究想法和复习题可以由教练保存并在工作台继续。对话记录保存在本机；阅读设置可控制是否额外生成原话笔记。**“已保存”与“AI 已讨论”是两个状态。**
 
-从 CLI 打开绑定论文的会话：`prc coach connect --paper PAPER_ID`。也可 `prc serve --paper PAPER_ID` 启动带论文绑定的工作台。`prc coach send --file message.txt --wait` 在 CLI 继续同一条工作台对话；省略论文 ID 时沿用工作台当前选择。已有本机 Codex 对话可通过“接入 CLI 对话”接入最近文字记录，继续为当前论文的阅读分支。实时工作台当前支持 Codex CLI；纯 skill 仍支持 Codex、Claude Code 与 Pi。
+从 CLI 打开绑定论文的会话：`prc open --paper PAPER_ID`；加 `--new` 为这篇论文新建对话。工作台的会话选择器只显示当前论文的旧对话，“新对话”另开空白记录，切换论文时分别恢复各自的选择。`prc coach send --file message.txt --wait` 在 CLI 继续同一条工作台对话；省略论文 ID 时沿用工作台当前选择。工作台不读取 CLI 的全部对话历史。实时工作台当前支持 Codex CLI；纯 skill 仍支持 Codex、Claude Code 与 Pi。
 
 消息与选中的论文材料经 CLI 发给其配置的模型服务，凭证由 CLI 管理。工作台只在你发送消息时启动推理，无需另设模型密钥。
 
@@ -94,6 +96,16 @@ prc service install
 SQLite、授权与同步队列留在本机应用目录。只有导出的笔记进入选定文件夹并由 OneDrive 同步。原卡、模板、Obsidian 设置及既有自动化不被改写。
 
 新建 Zotero 书目前，工作台用 PDF 首页核对正式题名，再查询 Crossref、arXiv 和可选的 OpenAlex，按顺序逐人保存作者。查不到可靠信息时保留本地论文并列入待核实，不创建空作者条目，也不阻止其他论文同步。仅发送 DOI 或题名，不上传 PDF。可运行 `prc metadata openalex-key` 把自己的 OpenAlex key 保存在系统钥匙串；`prc metadata resolve --paper <论文ID> --refresh` 重新核实，`prc metadata status` 查看来源记录。
+
+## 每天怎样使用
+
+1. 双击启动入口，或在 Codex 中说“用 paper-research-coach 打开工作台”。新浏览器也通过启动入口连接。
+2. 新论文可在页面“导入论文”选择已下载的 PDF；也可先用 Zotero Connector 保存论文，再将它放进工作台选中的集合，工作台自动索引。无需为每篇论文重新安装软件。
+3. 选择论文后点“开始跟读”，以后点“继续主线”。对话选择器只管理这篇论文；“新对话”清空对话上下文，论文的笔记和主线仍保留。
+4. 选中文字或框选图表，在“阅读笔记”写下想法；点击位置标签可回到出处。在“教练对话”提问或讨论待讨论笔记，评论另存，原话保留。
+5. 下次打开“继续阅读”接上断点；到“复习队列”先凭记忆回答，记录帮助程度与实际表现，保存后回到教练获取反馈。默认间隔为 1／3／7／14 天。
+
+笔记、对话、研究想法、阅读进度和复习回答首先保存到本机应用数据目录。已授权 Zotero 时，笔记和批注同步到对应条目；连接文献目录后，笔记修订写入 `06_PRC阅读记录` 并由 OneDrive 同步。复习记录与对话保存在本机，GitHub 只发布软件与 Skill。页面“导出”可保存论文卡、研究想法、比较表和独立批注 PDF。
 
 ## 常用操作
 
@@ -145,7 +157,7 @@ prc --data-dir .prc/demo serve
 
 构建安装包：`python scripts/package_release.py`。输出的 skill ZIP 与 Python wheel 位于 `dist/`。源码开发需要 Node.js 24.15+，发布包运行不需要。
 
-首个通过全部检查的 main 分支构建自动建立预览版并附上两个安装包。之后的 main 构建保留既有发布物；新版本标签生成各自的预览版。
+通过全部检查的 main 分支构建为当前版本建立预览版并附上两个安装包。同版本的后续构建保留既有发布物；升级版本时发布新的预览版。
 
 ## 数据、证据与许可
 

@@ -9,7 +9,9 @@ folder.mkdir(exist_ok=True)
     "Paper Research Coach bundles PDF.js (Apache-2.0), React and scheduler (MIT), "
     "Lucide (ISC), and Markdown/math rendering components including react-markdown, "
     "remark, rehype and KaTeX (MIT). Component and dependency license files are "
-    "included here. Project MIT licensing does not relicense those components.\n"
+    "included here. Python dependencies pypdfium2/PDFium and Pillow are installed "
+    "from their distributions, which include their own license notices. "
+    "Project MIT licensing does not relicense those components.\n"
 )
 lock = json.loads((root / "frontend/package-lock.json").read_text())
 for package_path, metadata in lock["packages"].items():

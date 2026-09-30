@@ -98,6 +98,31 @@ class Note(Record):
         return self
 
 
+class ReadingStep(BaseModel):
+    step: Literal["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"]
+    evidence: str = Field(min_length=1, max_length=6000)
+    page_index: int = Field(ge=0)
+    finished_at: str = Field(default_factory=now)
+
+
+class ReadingFlow(BaseModel):
+    status: Literal["not_started", "active", "completed"] = "not_started"
+    source_version: str = ""
+    started_at: str = ""
+    completed: list[ReadingStep] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def ordered(self):
+        keys = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"]
+        if [s.step for s in self.completed] != keys[:len(self.completed)]:
+            raise ValueError("Reading steps must follow the paper's route")
+        if (self.status == "completed") != (len(self.completed) == 8):
+            raise ValueError("A reading round ends after all eight steps")
+        if self.status == "not_started" and self.completed:
+            raise ValueError("An unstarted route cannot have completed steps")
+        return self
+
+
 class Session(Record):
     paper_id: str
     goal: str = ""
@@ -121,6 +146,7 @@ class Session(Record):
         Field(default_factory=dict)
     )
     note_consent: bool = False
+    reading_flow: ReadingFlow = Field(default_factory=ReadingFlow)
 
 
 class Relation(Record):

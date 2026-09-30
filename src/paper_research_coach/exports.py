@@ -189,6 +189,7 @@ def annotated_pdf(store: Store, paper_id: str, destination: Path):
             from pypdf.generic import NameObject, TextStringObject
 
             ann[NameObject("/Contents")] = TextStringObject(content)
+            ann[NameObject("/CA")] = FloatObject(0.18)
         else:
             box = reader.pages[page].cropbox
             x, y = float(box.left) + 20, float(box.top) - 40

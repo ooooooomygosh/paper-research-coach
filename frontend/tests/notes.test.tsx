@@ -220,3 +220,16 @@ it("an unmounted save cannot overwrite the newer mounted draft", async () => {
     "v3 still typing",
   );
 });
+
+it("restores the same region after a coach comment without saving a stale revision", async () => {
+  const note = { id: "region", paper_id: "p", content: "my region thought", author: "user", provenance: "USER", revision: 1, anchor: { paper_id: "p", source_version: "v1", page_index: 0, rects: [[1, 2, 3, 4]], status: "verified" } };
+  const latest = { ...note, revision: 2, discussed: true, anchor: { ...note.anchor, page_label: "", section: "", figure: "", quote: "" } };
+  localStorage.setItem("prc-draft-p", JSON.stringify(note));
+  localStorage.setItem("prc-draft-p-operation", JSON.stringify({value: note, op: "stale-metadata"}));
+  render(<Notes {...props} notes={[latest]} />);
+  await tick(500);
+  expect(write).not.toHaveBeenCalled();
+  expect(screen.getByText("已保存 · 已讨论")).toBeTruthy();
+  expect(localStorage.getItem("prc-draft-p-operation")).toBeNull();
+  expect(JSON.parse(localStorage.getItem("prc-draft-p")!).revision).toBe(2);
+});

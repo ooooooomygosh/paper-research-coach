@@ -27,12 +27,14 @@ type Message = {
   imported?: boolean;
   actions?: any[];
   connection_notice?: string;
+  intent?: string;
 };
 type Snapshot = {
   conversation_id: string;
   conversations: Row[];
   messages: Message[];
   busy: boolean;
+  reading_flow?: any;
 };
 
 function prose(text: string) {
@@ -84,11 +86,7 @@ export default function CoachPanel({
   const [effort, setEffort] = useState(
     () => localStorage.getItem("prc-coach-effort") || "",
   );
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [threads, setThreads] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
   const scroll = useRef<HTMLDivElement>(null);
@@ -187,8 +185,9 @@ export default function CoachPanel({
     const png = image.toDataURL("image/png");
     return png.length > 3500000 ? image.toDataURL("image/jpeg", 0.85) : png;
   }
-  async function send(content = text, retry = false) {
-    if (sending || snapshot.busy || (!retry && !content.trim())) return;
+  async function send(content = text, retry = false, intent = "detour") {
+    if (sending || connecting || snapshot.busy || (!retry && intent !== "follow" && !content.trim()))
+      return;
     if (pending && !retry) {
       setError("上次发送的结果还未确认。先点击确认上次发送，可避免重复提问。");
       return;
@@ -201,7 +200,8 @@ export default function CoachPanel({
             operation_id: id(),
             conversation_id: snapshot.conversation_id,
             content,
-            anchor,
+            intent,
+            anchor: intent === "follow" ? null : anchor,
             page_index: page,
             source_version: paper.source_version,
             model,
@@ -239,17 +239,24 @@ export default function CoachPanel({
       if (alive.current) setSending(false);
     }
   }
-  async function connect(threadId = "", fresh = false) {
+  async function chooseConversation(conversationId: string, fresh = false) {
+    if (snapshot.busy || pending || connecting || sending) return;
     setConnecting(true);
     setError("");
     try {
-      const c = await api("coach/connect/" + paper.id, {
-        thread_id: threadId,
-        new: fresh,
-      });
+      const c = fresh
+        ? await api("coach/connect/" + paper.id, { new: true })
+        : { id: conversationId };
+      await api("coach/active", { paper_id: paper.id, conversation_id: c.id });
+      const next = await api(
+        "coach/conversation/" +
+          paper.id +
+          "?conversation_id=" +
+          encodeURIComponent(c.id),
+      );
       if (alive.current) {
+        setSnapshot(next);
         setChosen(c.id);
-        setHistoryOpen(false);
         atBottom.current = true;
       }
     } catch (e) {
@@ -258,28 +265,14 @@ export default function CoachPanel({
       if (alive.current) setConnecting(false);
     }
   }
-  async function history(more = false) {
-    try {
-      setHistoryOpen(true);
-      const r = await api(
-        "coach/threads?search=" +
-          encodeURIComponent(search) +
-          (more && nextCursor
-            ? "&cursor=" + encodeURIComponent(nextCursor)
-            : ""),
-      );
-      if (alive.current) {
-        setThreads(more ? [...threads, ...r.data] : r.data);
-        setNextCursor(r.nextCursor || null);
-      }
-    } catch (e) {
-      if (alive.current) setError(String(e));
-    }
-  }
   const currentModel = status?.models?.find(
     (m: any) => m.model === (model || status.model),
   );
   const notesSaved = new Set((context.notes || []).map((n: Row) => n.id));
+  const flow = snapshot.reading_flow;
+  const flowDone = flow?.status === "completed";
+  const flowStarted = flow?.status === "active";
+  const unavailable = status?.state !== "ready" || snapshot.busy || pending || connecting || sending;
   return (
     <section
       className={"coach-panel " + (expanded ? "expanded" : "")}
@@ -289,6 +282,7 @@ export default function CoachPanel({
         <div>
           <MessageCircle size={17} />
           <strong>一起读这篇论文</strong>
+          <span className="coach-ready" title={status?.skill_loaded ? "本机教练已连接，每轮加载 paper-research-coach" : "正在连接"}><span className={"status-dot " + (status?.state === "ready" ? "online" : "")} />{status?.state === "ready" ? "已连接" : "连接中"}</span>
         </div>
         <button
           aria-label={expanded ? "收起教练对话" : "展开教练对话"}
@@ -297,40 +291,6 @@ export default function CoachPanel({
         >
           {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>
-        <button
-          title="新建阅读对话"
-          aria-label="新建阅读对话"
-          disabled={snapshot.busy || connecting || pending}
-          onClick={() => void connect("", true)}
-        >
-          <Plus size={16} />
-        </button>
-      </div>
-      <div className="coach-connection">
-        <span
-          className={
-            "status-dot " + (status?.state === "ready" ? "online" : "")
-          }
-        />
-        <span>{status?.message || "正在连接本机 CLI…"}</span>
-        <button
-          aria-label="重新连接 CLI"
-          title="重新连接 CLI"
-          disabled={snapshot.busy}
-          onClick={async () => {
-            try {
-              setStatus(await api("coach/reconnect", {}));
-            } catch (e) {
-              setError(String(e));
-            }
-          }}
-        >
-          <RefreshCw size={13} />
-        </button>
-      </div>
-      <div className="coach-skill">
-        paper-research-coach ·{" "}
-        {status?.skill_loaded ? "skill 已就绪，每轮显式加载" : "正在检查 skill"}
       </div>
       {status?.state === "login_required" && (
         <div className="coach-login">
@@ -351,78 +311,58 @@ export default function CoachPanel({
       )}
       <div className="coach-session-row">
         <select
+          title="仅列出这篇论文的阅读对话"
           aria-label="当前阅读对话"
           value={snapshot.conversation_id}
-          disabled={snapshot.busy || pending}
-          onChange={(e) => {
-            setChosen(e.target.value);
-            atBottom.current = true;
-            void api("coach/active", {
-              paper_id: paper.id,
-              conversation_id: e.target.value,
-            }).catch((err) => setError(String(err)));
-          }}
+          disabled={snapshot.busy || pending || connecting || sending}
+          onChange={(e) => void chooseConversation(e.target.value)}
         >
           {!snapshot.conversations.length && (
-            <option value="">新阅读对话</option>
+            <option value="">从新对话开始</option>
           )}
-          {snapshot.conversations.map((c) => (
+          {snapshot.conversations.map((c, index) => (
             <option key={c.id} value={c.id}>
-              {c.title} · {new Date(c.created_at).toLocaleDateString()}
+              {c.title} ·{" "}
+              {new Date(c.created_at).toLocaleString(undefined, {
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              · #{index + 1}
             </option>
           ))}
         </select>
         <button
           className="text-button"
-          onClick={() => void history()}
-          disabled={snapshot.busy || pending}
+          aria-label="新建阅读对话"
+          onClick={() => void chooseConversation("", true)}
+          disabled={snapshot.busy || pending || connecting || sending}
         >
-          接入 CLI 对话
+          <Plus size={14} />
+          新对话
         </button>
       </div>
-      {historyOpen && (
-        <div className="coach-history">
-          <div>
-            <strong>选择之前的 CLI 对话</strong>
-            <button
-              aria-label="关闭 CLI 对话列表"
-              onClick={() => setHistoryOpen(false)}
-            >
-              <X size={15} />
-            </button>
-          </div>
-          <p>接入最近的文字记录，在当前论文下继续；原对话保留。</p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void history();
-            }}
-          >
-            <input
-              aria-label="查找 CLI 对话"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="按对话标题查找"
-            />
-            <button>查找</button>
-          </form>
-          <div className="coach-thread-list">
-            {threads.map((t) => (
-              <button
-                key={t.id}
-                disabled={connecting}
-                onClick={() => void connect(t.id)}
-              >
-                {t.name || t.preview || "未命名 CLI 对话"}
-              </button>
-            ))}
-            {!threads.length && <p>未找到本机 CLI 的对话记录。</p>}
-            {nextCursor && (
-              <button onClick={() => void history(true)}>加载更多</button>
-            )}
-          </div>
+      <div className="coach-mainline" aria-label="论文跟读主线">
+        <div className="coach-mainline-heading">
+          <strong>{flowDone ? "本轮跟读已完成" : flowStarted ? flow.label : "这篇论文的跟读主线"}</strong>
+          <span>{flow?.completed?.length || 0} / 8</span>
         </div>
-      )}
+        <p>{flowDone ? "回到复习队列巩固理解，也可以继续讨论新问题。" : flow?.return_action || flow?.goal || "从阅读目标到证据、研究启发和复习，按既定流程一起读。"}</p>
+        {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
+        <button className="primary" disabled={unavailable}
+          onClick={() => void send(text, false, text.trim() ? "answer" : "follow")}>
+          {text.trim() ? "回答并继续主线" : flowDone ? "回顾阅读总结" : flowStarted ? "继续主线" : "开始跟读"}
+        </button>
+        <details>
+          <summary>查看阅读路线</summary>
+          <ol>{(flow?.steps || []).map((step: any, index: number) => (
+            <li key={step.id} aria-current={!flowDone && flow?.current === step.id ? "step" : undefined}>
+              {index < (flow?.completed?.length || 0) ? "✓ " : ""}{step.label}
+            </li>
+          ))}</ol>
+        </details>
+      </div>
       <div
         className="coach-messages"
         ref={scroll}
@@ -437,39 +377,17 @@ export default function CoachPanel({
       >
         {!snapshot.messages.length && (
           <div className="coach-welcome">
-            <span className="eyebrow">从你想弄清的问题开始</span>
+            <span className="eyebrow">每篇论文都有自己的阅读路线</span>
             <h3>论文在左边，思考在这里。</h3>
             <p>
-              告诉我你的研究目标和今天想推进的判断；也可以选中一段原文，直接讨论它。
+              点“开始跟读”即可按 Skill 的完整流程阅读。随时提问或讨论选区，回答后会回到主线；新对话沿用这篇论文的阅读进度。
             </p>
-            <div className="coach-prompts">
-              <button
-                disabled={status?.state !== "ready"}
-                onClick={() =>
-                  void send(
-                    "带我开始读这篇论文。先确定一个最值得理解的问题，一次只推进一个阅读动作。",
-                  )
-                }
-              >
-                开始带读
-              </button>
-              <button
-                disabled={status?.state !== "ready"}
-                onClick={() =>
-                  void send(
-                    "请从当前阅读断点继续，先回应我已保存但尚未讨论的想法。",
-                  )
-                }
-              >
-                从断点继续
-              </button>
-            </div>
           </div>
         )}
         {snapshot.messages.map((m) => (
           <article key={m.id} className={"coach-message " + m.role}>
             <div className="coach-message-label">
-              {m.role === "user" ? "我" : "论文教练"}
+              {m.role === "user" ? m.intent === "follow" ? "继续跟读" : "我" : "论文教练"}
               {m.imported && <span>来自 CLI 对话</span>}
               <span>
                 {m.status === "queued"
@@ -518,12 +436,15 @@ export default function CoachPanel({
             {m.error && <p className="coach-error">{m.error}</p>}
             {m.actions?.length ? (
               <div className="coach-actions">
-                {m.actions.map((a) => (
+                {m.actions.filter((a, i, all) => all.findIndex(b => b.id === a.id && b.label === a.label) === i).map((a) => a.kind === "session" ? (
+                  <span className="coach-saved-action" key={a.id + a.label}>{a.label}</span>
+                ) : (
                   <button
                     key={a.id + a.label}
                     onClick={() => {
                       refresh();
-                      onAction(a.kind);
+                      if (a.anchor) onLocate(a.anchor);
+                      else onAction(a.kind);
                     }}
                   >
                     {a.label}
@@ -531,7 +452,7 @@ export default function CoachPanel({
                 ))}
               </div>
             ) : null}
-            {m.content && m.status !== "streaming" && (
+            {m.content && m.status !== "streaming" && m.intent !== "follow" && (
               <button
                 className="text-button small"
                 disabled={notesSaved.has("chat-" + m.id)}
@@ -610,7 +531,7 @@ export default function CoachPanel({
         </label>
         <textarea
           aria-label="发给论文教练的消息"
-          placeholder="说出你的疑问、直觉，或让我接着带读…"
+          placeholder="随时插话提问；回答主线问题后，点“回答并继续主线”…"
           value={text}
           onChange={(e) => change(e.target.value)}
           onKeyDown={(e) => {
@@ -625,7 +546,7 @@ export default function CoachPanel({
           }}
         />
         <div className="coach-compose-footer">
-          <span>对话本机保存 · ⌘ / Ctrl + Enter 发送</span>
+          <span>随时插话 · 回答后回到主线</span>
           {snapshot.busy ? (
             <button
               className="coach-stop"
@@ -645,7 +566,11 @@ export default function CoachPanel({
               className="primary"
               aria-label="发送给论文教练"
               disabled={
-                sending || !text.trim() || status?.state !== "ready" || pending
+                sending ||
+                connecting ||
+                !text.trim() ||
+                status?.state !== "ready" ||
+                pending
               }
               onClick={() => void send()}
             >
@@ -654,9 +579,34 @@ export default function CoachPanel({
           )}
         </div>
         <details className="coach-options">
-          <summary>
-            {model || status?.model || "沿用 CLI 模型"} · 阅读设置
-          </summary>
+          <summary>阅读设置与连接</summary>
+      <div className="coach-connection">
+        <span
+          className={
+            "status-dot " + (status?.state === "ready" ? "online" : "")
+          }
+        />
+        <span>{status?.message || "正在连接本机 CLI…"}</span>
+        <button
+          aria-label="重新连接 CLI"
+          title="重新连接 CLI"
+          disabled={snapshot.busy}
+          onClick={async () => {
+            try {
+              setStatus(await api("coach/reconnect", {}));
+            } catch (e) {
+              setError(String(e));
+            }
+          }}
+        >
+          <RefreshCw size={13} />
+        </button>
+      </div>
+      <div className="coach-skill">
+        paper-research-coach ·{" "}
+        {status?.skill_loaded ? "skill 已就绪，每轮显式加载" : "正在检查 skill"}
+      </div>
+
           <label>
             模型
             <select

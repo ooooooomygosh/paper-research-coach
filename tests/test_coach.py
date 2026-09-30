@@ -338,26 +338,62 @@ def test_workbench_tools_are_scoped_and_keep_original_words(store, paper):
         coach.tool_call(state, "prc_next_action", args, "late")
 
 
-def test_existing_cli_history_is_visible_and_included_as_data(store, paper):
+def test_only_reuses_threads_bound_to_this_paper_and_new_dialogue_is_empty(
+    store, paper
+):
     async def run():
         coach = Coach(store, FakeRPC)
-        c = await coach.connect(paper["id"], "existing-cli")
-        assert [m["content"] for m in coach.messages(c["id"])] == [
-            "Old question",
-            "Old answer",
-        ]
-        await coach.send(
-            paper["id"],
-            Send(
-                operation_id="continue-import", conversation_id=c["id"], content="继续"
-            ),
+        other = store.add_paper("Another paper")
+        first = await coach.connect(paper["id"])
+        first["thread_id"] = "bound-native"
+        coach.save_conversation(first)
+        coach.save_message(
+            {
+                "id": "old",
+                "conversation_id": first["id"],
+                "role": "user",
+                "content": "Original question",
+                "status": "completed",
+            }
         )
-        await drained(coach)
-        turn = next(p for m, p in coach.rpc.calls if m == "turn/start")
-        assert "previous_host_dialogue" in turn["input"][1]["text"]
-        assert "Old question" in turn["input"][1]["text"]
+        assert (await coach.connect(paper["id"], "bound-native"))["id"] == first["id"]
+        with pytest.raises(ValueError, match="当前论文"):
+            await coach.connect(other["id"], "bound-native")
+        with pytest.raises(ValueError, match="当前论文"):
+            await coach.connect(paper["id"], "unrelated-cli")
+        fresh = await coach.connect(paper["id"], new=True)
+        assert fresh["id"] != first["id"]
+        assert coach.messages(fresh["id"]) == []
+        assert coach.messages(first["id"])[0]["content"] == "Original question"
+        assert not coach.rpc.calls
+        with pytest.raises(ValueError):
+            coach.snapshot(other["id"], first["id"])
 
     asyncio.run(run())
+
+
+def test_conversation_listing_never_reads_global_cli_history(store, paper):
+    app = create_app(store, token="test")
+    coach = app.state.coach
+    coach.rpc = FakeRPC(coach.handle, store.root)
+    other = store.add_paper("Another paper")
+    first = asyncio.run(coach.connect(paper["id"]))
+    asyncio.run(coach.connect(other["id"]))
+    with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+        client.headers["Authorization"] = "Bearer test"
+        assert client.get("/api/coach/threads").status_code == 422
+        listed = client.get(
+            "/api/coach/threads", params={"paper_id": paper["id"]}
+        ).json()
+        assert [c["id"] for c in listed["data"]] == [first["id"]]
+        assert not coach.rpc.calls
+        assert (
+            client.post(
+                "/api/coach/active",
+                json={"paper_id": other["id"], "conversation_id": first["id"]},
+            ).status_code
+            == 400
+        )
 
 
 def test_chat_api_requires_local_credentials_and_saves_exact_messages(store, paper):

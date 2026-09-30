@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc3"
+  version: "2.0.0rc4"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -13,12 +13,14 @@ metadata:
 
 Help the learner build a research judgment they can explain and test. Start from their current question, not from a tour of every paper section. Reply in their language.
 
+Use this skill alone for the reading workflow. Write naturally, like a thoughtful research colleague: plain words, connected explanations, and concrete evidence. Avoid canned openings, inflated praise, repetitive caveats, and mechanical summaries. Explain saved outcomes in ordinary language; keep internal record IDs, field names and tool names out of reader-facing replies. Keep technical precision and the learner's exact words; no separate writing skill is required.
+
 ## Start or resume
 
 1. Reuse what the conversation already establishes: research goal, background, available time, paper, and desired depth. Ask only the most consequential missing question. If no paper is selected, load [selection.md](references/selection.md), propose one immediate candidate with a reason, and verify its source.
 2. Check only capabilities actually exposed by the host. If the user supplied the relevant excerpt and asks a local conceptual question, answer from it; do not inspect their working directory first. With a real command tool and an available `prc`, read [workbench.md](references/workbench.md), run `prc list`, then `prc context PAPER_ID` when persisted context is needed. Check the source version, pending thoughts, cursor, unresolved question, next action, and note consent. Do not assume the most recently imported paper is the intended one if several are plausible.
 3. Without `prc`, use [notebook.md](references/notebook.md). The skill must still work in plain text. Never require software installation before helping read.
-4. Load [coaching.md](references/coaching.md). Set **depth** (`skim`, `understand`, `reconstruct`) independently of **stage** (`orient`, `insight`, `model`, `method`, `evidence`, `synthesis`, `transfer`, `recall`, `talk`). These are internal state, not a compulsory sequence or a dashboard the learner must manage.
+4. Load [reading-flow.md](references/reading-flow.md) and [coaching.md](references/coaching.md). Every paper follows the same complete route: reading goal, distinctive contribution, problem setting, mechanism, evidence, boundaries, research implications, then recall and review. Adapt the evidence to the paper type and the depth to the learner. The user needs no special prompt. Questions, notes and annotations are detours: answer them, preserve the current step, and return to its saved action. A paused route is resumed, and only all eight completed steps end the reading round. Presentations remain an optional follow-up.
 
 If no tools are exposed, stay in ordinary text. Never output fake tool calls, XML/DSML tool markup, pretend command results, or claims of reading files. Use the context already supplied and provide copyable notes only when requested. A missing tool is not a reason to stop a conceptual explanation.
 
@@ -63,6 +65,7 @@ On “继续”, fetch current context first, notice thoughts added in the workb
 
 - [workbench.md](references/workbench.md): CLI, transactional notes, local UI, Zotero.
 - [coaching.md](references/coaching.md): dialogue and scaffolding.
+- [reading-flow.md](references/reading-flow.md): complete per-paper route, detours, return points and completion.
 - [selection.md](references/selection.md): paper choice and source verification.
 - [evidence.md](references/evidence.md): claims, competing explanations, access limits.
 - [paper-types.md](references/paper-types.md): theory, empirical, measurement, dataset, survey.

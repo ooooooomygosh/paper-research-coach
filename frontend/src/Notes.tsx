@@ -7,7 +7,7 @@ import {
   History,
   Link2,
 } from "lucide-react";
-import { api, put, id, location, ApiError, type Row } from "./api";
+import { api, put, id, location, sameAnchor, ApiError, type Row } from "./api";
 export default function Notes({
   paper,
   notes,
@@ -93,7 +93,7 @@ export default function Notes({
       n &&
       n.revision > current.current.revision &&
       n.content === current.current.content &&
-      JSON.stringify(n.anchor) === JSON.stringify(current.current.anchor)
+      sameAnchor(n.anchor, current.current.anchor)
     ) {
       current.current = n;
       setDraft(n);
@@ -117,7 +117,7 @@ export default function Notes({
   function update(next: any) {
     if (
       next.content !== current.current.content ||
-      JSON.stringify(next.anchor) !== JSON.stringify(current.current.anchor)
+      !sameAnchor(next.anchor, current.current.anchor)
     )
       next = { ...next, discussed: false };
     current.current = next;
@@ -129,6 +129,16 @@ export default function Notes({
   }
   async function save() {
     if (busy.current) return;
+    const pending = retry.current;
+    const confirmed = pending && latestNotes.current.find((n) =>
+      n.id === pending.value.id && n.revision > pending.value.revision &&
+      n.content === pending.value.content && sameAnchor(n.anchor, pending.value.anchor),
+    );
+    if (confirmed) {
+      retry.current = null;
+      if (cachedJob()?.op === pending.op) localStorage.removeItem(jobKey);
+      current.current = { ...current.current, revision: confirmed.revision };
+    }
     if (!current.current.content.trim() && !retry.current) {
       if (alive.current) setStatus(emptyStatus(current.current));
       return;
@@ -138,11 +148,15 @@ export default function Notes({
         n.id === current.current.id &&
         n.revision === current.current.revision &&
         n.content === current.current.content &&
-        JSON.stringify(n.anchor) === JSON.stringify(current.current.anchor),
+        sameAnchor(n.anchor, current.current.anchor),
     );
     if (same && !retry.current) {
-      if (alive.current)
+      current.current = same;
+      localStorage.setItem(key, JSON.stringify(same));
+      if (alive.current) {
+        setDraft(same);
         setStatus(same.discussed ? "已保存 · 已讨论" : "已保存 · 等待讨论");
+      }
       return;
     }
     busy.current = true;
@@ -158,8 +172,7 @@ export default function Notes({
       attempts.current = 0;
       const changed =
         current.current.content !== job.value.content ||
-        JSON.stringify(current.current.anchor) !==
-          JSON.stringify(job.value.anchor);
+        !sameAnchor(current.current.anchor, job.value.anchor);
       const next = {
         ...saved,
         ...current.current,
@@ -211,7 +224,7 @@ export default function Notes({
     if (retry.current || busy.current) return;
     if (
       snapshot.content !== current.current.content ||
-      JSON.stringify(snapshot.anchor) !== JSON.stringify(current.current.anchor)
+      !sameAnchor(snapshot.anchor, current.current.anchor)
     ) {
       setStatus("新输入正在保存，请保存后再切换想法");
       return;
@@ -237,7 +250,7 @@ export default function Notes({
     if (retry.current || busy.current) return;
     if (
       snapshot.content !== current.current.content ||
-      JSON.stringify(snapshot.anchor) !== JSON.stringify(current.current.anchor)
+      !sameAnchor(snapshot.anchor, current.current.anchor)
     ) {
       setStatus("新输入正在保存，请保存后再切换想法");
       return;
@@ -263,7 +276,7 @@ export default function Notes({
     current.current = next;
     update(next);
   }
-  const pending = notes.filter((n) => !n.discussed).length;
+  const pending = notes.filter((n) => !n.discussed && n.author !== "assistant").length;
   return (
     <aside className="notes-panel">
       <div className="panel-title">
@@ -322,7 +335,7 @@ export default function Notes({
         <span>{pending} 条待讨论</span>
       </div>
       <p className="muted small">
-        回到 Codex、Claude Code 或 Pi 说“继续”，一起讨论新想法。
+        切到“教练对话”，点击“讨论待讨论笔记”，接着核对你的想法。
       </p>
       <div className="note-list">
         {[...notes].reverse().map((n) => (

@@ -55,6 +55,20 @@ export function anchorFor(p: Row, page: number, extra: any = {}) {
     ...extra,
   };
 }
+export function sameAnchor(a: any, b: any): boolean {
+  const normalized = (v: any) => !v ? null : {
+    paper_id: v.paper_id,
+    source_version: v.source_version || "",
+    page_index: v.page_index ?? null,
+    page_label: v.page_label || "",
+    section: v.section || "",
+    figure: v.figure || "",
+    quote: v.quote || "",
+    rects: v.rects || [],
+    status: v.status || "unresolved",
+  };
+  return JSON.stringify(normalized(a)) === JSON.stringify(normalized(b));
+}
 export function location(a: any) {
   return !a
     ? "待定位"

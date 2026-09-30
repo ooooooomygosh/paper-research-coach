@@ -59,15 +59,23 @@ def parser():
     s.add_argument("--port", type=int, default=8765)
     s.add_argument("--no-open", action="store_true")
     s.add_argument("--paper", dest="paper_id", help="启动链接绑定这篇论文")
+    opening = sub.add_parser("open", help="在浏览器打开工作台，自动复用或启动本机服务")
+    opening.add_argument("--port", type=int, default=8765)
+    opening.add_argument("--paper", dest="paper_id", default="")
+    opening.add_argument("--conversation", default="", help="继续这篇论文已保存的对话")
+    opening.add_argument("--new", action="store_true", help="为当前论文新建对话")
     coach = sub.add_parser("coach", help="连接工作台与 Codex CLI 阅读对话")
     coach.add_argument("action", choices=["status", "connect", "send"])
     coach.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
-    coach.add_argument("--thread", default="", help="接入现有本机 Codex 对话的文字历史")
+    coach.add_argument("--thread", default="", help="复用已绑定当前论文的原生阅读会话")
     coach.add_argument("--port", type=int, default=8765)
     coach.add_argument("--no-open", action="store_true")
     coach.add_argument("--new", action="store_true")
     coach.add_argument("--file", default="-", help="发送消息的 UTF-8 文件，默认标准输入")
     coach.add_argument("--wait", action="store_true", help="等待并输出完整回复")
+    intent = coach.add_mutually_exclusive_group()
+    intent.add_argument("--follow", action="store_true", help="直接继续当前论文的既定跟读主线，无须输入 prompt")
+    intent.add_argument("--answer", action="store_true", help="把输入作为主线问题的回答；默认消息是插话")
     z = sub.add_parser("sync")
     z.add_argument(
         "action",
@@ -202,6 +210,10 @@ def main():
             )
         elif cmd == "export":
             output(export(store, args.kind, args.paper_id, args.output))
+        elif cmd == "open":
+            from .launcher import open_workbench
+
+            output(open_workbench(store, args.port, args.paper_id, args.conversation, args.new))
         elif cmd == "serve":
             import uvicorn
 
@@ -260,10 +272,10 @@ def main():
                             import webbrowser
                             webbrowser.open(url)
                     else:
-                        content = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
+                        content = "" if args.follow else sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
                         session = store.list("session", paper_id)
                         cursor = session[0].get("cursor") if session else None
-                        sent = request("coach/send/" + paper_id, {"operation_id": uid(), "content": content, "page_index": (cursor or {}).get("page_index") or 0})
+                        sent = request("coach/send/" + paper_id, {"operation_id": uid(), "content": content, "intent": "follow" if args.follow else "answer" if args.answer else "detour", "page_index": (cursor or {}).get("page_index") or 0})
                         if not args.wait:
                             output(sent)
                         else:

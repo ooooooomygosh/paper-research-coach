@@ -73,6 +73,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it("starts the paper route without a prompt and treats written responses separately from detours", async () => {
+  view();
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.click(screen.getByRole("button", { name: "开始跟读", exact: true }));
+  await waitFor(() => expect(vi.mocked(api).mock.calls.some(([p]) => p === "coach/send/p")).toBe(true));
+  const first = vi.mocked(api).mock.calls.find(([p]) => p === "coach/send/p")![1];
+  expect(first.intent).toBe("follow");
+  expect(first.content).toBe("");
+  expect(first.anchor).toBeNull();
+  await waitFor(() => expect(screen.getByRole("button", { name: "开始跟读", exact: true }).hasAttribute("disabled")).toBe(false));
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "我认为需要先匹配信息预算。" } });
+  fireEvent.click(screen.getByRole("button", { name: "回答并继续主线", exact: true }));
+  await waitFor(() => expect(vi.mocked(api).mock.calls.filter(([p]) => p === "coach/send/p")).toHaveLength(2));
+  const second = vi.mocked(api).mock.calls.filter(([p]) => p === "coach/send/p")[1][1];
+  expect(second.intent).toBe("answer");
+  expect(second.content).toBe("我认为需要先匹配信息预算。");
+});
+
 it("sends exact words, current paper/page/selection and existing conversation", async () => {
   const anchor = {
     paper_id: "p",
@@ -181,4 +199,51 @@ it("restores saved replies, renders mathematics, and navigates a saved action", 
   expect(rendered.container.querySelector("script")).toBeNull();
   fireEvent.click(screen.getByText("已保存研究想法"));
   expect(onAction).toHaveBeenCalledWith("idea");
+});
+
+it("creates and reuses only conversations of the selected paper", async () => {
+  const second = {
+    id: "second",
+    title: "阅读对话 2",
+    created_at: "2026-09-30",
+  };
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return status;
+    if (path === "coach/connect/p") return second;
+    if (path === "coach/conversation/p?conversation_id=second")
+      return {
+        ...snapshot,
+        conversation_id: "second",
+        conversations: [...snapshot.conversations, second],
+      };
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    return {};
+  });
+  view();
+  await waitFor(() => expect((screen.getByLabelText("当前阅读对话") as HTMLSelectElement).value).toBe("c"));
+  expect(screen.queryByText("接入 CLI 对话")).toBeNull();
+  fireEvent.click(screen.getByLabelText("新建阅读对话"));
+  await waitFor(() =>
+    expect(
+      (screen.getByLabelText("当前阅读对话") as HTMLSelectElement).value,
+    ).toBe("second"),
+  );
+  expect(vi.mocked(api)).toHaveBeenCalledWith("coach/connect/p", { new: true });
+  fireEvent.change(screen.getByLabelText("当前阅读对话"), {
+    target: { value: "c" },
+  });
+  await waitFor(() =>
+    expect(
+      (screen.getByLabelText("当前阅读对话") as HTMLSelectElement).value,
+    ).toBe("c"),
+  );
+  expect(vi.mocked(api)).toHaveBeenCalledWith("coach/active", {
+    paper_id: "p",
+    conversation_id: "c",
+  });
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.some(([path]) => path.startsWith("coach/threads")),
+  ).toBe(false);
 });

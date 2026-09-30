@@ -15,8 +15,12 @@ import {
   X,
   ChevronDown,
   MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  MoreHorizontal,
 } from "lucide-react";
-import { api, put, anchorFor, type Row } from "./api";
+import { api, ApiError, put, anchorFor, type Row } from "./api";
+import { readLaunchInput } from "./launch";
 import PdfReader from "./PdfReader";
 import Notes from "./Notes";
 import CoachPanel from "./Coach";
@@ -58,6 +62,7 @@ export function App() {
     [login, setLogin] = useState(""),
     [paperEditor, setPaperEditor] = useState<any>(null);
   const [readingPane, setReadingPane] = useState("coach");
+  const [sidebarHidden, setSidebarHidden] = useState(() => localStorage.getItem("prc-sidebar-hidden") === "true");
   const [launchConversation, setLaunchConversation] = useState("");
   const launchRef = useRef("");
   const selectedRef = useRef(selected),
@@ -98,7 +103,31 @@ export function App() {
       setError("");
       setReady(true);
     } catch (e) {
-      setError(String(e));
+      setError(
+        e instanceof ApiError && e.status === 401
+          ? token
+            ? "启动链接已失效，请从本机启动器重新打开。"
+            : ""
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      );
+    }
+  }
+  function connectFromInput() {
+    try {
+      const link = readLaunchInput(login, location.origin);
+      if (link.paper) {
+        selectedRef.current = link.paper;
+        setSelected(link.paper);
+        setContext(null);
+        launchRef.current = link.conversation;
+        setLaunchConversation(link.conversation);
+      }
+      setLogin("");
+      void start(link.token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   }
   useEffect(() => {
@@ -248,25 +277,43 @@ export function App() {
           <BookOpen />
         </div>
         <h1>Paper Research Coach</h1>
-        <p>在本机继续你的阅读与思考。</p>
+        <p>这个浏览器还没有连接你的本机工作台。</p>
         <p className="muted">
-          请使用启动工作台时显示的完整地址，或输入该地址中 token 后的会话凭证。
+          双击电脑上的“打开论文工作台”启动文件，会自动完成连接。 也可以在 Codex
+          中说：“打开我的论文阅读工作台”。
         </p>
-        <input
-          type="password"
-          aria-label="本机会话凭证"
-          value={login}
-          onChange={(e) => setLogin(e.target.value)}
-        />
-        <button className="primary" onClick={() => start(login)}>
-          打开工作台
+        <button className="primary" onClick={() => void start()}>
+          已从启动器打开，重新检查连接
         </button>
+        <details className="login-link">
+          <summary>我已有启动链接</summary>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              connectFromInput();
+            }}
+          >
+            <label>
+              粘贴完整的启动链接
+              <input
+                type="password"
+                aria-label="完整启动链接"
+                autoComplete="off"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
+              />
+            </label>
+            <button className="primary" disabled={!login.trim()}>
+              连接工作台
+            </button>
+          </form>
+        </details>
         {error && <p role="alert">{error}</p>}
       </main>
     );
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={"app-shell" + (sidebarHidden ? " sidebar-hidden" : "")}>
+      <aside className="sidebar" id="paper-library" hidden={sidebarHidden}>
         <div className="brand">
           <div className="brand-mark">
             <BookOpen size={20} />
@@ -277,7 +324,7 @@ export function App() {
         </div>
         <div className="sidebar-intro">阅读，始于一个好问题。</div>
         <nav>
-          {nav.map(([id, label, Icon]) => (
+          {nav.filter(([id]) => id === "read" || id === "review").map(([id, label, Icon]) => (
             <button
               key={id}
               className={tab === id ? "selected" : ""}
@@ -288,6 +335,14 @@ export function App() {
               {id === "read" && <span className="nav-indicator" />}
             </button>
           ))}
+          <details className="library-secondary" open={tab === "lineage" || tab === "ideas" || tab === "export"}>
+            <summary>研究与记录 <ChevronDown size={14} /></summary>
+            {nav.filter(([id]) => id !== "read" && id !== "review").map(([id, label, Icon]) => (
+              <button key={id} className={tab === id ? "selected" : ""} onClick={() => setTab(id)}>
+                <Icon size={17} />{label}
+              </button>
+            ))}
+          </details>
         </nav>
         <div className="library-heading">
           <h2>我的论文</h2>
@@ -364,7 +419,18 @@ export function App() {
         }
       >
         <header className="topbar">
-          <span className="topbar-title">你的科研阅读工作台</span>
+          <div className="workspace-navigation">
+            <button className="sidebar-toggle" aria-label={sidebarHidden ? "显示论文栏" : "隐藏论文栏"}
+              aria-expanded={!sidebarHidden} aria-controls="paper-library"
+              title={sidebarHidden ? "显示论文栏" : "隐藏论文栏"}
+              onClick={() => {
+                setSidebarHidden(!sidebarHidden);
+                localStorage.setItem("prc-sidebar-hidden", String(!sidebarHidden));
+              }}>
+              {sidebarHidden ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+            <span className="topbar-title">论文工作台</span>
+          </div>
           <div className="mobile-library">
             <select
               aria-label="选择论文"
@@ -383,8 +449,7 @@ export function App() {
             </button>
           </div>
           <div>
-            <span className="status-dot online" /> 本地已连接{" "}
-            <span className="topbar-divider" /> {state.version}
+            <span className="status-dot online" /> 本机保存
           </div>
         </header>
         {error && (
@@ -447,7 +512,7 @@ export function App() {
                 </p>
               </div>
               <div className="button-row">
-                <button
+                {tab !== "read" && <button
                   className="subtle"
                   onClick={() => {
                     setTab("read");
@@ -456,14 +521,7 @@ export function App() {
                 >
                   <MessageCircle size={15} />
                   与教练讨论
-                </button>
-                <button
-                  className="subtle"
-                  onClick={() => setPaperEditor({ ...paper })}
-                >
-                  <BookOpen size={15} />
-                  论文信息与版本
-                </button>
+                </button>}
                 <button className="subtle" onClick={pause}>
                   {paper.status === "paused" ? (
                     <Play size={15} />
@@ -472,17 +530,26 @@ export function App() {
                   )}{" "}
                   {paper.status === "paused" ? "恢复阅读" : "暂停并保存"}
                 </button>
+                <details className="paper-tools">
+                  <summary aria-label="更多论文操作" title="更多论文操作"><MoreHorizontal size={19} /></summary>
+                  <div className="paper-tools-menu">
+                    <button onClick={(e) => { setPaperEditor({ ...paper }); e.currentTarget.closest("details")?.removeAttribute("open"); }}>论文信息与版本</button>
+                    <button onClick={(e) => { setTaskEditor({ ...session }); e.currentTarget.closest("details")?.removeAttribute("open"); }}>阅读目标与深度</button>
+                    <button onClick={(e) => { setTab("export"); e.currentTarget.closest("details")?.removeAttribute("open"); }}>导出阅读记录</button>
+                  </div>
+                </details>
               </div>
             </div>
             {tab === "read" ? (
               <>
-                <div className="current-task">
+                {readingPane === "notes" && <details className="current-task note-reading-task">
+                  <summary>阅读主线 · {stages[session?.stage] || "开始阅读"}</summary>
                   <div className="task-number">01</div>
                   <div>
                     <span className="eyebrow">现在只做这一件事</span>
                     <p>
                       {session?.next_action ||
-                        "在右侧告诉教练你的研究目标与今天可用的时间，一起选定第一个阅读动作。"}
+                        "点击右侧“开始跟读”，按这篇论文的阅读主线逐步形成判断。"}
                     </p>
                     {session?.pending_question && (
                       <span className="muted small">
@@ -496,7 +563,7 @@ export function App() {
                   >
                     <ChevronDown size={18} />
                   </button>
-                </div>
+                </details>}
                 <div className="reading-layout">
                   {paper.source_path ? (
                     <PdfReader
@@ -505,7 +572,6 @@ export function App() {
                       setPage={movePage}
                       onAnchor={(a) => {
                         setAnchor(a);
-                        setReadingPane("coach");
                       }}
                       focusAnchor={focusAnchor}
                     />

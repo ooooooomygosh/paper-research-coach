@@ -25,13 +25,10 @@ for package in ["pdfjs-dist", "react", "react-dom", "scheduler", "lucide-react"]
     if not source:
         raise RuntimeError("Missing third-party license: " + package)
     shutil.copyfile(source, licenses / (package + ".txt"))
-(licenses / "NOTICE.txt").write_text(
-    "Paper Research Coach bundles PDF.js (Apache-2.0), React and scheduler (MIT), Lucide (ISC), and Markdown/math rendering components including react-markdown, remark, rehype and KaTeX (MIT). Component and dependency license files are included here. Project MIT licensing does not relicense those components.\n"
-)
 subprocess.run([sys.executable, "-m", "build", "--wheel"], check=True, cwd=root)
 out = root / "dist"
 out.mkdir(exist_ok=True)
-version = "2.0.0rc3"
+version = "2.0.0rc4"
 with zipfile.ZipFile(
     out / f"paper-research-coach-skill-{version}.zip", "w", zipfile.ZIP_DEFLATED
 ) as archive:

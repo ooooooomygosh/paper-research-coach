@@ -1,11 +1,16 @@
 # Changelog
 
-## Unreleased
+## 2.0.0rc4 (release candidate)
 
-- 工作台接入本机 Codex CLI：逐步显示回复、停止、断点恢复、显式加载 skill、选区与图表上下文、已有 CLI 文字历史接入，以及可点击的研究记录动作。
-- CLI 与网页共享论文阅读会话；启动链接可绑定论文，当前论文供 context/resume 使用；对话与未知发送结果持久保存并去重。
-
-- Fix region-anchor navigation for PDF.js 6 using its typed point-conversion API, and scroll the highlighted evidence into view after rendering. Added a regression covering region location, zoom and source-version isolation; 18 frontend checks pass.
+- Add prompt-free, per-paper guided reading with eight persisted steps. Questions and annotations preserve the mainline return point; completion requires a real recall answer from the current round.
+- Use only paper-research-coach, with natural writing guidance inside the Skill. Add a complete reading-route reference and adapt CLI continuation to the same flow.
+- Scope conversation selection and creation to the current paper; remove global CLI history import and reject cross-paper access.
+- Add `prc open` and a double-click launcher to reuse or start the local service and authenticate external browsers. Accept a complete launch link on the connection page.
+- Render actual PDF pages for the coach through a bounded visual tool, and provide clickable source locations. Preserve original PDF bytes.
+- Fix PDF.js 6 region navigation and keep the note editor open while choosing a position. Correct the discussed-state reset caused by equivalent coordinate representations.
+- Connect Codex CLI, streaming replies, interruption, refresh recovery, shared CLI/web conversations, note comments, research ideas and review actions.
+- Simplify the reading surface with a persistent sidebar toggle, compact coaching controls, and secondary menus for exports, metadata and connection settings. Restore note revisions after AI comments and retain answered review records for coaching feedback.
+- Use translucent exported PDF highlights so linked comments at the same location keep the text and figures readable.
 
 ## 2.0.0rc3 (release candidate)
 

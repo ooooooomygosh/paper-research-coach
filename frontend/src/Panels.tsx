@@ -635,7 +635,7 @@ export function Reviews({
               r.attempts.map((a: any, i: number) => (
                 <blockquote key={i}>
                   <span className="small">
-                    {new Date(a.at).toLocaleString()} · {a.assistance}
+                    {new Date(a.at).toLocaleString()} · {({none: "独立完成", hint: "看了提示", worked: "看了完整解释"} as Record<string, string>)[a.assistance] || "帮助程度待确认"}
                   </span>
                   <p className="preserve">{a.answer}</p>
                 </blockquote>
@@ -952,8 +952,10 @@ export function Settings({
       <div className="surface">
         <h3>你的内容在哪里？</h3>
         <p>
-          SQLite 保存笔记与历史；原始 PDF 保持只读。导出是独立副本。工作台不调用
-          AI 服务，也不上传阅读记录。宿主对话中的内容按该宿主的设置处理。
+          笔记、对话、研究想法与复习记录保存在本机；原始 PDF 保持只读。
+          开启同步后，笔记写入所选 Zotero 集合，阅读记录写入已连接目录的
+          “06_PRC阅读记录”。发送教练消息时，当前论文材料通过本机 CLI
+          发给其配置的模型服务；登录信息由 CLI 管理。导出是独立副本。
         </p>
       </div>
     </div>
