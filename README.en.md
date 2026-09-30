@@ -40,7 +40,11 @@ Use `--host claude` or `--host pi` for another host. On Windows activate the vir
 
 On macOS, after installation you can also double-click `scripts/open-workbench.command` in the repository.
 
-Import a PDF, select text or a region, and write a thought. It saves locally. Return to your existing AI host and say “continue”; the skill reads the new notes and checkpoint. Saved and discussed are distinct states. The workbench does not call an AI service or reason in the background after your host session ends.
+Import a PDF and use the Coach conversation beside it. The workbench drives your local Codex CLI with its existing provider, model and login configuration. Every turn explicitly loads the bundled paper-research-coach skill and includes the paper, current page, selection and checkpoint. Responses stream, can be interrupted, and survive refreshes and service restarts. Attach the current page image when discussing figures.
+
+Use `prc coach connect --paper PAPER_ID` for a launch link bound to the paper and conversation. `prc coach send --file message.txt --wait` continues that same workbench conversation from the CLI. Existing local Codex text history can be brought into a reading branch through “Connect CLI conversation”; the original remains available. Live workbench conversations currently use Codex; the portable skill still supports Codex, Claude Code and Pi.
+
+Conversation history is stored locally. Note consent controls additional verbatim learner notes; AI comments remain separate. Next actions, research ideas and recall questions can be saved directly through workbench tools. Selected source material goes to the model service configured in the CLI. Inference starts when the user sends a message. Saved and discussed remain distinct states.
 
 ## Zotero
 

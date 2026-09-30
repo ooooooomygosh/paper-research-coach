@@ -1,6 +1,25 @@
 # 与本地工作台连接
 
-工作台是持久化与阅读界面，AI在当前宿主里。无须新增 AI key。`prc --help` 是当前命令契约。若 prc 不在 PATH，检查 README 约定的 `~/.venvs/paper-research-coach/bin/prc`，存在时使用其绝对路径；二者均不存在再走 Markdown 路径，不宣称已安装。
+工作台通过本机 Codex CLI 提供教练对话，沿用 CLI 的模型、服务和登录配置，无须另建 AI key。工作台每轮通过 Codex 的 skill 输入显式加载本项目 SKILL.md，同时提供当前论文、页码、选区与阅读断点。`prc --help` 是当前命令契约。若 prc 不在 PATH，检查 README 约定的 `~/.venvs/paper-research-coach/bin/prc`，存在时使用其绝对路径；二者均不存在再走 Markdown 路径，不宣称已安装。
+
+## 从宿主建立连接
+
+用户希望在工作台继续交互时，先确认论文，再使用运行中的工作台建立绑定：
+
+```text
+prc coach connect --paper PAPER_ID
+prc coach status
+```
+
+connect 返回并打开含本机凭证与论文绑定的地址。用户在这个页面发送消息后，工作台直接驱动 CLI，不需要返回宿主说“继续”。已有原生 Codex 对话可通过 `--thread THREAD_ID` 接入最近文字历史，也可在界面的“接入 CLI 对话”中选择；它创建一个加载当前 skill 的论文阅读分支，保留原对话，不重放历史工具调用。不要把其他宿主的会话 ID 当成本机 Codex 的会话 ID。
+
+工作台选择论文后，`prc context` 和 `prc resume` 可省略论文 ID，读取当前论文。要在命令入口继续同一条工作台阅读对话：
+
+```text
+prc coach send --paper PAPER_ID --file /absolute/path/message.txt --wait
+```
+
+消息从文件或标准输入读取，经过同一工作台服务发送和保存。纯 skill 模式在 Codex / Claude Code / Pi 中仍可直接带读；工作台实时对话当前接入 Codex CLI。
 
 ## 通常的一个带读回合
 
@@ -21,9 +40,9 @@ prc commit /absolute/path/to/transaction.json
 
 一次提交最多100条变更，原子执行。创建记录 expected_revision=0；更新使用刚读到的 revision。operation_id 用唯一 ID，在重试同一笔事务时保持完全不变。超时先重试同一事务，不能另发一个ID制造重复。版本冲突先读 context/history，不无条件重试覆盖。
 
-保存用户原话与AI评论为两条 Note，可在同一事务内提交。assistant 的 provenance 不可用 USER，links 指向用户笔记。对话捕获前检查 Session.note_consent。讨论完成后修改对应笔记 discussed=true，同时保存一个 next_action。不要将尚未回应的笔记一并标记。
+保存用户原话与AI评论为两条 Note，可在同一事务内提交。assistant 的 provenance 不可用 USER，links 指向用户笔记。对话自动捕获为 Note 前检查 Session.note_consent。讨论完成后修改对应笔记 discussed=true，同时保存一个 next_action。不要将尚未回应的笔记一并标记。
 
-Session.stage 与 depth 是独立字段；cursor 使用 Anchor；support 记录能力级别。UI通过事件流看到已提交状态；宿主没有可用后台机制时不承诺实时AI回复。UI笔记已保存且discussed=false表示等待下一次宿主讨论。
+Session.stage 与 depth 是独立字段；cursor 使用 Anchor；support 记录能力级别。UI通过事件流看到已提交状态。“讨论待讨论笔记”会启动一轮真实教练对话；已保存且 discussed=false 表示尚未讨论。工作台对话独立持久保存，note_consent 控制是否额外保存原话 Note；AI 评论保持独立作者身份与 links。
 
 ## 其他操作
 

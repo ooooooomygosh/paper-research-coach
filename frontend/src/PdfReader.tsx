@@ -4,6 +4,7 @@ import {
   GlobalWorkerOptions,
   TextLayer,
   type PDFDocumentProxy,
+  type PDFPageProxy,
 } from "pdfjs-dist";
 import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "./pdf-text-layer.css";
@@ -33,7 +34,7 @@ export default function PdfReader({
   const canvas = useRef<HTMLCanvasElement>(null),
     layer = useRef<HTMLDivElement>(null),
     frame = useRef<HTMLDivElement>(null),
-    viewport = useRef<any>(null);
+    viewport = useRef<ReturnType<PDFPageProxy["getViewport"]> | null>(null);
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null),
     [error, setError] = useState(""),
     [zoom, setZoom] = useState(1.1),
@@ -135,7 +136,7 @@ export default function PdfReader({
       DOMRect | { left: number; top: number; right: number; bottom: number },
   ) {
     const b = frame.current!.getBoundingClientRect(),
-      v = viewport.current;
+      v = viewport.current!;
     const p1 = v.convertToPdfPoint(rect.left - b.left, rect.top - b.top),
       p2 = v.convertToPdfPoint(rect.right - b.left, rect.bottom - b.top);
     return [
@@ -210,11 +211,24 @@ export default function PdfReader({
     setRegion(false);
   }
   const focused =
+    rendered === paper.source_version + ":" + page &&
     focusAnchor?.status === "verified" &&
     focusAnchor.source_version === paper.source_version &&
     focusAnchor.page_index === page
       ? focusAnchor.rects || []
       : [];
+  useEffect(() => {
+    if (
+      rendered === paper.source_version + ":" + page &&
+      focusAnchor?.status === "verified" &&
+      focusAnchor.source_version === paper.source_version &&
+      focusAnchor.page_index === page
+    ) {
+      frame.current
+        ?.querySelector(".anchor-highlight")
+        ?.scrollIntoView({ block: "center", inline: "center" });
+    }
+  }, [focusAnchor, rendered, page, paper.source_version]);
   return (
     <div className="reader">
       <div className="reader-toolbar">
@@ -289,6 +303,8 @@ export default function PdfReader({
           <div
             ref={frame}
             className="pdf-page"
+            data-paper-id={paper.id}
+            data-page-index={rendered === paper.source_version + ":" + page ? page : -1}
             style={size}
             onMouseUp={selected}
           >
@@ -297,7 +313,8 @@ export default function PdfReader({
             {focused.map((r: number[], i: number) => {
               const v = viewport.current;
               if (!v) return null;
-              const [x0, y0, x1, y1] = v.convertToViewportRectangle(r);
+              const [x0, y0] = v.convertToViewportPoint(r[0], r[1]);
+              const [x1, y1] = v.convertToViewportPoint(r[2], r[3]);
               return (
                 <div
                   key={i}

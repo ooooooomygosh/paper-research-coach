@@ -14,10 +14,12 @@ import {
   Search,
   X,
   ChevronDown,
+  MessageCircle,
 } from "lucide-react";
 import { api, put, anchorFor, type Row } from "./api";
 import PdfReader from "./PdfReader";
 import Notes from "./Notes";
+import CoachPanel from "./Coach";
 import { Lineage, Ideas, Reviews, Settings, Exports } from "./Panels";
 import "./style.css";
 const stages: Record<string, string> = {
@@ -55,6 +57,9 @@ export function App() {
     [taskEditor, setTaskEditor] = useState<any>(null),
     [login, setLogin] = useState(""),
     [paperEditor, setPaperEditor] = useState<any>(null);
+  const [readingPane, setReadingPane] = useState("coach");
+  const [launchConversation, setLaunchConversation] = useState("");
+  const launchRef = useRef("");
   const selectedRef = useRef(selected),
     pageTimer = useRef<any>(null);
   selectedRef.current = selected;
@@ -84,16 +89,40 @@ export function App() {
   async function start(token?: string) {
     try {
       if (token) await api("login", { token });
+      if (launchRef.current && selectedRef.current)
+        await api("coach/active", {
+          paper_id: selectedRef.current,
+          conversation_id: launchRef.current,
+        });
       await refresh();
+      setError("");
       setReady(true);
     } catch (e) {
       setError(String(e));
     }
   }
   useEffect(() => {
-    const t = new URLSearchParams(location.hash.slice(1)).get("token");
-    if (t) history.replaceState(null, "", location.pathname);
-    void start(t || undefined);
+    function openLaunch() {
+      const t = new URLSearchParams(location.hash.slice(1)).get("token");
+      const launchPaper = new URLSearchParams(location.hash.slice(1)).get(
+        "paper",
+      );
+      if (launchPaper) {
+        selectedRef.current = launchPaper;
+        setSelected(launchPaper);
+        setContext(null);
+        launchRef.current =
+          new URLSearchParams(location.hash.slice(1)).get("conversation") || "";
+        setLaunchConversation(launchRef.current);
+        setTab("read");
+        setReadingPane("coach");
+      }
+      if (t) history.replaceState(null, "", location.pathname);
+      void start(t || undefined);
+    }
+    openLaunch();
+    window.addEventListener("hashchange", openLaunch);
+    return () => window.removeEventListener("hashchange", openLaunch);
   }, []);
   useEffect(() => {
     if (!ready || !selected) return;
@@ -113,6 +142,7 @@ export function App() {
       })
       .catch((e) => report(String(e)));
     localStorage.setItem("prc-selected", selected);
+    void api("coach/active", { paper_id: selected }).catch(() => {});
     return () => {
       disposed = true;
       clearTimeout(pageTimer.current);
@@ -153,6 +183,8 @@ export function App() {
     sourceRef.current = { id: paper.id, source_version: paper.source_version };
   }, [paper?.id, paper?.source_version]);
   function select(id: string) {
+    launchRef.current = "";
+    setLaunchConversation("");
     setContext(null);
     setSelected(id);
     selectedRef.current = id;
@@ -326,7 +358,11 @@ export function App() {
         </button>
         <div className="local-label">所有笔记 · 本机保存</div>
       </aside>
-      <main className="main-shell">
+      <main
+        className={
+          "main-shell " + (paper && tab === "read" ? "reading-open" : "")
+        }
+      >
         <header className="topbar">
           <span className="topbar-title">你的科研阅读工作台</span>
           <div className="mobile-library">
@@ -374,7 +410,7 @@ export function App() {
               自己的研究判断。
             </h1>
             <p>
-              打开论文，留下直觉，再回到宿主中一起检验。
+              打开论文，留下直觉，在工作台里一起检验。
               <br />
               一次推进一个问题，不急着读完全部。
             </p>
@@ -413,6 +449,16 @@ export function App() {
               <div className="button-row">
                 <button
                   className="subtle"
+                  onClick={() => {
+                    setTab("read");
+                    setReadingPane("coach");
+                  }}
+                >
+                  <MessageCircle size={15} />
+                  与教练讨论
+                </button>
+                <button
+                  className="subtle"
                   onClick={() => setPaperEditor({ ...paper })}
                 >
                   <BookOpen size={15} />
@@ -436,7 +482,7 @@ export function App() {
                     <span className="eyebrow">现在只做这一件事</span>
                     <p>
                       {session?.next_action ||
-                        "回到宿主，告诉我你的研究目标与今天可用的时间；一起选定第一个阅读动作。"}
+                        "在右侧告诉教练你的研究目标与今天可用的时间，一起选定第一个阅读动作。"}
                     </p>
                     {session?.pending_question && (
                       <span className="muted small">
@@ -457,7 +503,10 @@ export function App() {
                       paper={paper}
                       page={page}
                       setPage={movePage}
-                      onAnchor={setAnchor}
+                      onAnchor={(a) => {
+                        setAnchor(a);
+                        setReadingPane("coach");
+                      }}
                       focusAnchor={focusAnchor}
                     />
                   ) : (
@@ -485,15 +534,60 @@ export function App() {
                       <p className="small">输入后按回车连接 PDF。</p>
                     </div>
                   )}
-                  <Notes
-                    key={paper.id}
-                    paper={paper}
-                    notes={context.notes}
-                    anchor={anchor}
-                    onLocate={locate}
-                    refresh={() => void refresh()}
-                    report={report}
-                  />
+                  <aside className="research-pane">
+                    <div
+                      className="research-pane-tabs"
+                      role="tablist"
+                      aria-label="阅读侧栏"
+                    >
+                      <button
+                        role="tab"
+                        aria-selected={readingPane === "coach"}
+                        onClick={() => setReadingPane("coach")}
+                      >
+                        <MessageCircle size={16} />
+                        教练对话
+                      </button>
+                      <button
+                        role="tab"
+                        aria-selected={readingPane === "notes"}
+                        onClick={() => setReadingPane("notes")}
+                      >
+                        <BookOpen size={16} />
+                        阅读笔记<span>{context.notes.length}</span>
+                      </button>
+                    </div>
+                    <div hidden={readingPane !== "coach"}>
+                      <CoachPanel
+                        key={paper.id + launchConversation}
+                        initialConversation={launchConversation}
+                        paper={paper}
+                        context={context}
+                        page={page}
+                        anchor={anchor}
+                        onClearAnchor={() => setAnchor(null)}
+                        onLocate={locate}
+                        onAction={(kind) => {
+                          if (kind === "idea") setTab("ideas");
+                          else if (kind === "review") setTab("review");
+                          else if (kind === "note") setReadingPane("notes");
+                        }}
+                        refresh={() => void refresh()}
+                        report={report}
+                      />
+                    </div>
+                    <div hidden={readingPane !== "notes"}>
+                      <Notes
+                        key={paper.id}
+                        paper={paper}
+                        notes={context.notes}
+                        anchor={anchor}
+                        onLocate={locate}
+                        refresh={() => void refresh()}
+                        report={report}
+                      />
+                    </div>
+                  </aside>
                 </div>
               </>
             ) : tab === "lineage" ? (
@@ -625,10 +719,10 @@ export function App() {
                   })
                 }
               />
-              允许宿主保存我在对话中说出的实质想法
+              允许教练保存我在对话中说出的原话
             </label>
             <p className="small muted">
-              界面中主动输入的笔记始终保存。此选项只控制宿主是否主动整理对话笔记。
+              对话记录与主动输入的笔记始终保存。此选项控制是否额外生成对话原话笔记。
             </p>
             <div className="button-row">
               <button

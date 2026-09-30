@@ -10,11 +10,12 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
+from .coach import Coach, Send
 from .exports import export
 from .models import Commit, uid
 from .store import Conflict, Store
-from .zotero import ZoteroSync
 from .vault import VaultSync
+from .zotero import ZoteroSync
 
 
 def session_token(store: Store):
@@ -36,6 +37,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     token = token or session_token(store)
     sync = sync or ZoteroSync(store)
     vault = VaultSync(store, sync)
+    coach = Coach(store)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -68,6 +70,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         yield
         task.cancel()
         folder_task.cancel()
+        await coach.close()
         try:
             await asyncio.gather(task, folder_task)
         except asyncio.CancelledError:
@@ -81,6 +84,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         lifespan=lifespan,
     )
     app.state.store, app.state.sync = store, sync
+    app.state.coach = coach
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -258,6 +262,100 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             data["success"],
             data["expected_revision"],
         )
+
+    @app.get("/api/coach/status")
+    async def coach_status():
+        return await coach.status()
+
+    @app.post("/api/coach/reconnect")
+    async def coach_reconnect():
+        if coach.active:
+            raise Conflict("先停止正在进行的回复，再重新连接。")
+        await coach.rpc.close()
+        coach.resumed.clear()
+        return await coach.status()
+
+    @app.post("/api/coach/login")
+    async def coach_login():
+        await coach.rpc.start()
+        if coach.login:
+            return coach.login
+        coach.login = await coach.rpc.call("account/login/start", {"type": "chatgpt"})
+        return coach.login
+
+    @app.get("/api/coach/threads")
+    async def coach_threads(search: str = "", cursor: str | None = None):
+        await coach.rpc.start()
+        result = await coach.rpc.call("thread/list", {"limit": 30, "searchTerm": search or None, "cursor": cursor, "modelProviders": [], "sortKey": "updated_at"})
+        return {"data": [{k: t.get(k) for k in ("id", "name", "preview", "updatedAt")} for t in result.get("data", [])], "nextCursor": result.get("nextCursor")}
+
+    @app.post("/api/coach/active")
+    async def coach_active(request: Request):
+        data = await request.json()
+        paper_id = data["paper_id"]
+        store.get("paper", paper_id)
+        if data.get("conversation_id"):
+            conversation = coach.conversation(data["conversation_id"])
+            if conversation["paper_id"] != paper_id:
+                raise ValueError("对话不属于当前论文")
+            store.set_setting("coach-current:" + paper_id, conversation["id"])
+        store.set_setting("active-paper", paper_id)
+        return {"paper_id": paper_id}
+
+    @app.post("/api/coach/connect/{paper_id}")
+    async def coach_connect(paper_id: str, request: Request):
+        data = await request.json()
+        return await coach.connect(paper_id, str(data.get("thread_id", "")), bool(data.get("new", False)))
+
+    @app.get("/api/coach/conversation/{paper_id}")
+    def coach_conversation(paper_id: str, conversation_id: str = ""):
+        return coach.snapshot(paper_id, conversation_id)
+
+    @app.post("/api/coach/send/{paper_id}")
+    async def coach_send(paper_id: str, body: Send):
+        return await coach.send(paper_id, body)
+
+    @app.post("/api/coach/stop/{conversation_id}")
+    async def coach_stop(conversation_id: str):
+        coach.conversation(conversation_id)
+        return await coach.stop(conversation_id)
+
+    @app.post("/api/coach/save-message/{conversation_id}/{message_id}")
+    async def save_chat_message(conversation_id: str, message_id: str):
+        conversation = coach.conversation(conversation_id)
+        message = next((m for m in coach.messages(conversation_id) if m["id"] == message_id), None)
+        if not message or not message["content"].strip():
+            raise ValueError("没有可保存的对话内容")
+        note_id = "chat-" + message_id
+        try:
+            return store.get("note", note_id)
+        except KeyError:
+            pass
+        anchor = message.get("anchor")
+        if anchor and anchor["source_version"] != store.get("paper", conversation["paper_id"])["source_version"]:
+            anchor = {**anchor, "status": "stale"}
+        result = store.commit({"operation_id": "coach-note:" + message_id, "mutations": [{"kind": "note", "data": {
+            "id": note_id, "paper_id": conversation["paper_id"], "content": message["content"], "anchor": anchor,
+            "author": message["role"], "provenance": "USER" if message["role"] == "user" else "INFERENCE",
+        }}]})
+        return result["records"][0]
+
+    @app.get("/api/coach/events/{paper_id}")
+    async def coach_events(paper_id: str, request: Request, conversation_id: str = ""):
+        coach.snapshot(paper_id, conversation_id)
+
+        async def stream():
+            previous = ""
+            while not await request.is_disconnected():
+                data = json.dumps(coach.snapshot(paper_id, conversation_id), ensure_ascii=False)
+                if data != previous:
+                    yield "data: " + data + "\n\n"
+                    previous = data
+                else:
+                    yield ": keepalive\n\n"
+                await asyncio.sleep(.35)
+
+        return StreamingResponse(stream(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
     @app.post("/api/export")
     async def export_file(request: Request):

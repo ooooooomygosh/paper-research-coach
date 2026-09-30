@@ -9,6 +9,7 @@ subprocess.run(
 )
 subprocess.run(["npm", "ci", "--prefix", "frontend"], check=True, cwd=root)
 subprocess.run(["npm", "--prefix", "frontend", "run", "build"], check=True, cwd=root)
+subprocess.run([sys.executable, str(root / "scripts/prepare_licenses.py")], check=True, cwd=root)
 licenses = root / "src/paper_research_coach/licenses"
 licenses.mkdir(exist_ok=True)
 for package in ["pdfjs-dist", "react", "react-dom", "scheduler", "lucide-react"]:
@@ -25,7 +26,7 @@ for package in ["pdfjs-dist", "react", "react-dom", "scheduler", "lucide-react"]
         raise RuntimeError("Missing third-party license: " + package)
     shutil.copyfile(source, licenses / (package + ".txt"))
 (licenses / "NOTICE.txt").write_text(
-    "Paper Research Coach bundles PDF.js (Mozilla and contributors, Apache-2.0), React and scheduler (Meta and contributors, MIT), and Lucide (ISC). Their licenses remain applicable to those components. Project MIT licensing does not relicense them.\n"
+    "Paper Research Coach bundles PDF.js (Apache-2.0), React and scheduler (MIT), Lucide (ISC), and Markdown/math rendering components including react-markdown, remark, rehype and KaTeX (MIT). Component and dependency license files are included here. Project MIT licensing does not relicense those components.\n"
 )
 subprocess.run([sys.executable, "-m", "build", "--wheel"], check=True, cwd=root)
 out = root / "dist"

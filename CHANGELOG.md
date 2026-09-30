@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- 工作台接入本机 Codex CLI：逐步显示回复、停止、断点恢复、显式加载 skill、选区与图表上下文、已有 CLI 文字历史接入，以及可点击的研究记录动作。
+- CLI 与网页共享论文阅读会话；启动链接可绑定论文，当前论文供 context/resume 使用；对话与未知发送结果持久保存并去重。
+
+- Fix region-anchor navigation for PDF.js 6 using its typed point-conversion API, and scroll the highlighted evidence into view after rendering. Added a regression covering region location, zoom and source-version isolation; 18 frontend checks pass.
+
 ## 2.0.0rc3 (release candidate)
 
 - Show a waiting-for-input message when a PDF location is selected without note text.

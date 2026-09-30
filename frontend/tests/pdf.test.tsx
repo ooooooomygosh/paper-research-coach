@@ -33,7 +33,18 @@ vi.mock("pdfjs-dist", () => ({
           if (page > count || page === mock.fail)
             throw new Error("Page unavailable");
           return {
-            getViewport: () => ({ width: 600, height: 800 }),
+            getViewport: ({ scale }: { scale: number }) => ({
+              width: 600 * scale,
+              height: 800 * scale,
+              convertToViewportPoint: (x: number, y: number) => [
+                x * scale,
+                (800 - y) * scale,
+              ],
+              convertToPdfPoint: (x: number, y: number) => [
+                x / scale,
+                800 - y / scale,
+              ],
+            }),
             render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
             getTextContent: async () => ({ items: [1] }),
           };
@@ -63,6 +74,7 @@ beforeEach(() => {
   mock.count = 3;
   mock.fail = -1;
   mock.calls = [];
+  HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 afterEach(cleanup);
 it("bounds the page when replacing a PDF with a shorter version", async () => {
@@ -82,4 +94,43 @@ it("can render another page after a page-rendering failure", async () => {
   await waitFor(() => expect(mock.calls).toContainEqual([3, 2]));
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   expect(document.querySelector("canvas")).toBeTruthy();
+});
+it("locates a region using the current PDF.js point API and follows zoom", async () => {
+  const props = {
+    paper: { id: "p", revision: 1, source_version: "current", page_count: 3 },
+    page: 0,
+    setPage: vi.fn(),
+    onAnchor: vi.fn(),
+    focusAnchor: null as any,
+  };
+  const view = render(<PdfReader {...props} />);
+  await waitFor(() => expect(mock.calls).toContainEqual([3, 1]));
+  const anchor = {
+    source_version: "current",
+    page_index: 0,
+    status: "verified",
+    rects: [[100, 200, 160, 260]],
+  };
+  view.rerender(<PdfReader {...props} focusAnchor={anchor} />);
+  await waitFor(() => {
+    const highlight = document.querySelector<HTMLElement>(".anchor-highlight");
+    expect(highlight).not.toBeNull();
+    expect(parseFloat(highlight!.style.left)).toBeCloseTo(110);
+    expect(parseFloat(highlight!.style.top)).toBeCloseTo(594);
+    expect(parseFloat(highlight!.style.width)).toBeCloseTo(66);
+    expect(parseFloat(highlight!.style.height)).toBeCloseTo(66);
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+  fireEvent.click(screen.getByLabelText("放大"));
+  await waitFor(() => {
+    const highlight = document.querySelector<HTMLElement>(".anchor-highlight");
+    expect(highlight).not.toBeNull();
+    expect(parseFloat(highlight!.style.left)).toBeCloseTo(125);
+    expect(parseFloat(highlight!.style.top)).toBeCloseTo(675);
+    expect(parseFloat(highlight!.style.width)).toBeCloseTo(75);
+  });
+  view.rerender(
+    <PdfReader {...props} focusAnchor={{ ...anchor, source_version: "old" }} />,
+  );
+  expect(document.querySelector(".anchor-highlight")).toBeNull();
 });
