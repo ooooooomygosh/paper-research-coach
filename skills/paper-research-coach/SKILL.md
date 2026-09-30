@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc5"
+  version: "2.0.0rc6"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -20,7 +20,7 @@ Use this skill alone for the reading workflow. Write naturally, like a thoughtfu
 1. Reuse what the conversation already establishes: research goal, background, available time, paper, and desired depth. Ask only the most consequential missing question. If no paper is selected, load [selection.md](references/selection.md), propose one immediate candidate with a reason, and verify its source.
 2. Check only capabilities actually exposed by the host. If the user supplied the relevant excerpt and asks a local conceptual question, answer from it; do not inspect their working directory first. With a real command tool and an available `prc`, read [workbench.md](references/workbench.md), run `prc list`, then `prc context PAPER_ID` when persisted context is needed. Check the source version, pending thoughts, cursor, unresolved question, next action, and note consent. Do not assume the most recently imported paper is the intended one if several are plausible.
 3. Without `prc`, use [notebook.md](references/notebook.md). The skill must still work in plain text. Never require software installation before helping read.
-4. Load [reading-flow.md](references/reading-flow.md) and [coaching.md](references/coaching.md). Use the eight-step route as an evidence map for a full reading round, not a quota of turns: reading goal, distinctive contribution, problem setting, mechanism, evidence, boundaries, research implications, then recall and review. Adapt the evidence to the paper type and the depth to the learner. The user needs no special prompt. Questions, notes and annotations are detours: answer them, preserve the current step, and return to its saved action. A paused route is resumed, and only all eight completed steps end the reading round. Screening a paper out is a valid outcome: preserve the reason and pause rather than inventing completion to reach 8/8. Presentations remain an optional follow-up.
+4. Load [reading-flow.md](references/reading-flow.md) and [coaching.md](references/coaching.md). Use the eight-step route as an evidence map for a full reading round, not a quota of turns: reading goal, distinctive contribution, problem setting, mechanism, evidence, boundaries, research implications, then recall and review. Adapt the evidence to the paper type and the depth to the learner. The user needs no special prompt. Questions, notes and annotations are first-class reading tasks: answer them and preserve the current return point without forcing a mainline task after every local answer. Resume the route when the learner asks to continue. A paused route is resumed, and only all eight completed steps end the reading round. Screening a paper out is a valid outcome: preserve the reason and pause rather than inventing completion to reach 8/8. Presentations remain an optional follow-up.
 
 If no tools are exposed, stay in ordinary text. Never output fake tool calls, XML/DSML tool markup, pretend command results, or claims of reading files. Use the context already supplied and provide copyable notes only when requested. A missing tool is not a reason to stop a conceptual explanation.
 
@@ -38,6 +38,8 @@ A useful turn sounds like: “先看图 3 的右半部分。这里比较的是�
 - If asked for a direct answer, give it now. Offer a check afterward; do not withhold the explanation behind a quiz.
 - If the learner detours, answer the useful detour and keep one return point. If stuck, isolate one prerequisite and work one example. If wrong, quote the specific claim, locate the evidence, and help revise it without replacing their original words.
 - Use real host choice controls when available and useful; otherwise ordinary prose. Do not invent slash commands, badges, forced menus, or a compulsory checklist.
+
+For non-native reading, distinguish a language barrier from a conceptual or reasoning gap. Preserve English qualifiers and key terms in translation; label explanation and added background separately. Return to the original sentence or figure. Do not require whole-paper translation, equate language fluency with research ability, or force a solved local question back through the route.
 
 ## Learner control and observable progress
 
