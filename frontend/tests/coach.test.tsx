@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -246,4 +247,81 @@ it("creates and reuses only conversations of the selected paper", async () => {
       .mocked(api)
       .mock.calls.some(([path]) => path.startsWith("coach/threads")),
   ).toBe(false);
+});
+
+function activeFlow() {
+  const flow = { status: "active", pending_question: "哪项对照能排除预算混杂？", source_version: "version", current: "evidence", completed: [], steps: [], label: "证据核查" };
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, reading_flow: flow };
+    if (path.startsWith("coach/send/")) return { conversation_id: "c" };
+    return {};
+  });
+}
+const sentBodies = () => vi.mocked(api).mock.calls.filter(([p]) => p === "coach/send/p").map(([, b]) => b);
+
+it("the ordinary send button answers a pending question and transmits help separately", async () => {
+  activeFlow();
+  view();
+  await screen.findByText(/哪项对照能排除预算混杂？/);
+  fireEvent.change(screen.getByLabelText("帮助方式"), { target: { value: "hint" } });
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "  需要匹配预算  " } });
+  fireEvent.click(screen.getByLabelText("发送给论文教练"));
+  await waitFor(() => expect(sentBodies()).toHaveLength(1));
+  expect(sentBodies()[0]).toMatchObject({ intent: "answer", help_mode: "hint", content: "  需要匹配预算  " });
+});
+
+it("explicit detours and selection discussions never advance the pending mainline", async () => {
+  activeFlow();
+  view();
+  await screen.findByText(/哪项对照能排除预算混杂？/);
+  fireEvent.change(screen.getByLabelText("本轮意图"), { target: { value: "detour" } });
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "先解释一下 oracle" } });
+  fireEvent.click(screen.getByLabelText("发送给论文教练"));
+  await waitFor(() => expect(sentBodies()).toHaveLength(1));
+  expect(sentBodies()[0].intent).toBe("detour");
+});
+
+it("binds text to the selected page, disables a different page image and consumes only the submitted selection", async () => {
+  const anchor = { paper_id: "p", source_version: "version", page_index: 0, status: "verified", quote: "page zero", rects: [] };
+  const clear = vi.fn();
+  view({ anchor, onClearAnchor: clear });
+  await screen.findByText("已连接本机 CLI");
+  expect((screen.getByLabelText("同时发送当前整页图像（不只是选区）") as HTMLInputElement).disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "解释这一句" } });
+  fireEvent.click(screen.getByLabelText("发送给论文教练"));
+  await waitFor(() => expect(clear).toHaveBeenCalledTimes(1));
+  expect(sentBodies()[0]).toMatchObject({ page_index: 0, anchor, page_image: "", intent: "detour" });
+});
+
+it("preserves a newer selection while a send is in flight", async () => {
+  let finish!: (v: any) => void;
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    if (path === "coach/send/p") return new Promise((r) => { finish = r; });
+    return {};
+  });
+  const anchor = { paper_id: "p", source_version: "version", page_index: 1, quote: "first", rects: [], status: "verified" };
+  const clear = vi.fn();
+  const mounted = view({ anchor, onClearAnchor: clear });
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "first question" } });
+  fireEvent.click(screen.getByLabelText("发送给论文教练"));
+  await waitFor(() => expect(finish).toBeDefined());
+  mounted.rerender(<Coach paper={paper} context={context} page={1} anchor={{ ...anchor, quote: "newer" }} onClearAnchor={clear} onLocate={vi.fn()} onAction={vi.fn()} refresh={vi.fn()} report={vi.fn()} />);
+  await act(async () => finish({ conversation_id: "c" }));
+  expect(clear).not.toHaveBeenCalled();
+});
+
+it("does not send while an IME is composing, including keyCode 229 fallback", async () => {
+  view();
+  await screen.findByText("已连接本机 CLI");
+  const input = screen.getByLabelText("发给论文教练的消息");
+  fireEvent.change(input, { target: { value: "输入中文" } });
+  fireEvent.keyDown(input, { key: "Enter", ctrlKey: true, isComposing: true });
+  fireEvent.keyDown(input, { key: "Enter", metaKey: true, keyCode: 229 });
+  expect(sentBodies()).toHaveLength(0);
+  fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
+  await waitFor(() => expect(sentBodies()).toHaveLength(1));
 });

@@ -574,6 +574,8 @@ export function App() {
                         setAnchor(a);
                       }}
                       focusAnchor={focusAnchor}
+                      notes={context.notes || []}
+                      onLocateNote={locate}
                     />
                   ) : (
                     <div className="reader empty">

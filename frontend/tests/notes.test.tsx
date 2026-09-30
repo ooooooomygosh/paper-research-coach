@@ -233,3 +233,20 @@ it("restores the same region after a coach comment without saving a stale revisi
   expect(localStorage.getItem("prc-draft-p-operation")).toBeNull();
   expect(JSON.parse(localStorage.getItem("prc-draft-p")!).revision).toBe(2);
 });
+
+it("browsing a new selection never silently moves an existing note's source", async () => {
+  const original = { paper_id: "p", source_version: "v", page_index: 0, quote: "original", status: "verified" };
+  const next = { ...original, page_index: 1, quote: "new selection" };
+  const note = { id: "existing", paper_id: "p", content: "my original thought", author: "user", provenance: "USER", revision: 2, anchor: original };
+  localStorage.setItem("prc-draft-p", JSON.stringify(note));
+  const mounted = render(<Notes {...props} notes={[note]} />);
+  await tick(500);
+  write.mockClear();
+  mounted.rerender(<Notes {...props} notes={[note]} anchor={next} />);
+  await tick(600);
+  expect(write).not.toHaveBeenCalled();
+  expect(JSON.parse(localStorage.getItem("prc-draft-p")!).anchor).toEqual(original);
+  fireEvent.click(screen.getByText("将此笔记的出处改为当前选区"));
+  await tick(500);
+  expect(write.mock.calls.at(-1)![1].anchor).toEqual(next);
+});

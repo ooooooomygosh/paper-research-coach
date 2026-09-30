@@ -15,7 +15,8 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
-import { api, ApiError, id, location, type Row } from "./api";
+import { api, ApiError, id, location, sameAnchor, anchorFor, type Row } from "./api";
+import { contextPage, imageMatchesPage, replyIntent, helpLabels, type HelpMode, type IntentChoice } from "./reading-context";
 
 type Message = {
   id: string;
@@ -28,6 +29,7 @@ type Message = {
   actions?: any[];
   connection_notice?: string;
   intent?: string;
+  help_mode?: HelpMode;
 };
 type Snapshot = {
   conversation_id: string;
@@ -89,6 +91,12 @@ export default function CoachPanel({
   const [expanded, setExpanded] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
+  const [intentChoice, setIntentChoice] = useState<IntentChoice>("auto");
+  const [helpMode, setHelpMode] = useState<HelpMode>("guided");
+  const currentAnchor = useRef(anchor);
+  currentAnchor.current = anchor;
+  const effectiveIntent = replyIntent(snapshot.reading_flow, anchor, intentChoice);
+  const canAttachImage = imageMatchesPage(paper, page, anchor);
   const scroll = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const alive = useRef(true);
@@ -166,15 +174,16 @@ export default function CoachPanel({
       scroll.current.scrollTop = scroll.current.scrollHeight;
   }, [snapshot.messages]);
   useEffect(() => {
-    if (anchor?.rects?.length && !anchor?.quote) setIncludeImage(true);
-  }, [anchor]);
+    setIncludeImage(!!anchor?.rects?.length && !anchor?.quote && imageMatchesPage(paper, page, anchor));
+    setIntentChoice("auto");
+  }, [anchor, page, paper.id, paper.source_version, chosen]);
   function change(value: string) {
     setText(value);
     localStorage.setItem(key, value);
   }
   function pageImage() {
     const canvas = document.querySelector<HTMLCanvasElement>(
-      `.pdf-page[data-paper-id="${paper.id}"][data-page-index="${page}"] canvas`,
+      `.pdf-page[data-paper-id="${paper.id}"][data-source-version="${paper.source_version}"][data-page-index="${page}"] canvas`,
     );
     if (!canvas) throw new Error("当前页还未打开。稍后重试，或取消附上图表。");
     const image = document.createElement("canvas");
@@ -185,7 +194,7 @@ export default function CoachPanel({
     const png = image.toDataURL("image/png");
     return png.length > 3500000 ? image.toDataURL("image/jpeg", 0.85) : png;
   }
-  async function send(content = text, retry = false, intent = "detour") {
+  async function send(content = text, retry = false, intent = effectiveIntent as string) {
     if (sending || connecting || snapshot.busy || (!retry && intent !== "follow" && !content.trim()))
       return;
     if (pending && !retry) {
@@ -194,6 +203,8 @@ export default function CoachPanel({
     }
     let body: any;
     try {
+      if (!retry && intent !== "follow" && includeImage && !canAttachImage)
+        throw new Error("图表与选区不在同一页，请先回到选区位置。");
       body = retry
         ? JSON.parse(localStorage.getItem(jobKey) || "null")
         : {
@@ -202,11 +213,12 @@ export default function CoachPanel({
             content,
             intent,
             anchor: intent === "follow" ? null : anchor,
-            page_index: page,
+            page_index: intent === "follow" ? page : contextPage(paper, page, anchor),
             source_version: paper.source_version,
+            help_mode: helpMode,
             model,
             effort,
-            page_image: includeImage ? pageImage() : "",
+            page_image: intent !== "follow" && includeImage ? pageImage() : "",
           };
       if (!body) return;
       // Persist the exact request before crossing the network.
@@ -221,6 +233,11 @@ export default function CoachPanel({
       setPending(false);
       setChosen(result.conversation_id);
       if (currentText.current === body.content) change("");
+      // Do not clear a newer selection made while the request was in flight.
+      if (body.anchor && sameAnchor(currentAnchor.current, body.anchor)) {
+        onClearAnchor();
+        setIncludeImage(false);
+      }
       setSnapshot(
         await api(
           "coach/conversation/" +
@@ -320,7 +337,7 @@ export default function CoachPanel({
           {!snapshot.conversations.length && (
             <option value="">从新对话开始</option>
           )}
-          {snapshot.conversations.map((c, index) => (
+          {snapshot.conversations.map((c, index: number) => (
             <option key={c.id} value={c.id}>
               {c.title} ·{" "}
               {new Date(c.created_at).toLocaleString(undefined, {
@@ -346,9 +363,10 @@ export default function CoachPanel({
       <div className="coach-mainline" aria-label="论文跟读主线">
         <div className="coach-mainline-heading">
           <strong>{flowDone ? "本轮跟读已完成" : flowStarted ? flow.label : "这篇论文的跟读主线"}</strong>
-          <span>{flow?.completed?.length || 0} / 8</span>
+          <span title="核查进度不是掌握度">已核查 {flow?.completed?.length || 0} / {flow?.steps?.length || 8}</span>
         </div>
         <p>{flowDone ? "回到复习队列巩固理解，也可以继续讨论新问题。" : flow?.return_action || flow?.goal || "从阅读目标到证据、研究启发和复习，按既定流程一起读。"}</p>
+        {flow?.pending_question && <p className="coach-pending-question"><b>当前问题：</b>{flow.pending_question}</p>}
         {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
         <button className="primary" disabled={unavailable}
           onClick={() => void send(text, false, text.trim() ? "answer" : "follow")}>
@@ -356,11 +374,18 @@ export default function CoachPanel({
         </button>
         <details>
           <summary>查看阅读路线</summary>
-          <ol>{(flow?.steps || []).map((step: any, index: number) => (
-            <li key={step.id} aria-current={!flowDone && flow?.current === step.id ? "step" : undefined}>
-              {index < (flow?.completed?.length || 0) ? "✓ " : ""}{step.label}
-            </li>
-          ))}</ol>
+          <p>这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。</p>
+          <ol>{(flow?.steps || []).map((step: any) => {
+            const receipt = flow?.completed?.find((c: any) => c.step === step.id);
+            return <li key={step.id} aria-current={!flowDone && flow?.current === step.id ? "step" : undefined}>
+              {receipt ? "✓ " : ""}{step.label}
+              {receipt && <details className="reading-receipt"><summary>核查依据</summary>
+                <p>{receipt.evidence}</p>
+                {flow.source_version === paper.source_version && Number.isInteger(receipt.page_index) && receipt.page_index >= 0 && receipt.page_index < paper.page_count &&
+                  <button onClick={() => onLocate(anchorFor(paper, receipt.page_index))}>查看 PDF 第 {receipt.page_index + 1} 页</button>}
+              </details>}
+            </li>;
+          })}</ol>
         </details>
       </div>
       <div
@@ -389,6 +414,8 @@ export default function CoachPanel({
             <div className="coach-message-label">
               {m.role === "user" ? m.intent === "follow" ? "继续跟读" : "我" : "论文教练"}
               {m.imported && <span>来自 CLI 对话</span>}
+              {m.role === "user" && m.intent === "answer" && <span>回答主线</span>}
+              {m.role === "user" && m.help_mode && m.help_mode !== "guided" && <span>{helpLabels[m.help_mode]}</span>}
               <span>
                 {m.status === "queued"
                   ? "准备回复…"
@@ -505,7 +532,7 @@ export default function CoachPanel({
           </button>
         )}
         <div className="coach-context-chips">
-          <span>PDF 第 {page + 1} 页 · 自动带入阅读断点</span>
+          <span>本轮来源：PDF 第 {(anchor?.page_index ?? page) + 1} 页 · 附阅读断点</span>
           {anchor && (
             <div>
               <button className="anchor-label" onClick={() => onLocate(anchor)}>
@@ -521,24 +548,35 @@ export default function CoachPanel({
         {anchor?.quote && (
           <blockquote className="coach-selection">{anchor.quote}</blockquote>
         )}
+        <div className="coach-turn-controls">
+          <label>本轮意图<select aria-label="本轮意图" value={intentChoice} onChange={(e) => setIntentChoice(e.target.value as IntentChoice)}>
+            <option value="auto">自动 · {effectiveIntent === "answer" ? "回答主线" : "插话讨论"}</option>
+            <option value="answer">回答主线</option><option value="detour">插话讨论 · 保留返回点</option>
+          </select></label>
+          <label>帮助方式<select aria-label="帮助方式" value={helpMode} onChange={(e) => setHelpMode(e.target.value as HelpMode)}>
+            {Object.entries(helpLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select></label>
+        </div>
+        {!canAttachImage && anchor && <p className="small muted">选区不在当前可附图位置；文字仍使用选区页。点击选区标签返回后再附图。</p>}
         <label className="coach-image-check">
           <input
             type="checkbox"
             checked={includeImage}
+            disabled={!canAttachImage}
             onChange={(e) => setIncludeImage(e.target.checked)}
           />
-          同时查看当前页图表
+          同时发送当前整页图像（不只是选区）
         </label>
         <textarea
           aria-label="发给论文教练的消息"
-          placeholder="随时插话提问；回答主线问题后，点“回答并继续主线”…"
+          placeholder={effectiveIntent === "answer" ? "写下你的判断、理由或仍不确定的地方…" : "写下问题或反驳；这次讨论会保留主线返回点…"}
           value={text}
           onChange={(e) => change(e.target.value)}
           onKeyDown={(e) => {
             if (
               (e.ctrlKey || e.metaKey) &&
               e.key === "Enter" &&
-              !e.nativeEvent.isComposing
+              !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229
             ) {
               e.preventDefault();
               void send();
@@ -546,7 +584,7 @@ export default function CoachPanel({
           }}
         />
         <div className="coach-compose-footer">
-          <span>随时插话 · 回答后回到主线</span>
+          <span>{effectiveIntent === "answer" ? "回答主线" : "插话，不推进主线"} · ⌘ / Ctrl + Enter</span>
           {snapshot.busy ? (
             <button
               className="coach-stop"
@@ -670,6 +708,7 @@ export default function CoachPanel({
             同时把我的对话原话保存为阅读笔记
           </label>
           <p>对话记录始终保留；此选项控制是否额外生成原话笔记。</p>
+          <p>笔记和断点存于本机。发送时，当前论文的上下文、对话和所选页面会交给 CLI 配置的模型提供方；附图会发送整页。Zotero 同步是另一项独立操作。</p>
         </details>
         {!!context.pending_thoughts?.length && (
           <button
@@ -677,7 +716,7 @@ export default function CoachPanel({
             disabled={snapshot.busy || status?.state !== "ready" || pending}
             onClick={() =>
               void send(
-                "请讨论我已保存但尚未讨论的笔记，引用我的原话，保留独立的 AI 评论。一次先讨论最关键的一条。",
+                "请讨论我已保存但尚未讨论的笔记，引用我的原话，保留独立的 AI 评论。一次先讨论最关键的一条。", false, "detour",
               )
             }
           >
@@ -690,7 +729,7 @@ export default function CoachPanel({
             disabled={snapshot.busy || status?.state !== "ready" || pending}
             onClick={() =>
               void send(
-                "请解释当前选区，先说明它在论文论证里解决什么问题，再帮我检验一个关键判断。",
+                "请解释当前选区，先说明它在论文论证里解决什么问题，再帮我检验一个关键判断。", false, "detour",
               )
             }
           >

@@ -1,0 +1,16 @@
+/* Reading continuity: secondary controls stay compact; evidence expands on demand. */
+.coach-turn-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.coach-turn-controls label { flex: 1 1 135px; font-size: 11px; color: var(--muted); margin: 0; }
+.coach-turn-controls select { width: 100%; min-width: 0; margin-top: 3px; padding: 5px; font-size: 12px; }
+.coach-mainline > .coach-pending-question { display: block; max-height: 90px; overflow: auto; }
+.reading-receipt p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.reading-receipt button { font-size: 11px; }
+.reader-toolbar { min-height: 51px; height: auto; flex-wrap: wrap; padding: 8px 12px; }
+.reader-annotations { background: var(--tint); padding: 7px 14px; font-size: 12px; border-bottom: 1px solid var(--line); }
+.reader-annotations > div { max-height: 180px; overflow: auto; display: grid; gap: 5px; margin-top: 6px; }
+.reader-annotations button { text-align: left; min-width: 0; padding: 7px; }
+.reader-annotations b { display: block; font-size: 10px; color: var(--muted); }
+.reader-annotations span { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.saved-annotation { position: absolute; background: #efd76644; border-bottom: 1px solid #a58e3777; pointer-events: none; z-index: 1; }
+.reader:focus-visible, .reader button:focus-visible, .coach-panel select:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+@media (max-width: 600px) { .coach-turn-controls label { flex-basis: 100%; } }
