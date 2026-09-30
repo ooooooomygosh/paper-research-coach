@@ -18,3 +18,9 @@
 规范与工程参考：[Agent Skills](https://agentskills.io/specification)、[cangjie-skill](https://github.com/kangarooking/cangjie-skill)、[Zotero local API](https://www.zotero.org/support/dev/web_api/v3/local_api)。借鉴 cangjie 的来源核验、能力拆解和行为验证思路；不宣称通过其完整流水线认证。
 
 用户提供的知乎链接 35170379、163227375 与 Research-Starter-Kit 部分致谢外链本次访问受限，不作为已读全文证据。书籍《学术研究，你的成功之道》（凌晓峰、杨强）与 Science Research Writing 仅核实书目/简介，不把章节建议写成已核实内容。仓库完整设计说明另列访问范围与未采用内容。
+
+### 本次体验审视的补充核验（2026-09-30）
+
+[Bastani et al., PNAS 2025, doi:10.1073/pnas.2422633122](https://doi.org/10.1073/pnas.2422633122) 是高中数学情境的随机实验：有 AI 时的表现不能直接代表移除 AI 后的学习，受约束辅导的结果也不能推广成“任何苏格拉底提示词都有效”。这里只据此要求分别报告辅助任务表现与无辅助学习表现，不声称已验证博士论文阅读收益。
+
+本次查看 [Keshav 作者文稿（2016-02-17 版本，Columbia 托管）](https://systems.cs.columbia.edu/ds2-class/papers/keshav-paper.pdf) 的两页全文：采用分层投入、允许筛选停止、重建论证三个设计启发，不将经验建议当成本产品试验结论。Zotero 本地 API 的实例、对象版本和授权范围按官方文档核实；主机/版本集成仍需实机验收。
