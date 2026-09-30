@@ -113,3 +113,37 @@ def test_openalex_errors_do_not_persist_credentials(store, tmp_path, monkeypatch
         resolver.resolve(p)
     assert secret not in str(caught.value)
     assert secret not in json.dumps(store.setting("bibliography:" + p["id"]))
+
+
+def test_arxiv_uses_pdf_version_and_structured_authors(store, tmp_path):
+    path = tmp_path / "versioned.pdf"
+    c = canvas.Canvas(str(path))
+    c.drawString(40, 780, "An original title about synthetic evidence")
+    c.drawString(40, 755, "Ada Example, Bo Test")
+    c.drawString(40, 730, "Abstract: text. arXiv:2601.12345v1")
+    c.save()
+    p = store.add_paper("An original title about synthetic evidence", str(path))
+    markup = """<meta name="citation_title" content="An original title about synthetic evidence">
+    <meta name="citation_author" content="Example, Ada"><meta name="citation_author" content="Test, Bo">
+    <meta name="citation_date" content="2026/01/15"><a href="https://doi.org/10.48550/arXiv.2601.12345">DOI</a>"""
+    urls = []
+
+    def respond(r):
+        urls.append(str(r.url))
+        return (
+            httpx.Response(200, text=markup)
+            if r.url.host == "arxiv.org"
+            else httpx.Response(404, json={})
+        )
+
+    resolver = MetadataResolver(
+        store, httpx.Client(transport=httpx.MockTransport(respond))
+    )
+    result = resolver.resolve(p)["payload"]
+    assert result["archiveID"] == "2601.12345v1" and result["url"].endswith("v1")
+    assert result["DOI"] == "10.48550/arXiv.2601.12345"
+    assert result["creators"] == [
+        {"creatorType": "author", "firstName": "Ada", "lastName": "Example"},
+        {"creatorType": "author", "firstName": "Bo", "lastName": "Test"},
+    ]
+    assert "https://arxiv.org/abs/2601.12345v1" in urls

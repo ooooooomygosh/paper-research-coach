@@ -13,7 +13,7 @@ import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.parse import quote
-from xml.etree import ElementTree
+from html.parser import HTMLParser
 
 import httpx
 from pypdf import PdfReader
@@ -23,6 +23,28 @@ from .store import digest
 
 class MetadataPending(ValueError):
     pass
+
+
+class CitationMetadata(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.values = {}
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "meta":
+            attributes = dict(attrs)
+            name, content = attributes.get("name", ""), attributes.get("content", "")
+            if (
+                name
+                in {
+                    "citation_title",
+                    "citation_author",
+                    "citation_date",
+                    "citation_arxiv_id",
+                }
+                and content
+            ):
+                self.values.setdefault(name, []).append(content)
 
 
 def normalized(value):
@@ -261,43 +283,52 @@ class MetadataResolver:
         if payload is None:
             arxiv = re.search(r"arXiv:\s*(\d{4}\.\d{4,5})(v\d+)?", first)
             if arxiv:
+                # Query the actual PDF version: the latest arXiv title/authors can differ.
+                identifier = arxiv[1] + (arxiv[2] or "")
+                url = "https://arxiv.org/abs/" + identifier
                 try:
-                    response = self.client.get(
-                        "https://export.arxiv.org/api/query",
-                        params={"id_list": arxiv[1]},
-                    )
-                    entry = ElementTree.fromstring(response.content).find(
-                        "{http://www.w3.org/2005/Atom}entry"
-                    )
-                    if entry is not None:
-                        ns = {"a": "http://www.w3.org/2005/Atom"}
-                        title = " ".join(
-                            entry.findtext("a:title", default="", namespaces=ns).split()
-                        )
-                        names = [
-                            a.findtext("a:name", default="", namespaces=ns)
-                            for a in entry.findall("a:author", ns)
-                        ]
-                        if (
-                            matches_title(title, title_hint, first)
-                            and names
-                            and all(normalized(n) in normalized(first) for n in names)
-                        ):
-                            payload = dict(
-                                itemType="preprint",
-                                title=title,
-                                creators=[
-                                    dict(creatorType="author", name=n) for n in names
-                                ],
-                                repository="arXiv",
-                                archiveID=arxiv[1],
-                                url="https://arxiv.org/abs/" + arxiv[1],
-                                date=entry.findtext(
-                                    "a:published", default="", namespaces=ns
-                                )[:10],
+                    response = self.client.get(url)
+                    parsed = CitationMetadata()
+                    if response.status_code == 200:
+                        parsed.feed(response.text)
+                    values = parsed.values
+                    title = values.get("citation_title", [""])[0]
+                    creators = []
+                    for name in values.get("citation_author", []):
+                        if "," in name:
+                            family, given = name.split(",", 1)
+                            creators.append(
+                                dict(
+                                    creatorType="author",
+                                    firstName=given.strip(),
+                                    lastName=family.strip(),
+                                )
                             )
-                            sources = [payload["url"], "PDF page 1"]
-                except (httpx.HTTPError, ElementTree.ParseError):
+                        else:
+                            creators.append(dict(creatorType="author", name=name))
+                    names = [
+                        a.get("name") or a["firstName"] + " " + a["lastName"]
+                        for a in creators
+                    ]
+                    if (
+                        matches_title(title, title_hint, first)
+                        and names
+                        and all(normalized(n) in normalized(first) for n in names)
+                    ):
+                        payload = dict(
+                            itemType="preprint",
+                            title=title,
+                            creators=creators,
+                            repository="arXiv",
+                            archiveID=identifier,
+                            url=url,
+                            date=values.get("citation_date", [""])[0].replace("/", "-"),
+                        )
+                        doi = "10.48550/arXiv." + arxiv[1]
+                        if doi.casefold() in response.text.casefold():
+                            payload["DOI"] = doi
+                        sources = [url, "PDF page 1"]
+                except (httpx.HTTPError, ValueError):
                     pass
         if digest(Path(paper["source_path"])) != version:
             raise MetadataPending("核实期间 PDF 已变化，请重新扫描")

@@ -4,7 +4,7 @@
 
 面向研究生的带读 skill 和本地阅读工作台：选论文 → 抓住贡献 → 检验证据 → 留下思考 → 形成研究问题 → 复习与汇报。默认中文，也可跟随用户语言。
 
-**当前为 2.0.0rc1 预览版。** 本地工作台、OneDrive 目录连接与 Zotero 10.0.4 核心往返已实测。不同宿主、特殊批注与真人试读范围见验证记录。
+**当前为 2.0.0rc2 预览版。** 本地工作台、OneDrive 目录连接与 Zotero 10.0.4 核心往返已实测。不同宿主、特殊批注与真人试读范围见验证记录。
 
 [English](README.en.md) · [完整设计思考](docs/DESIGN.md) · [来源与致谢](docs/SOURCES.md) · [验证记录](docs/TESTING.md)
 
@@ -43,7 +43,7 @@
 ```bash
 python3 -m venv ~/.venvs/paper-research-coach
 source ~/.venvs/paper-research-coach/bin/activate
-python -m pip install /path/to/paper_research_coach-2.0.0rc1-py3-none-any.whl
+python -m pip install /path/to/paper_research_coach-2.0.0rc2-py3-none-any.whl
 prc install-skill --host codex
 prc serve
 ```

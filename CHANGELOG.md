@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0rc2 (release candidate)
+
+- Resolve arXiv metadata from the exact PDF version, with structured authors and verified arXiv DOI, when registry lookup is incomplete.
+- Preserve earlier-version titles instead of silently substituting metadata from a newer PDF. Added a regression test; 57 backend and 15 frontend checks.
+
 ## 2.0.0rc1 (release candidate)
 
 - Rebuilt the incomplete single-file prototype into a complete portable Agent Skill.
