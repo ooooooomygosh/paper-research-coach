@@ -24,7 +24,6 @@ import {
 import { api, ApiError, put, anchorFor, anchorQuote, id, type Row } from "./api";
 import { readLaunchInput } from "./launch";
 import { filterPapers } from "./library-search";
-import PageNavigation from "./PageNavigation";
 import Welcome from "./Welcome";
 import Dialog from "./Dialog";
 import { ImportModal, PaperEditor } from "./PaperDialogs";
@@ -87,7 +86,6 @@ export function App() {
   const [syncError, setSyncError] = useState("");
   const [coachTools, setCoachTools] = useState<HTMLElement | null>(null);
   const [pdfTools, setPdfTools] = useState<HTMLElement | null>(null);
-  const [fitRequest, setFitRequest] = useState(0);
   const [split, setSplit] = useState(() =>
     Math.max(
       0.45,
@@ -661,13 +659,6 @@ export function App() {
           </span>
           {paper && tab === "read" ? (
             <div className="reading-toolbar">
-              <PageNavigation page={page} count={(pdfView === "original" ? paper.page_count : translationPdfJob?.documents?.[pdfView]?.page_count) || paper.page_count || 0} onChange={movePage} />
-              <button
-                onClick={() => setFitRequest((v) => v + 1)}
-                aria-label="PDF 适宽"
-              >
-                适宽
-              </button>
               <button
                 className="immersive-toggle"
                 aria-pressed={immersive}
@@ -843,7 +834,6 @@ export function App() {
                           });
                       }}
                       toolsContainer={pdfTools}
-                      fitRequest={fitRequest}
                       fileUrl={
                         pdfView !== "original" &&
                         hasTranslation(translationPdfJob)

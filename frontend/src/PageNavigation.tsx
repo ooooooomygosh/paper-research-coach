@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /** Keep a page-number draft separate from the persisted, zero-based PDF cursor. */
-export default function PageNavigation({ page, count, onChange }: {
+export default function PageNavigation({ page, count, onChange, labelPrefix = "" }: {
+  labelPrefix?: string;
   page: number;
   count: number;
   onChange: (page: number) => void;
@@ -21,7 +22,7 @@ export default function PageNavigation({ page, count, onChange }: {
   }
   return (
     <div className="compact-pages" role="group" aria-label="PDF 翻页">
-      <button aria-label="上一页" disabled={page <= 0 || count < 1} onClick={() => onChange(page - 1)}>
+      <button aria-label={labelPrefix + "上一页"} disabled={page <= 0 || count < 1} onClick={() => onChange(page - 1)}>
         <ChevronLeft size={16} />
       </button>
       <input aria-label="阅读页码" title="输入页码后按 Enter；Esc 取消"
@@ -35,7 +36,7 @@ export default function PageNavigation({ page, count, onChange }: {
           }
         }} />
       <span>/ {count}</span>
-      <button aria-label="下一页" disabled={count < 1 || page >= count - 1} onClick={() => onChange(page + 1)}>
+      <button aria-label={labelPrefix + "下一页"} disabled={count < 1 || page >= count - 1} onClick={() => onChange(page + 1)}>
         <ChevronRight size={16} />
       </button>
     </div>

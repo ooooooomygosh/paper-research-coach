@@ -13,7 +13,7 @@ A local workspace that keeps **the paper, one concrete question, and your thinki
 
 *Actual built UI; the paper, values and dialogue are explicitly illustrative, not live-model output or evidence of learning benefit. [Reproduce the showcase and full-size screenshots](docs/SHOWCASE.md).*
 
-> **Preview software, not a proven learning intervention.** Pinch zoom and translated-PDF annotations require `2.0.0rc7` or newer; `prc-demo` is available from rc6. Choose that version in Releases; if its packages are not available yet, follow the source quickstart.
+> **Preview software, not a proven learning intervention.** Pinch zoom and translated-PDF annotations require `2.0.0rc8` or newer; `prc-demo` is available from rc6. Choose that version in Releases; if its packages are not available yet, follow the source quickstart.
 
 ## What reading looks like
 

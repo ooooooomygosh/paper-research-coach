@@ -18,7 +18,7 @@ Use secondary tools for coaching preferences, model connection, notes and eviden
 
 ## PDF zoom and annotations (rc7+)
 
-Pinch on a trackpad or touchscreen to zoom around the gesture position (25%–400%). Ordinary scrolling stays native. A frosted toolbar provides zoom, fit width, previous/next page, region selection and download; it becomes horizontal below the page on narrow screens.
+Pinch on a trackpad or touchscreen to zoom around the gesture position (25%–400%). Ordinary scrolling stays native. A frosted toolbar provides zoom, fit width, previous/next page and direct page entry, region selection and download; it becomes horizontal below the page on narrow screens.
 
 Select text or a region, then keep the mark or write a note. Chinese and bilingual annotations persist on their exact PDF layout across reloads. They are scoped to the translation job and file hash, so regenerated layouts cannot silently reuse old coordinates. Existing notes remain available.
 
