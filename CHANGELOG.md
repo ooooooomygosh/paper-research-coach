@@ -1,7 +1,9 @@
 # Changelog
 
-## 2.0.0rc6 — reading polish (pending release)
+## 2.0.0rc6 — reading polish
 
+- Refine paper surfaces, toolbar grouping, split-handle visibility, focus/hover feedback and restrained dialog/drawer motion; honor reduced motion and keep a direct touch immersion exit.
+- Repair synthetic PDF text extraction with indirect stream objects and allow PDF embedded fonts in CSP. Browser checks now exercise actual passage selection, motion preferences and touch exit.
 - Add a disposable `prc-demo` entrypoint with a synthetic, searchable three-page paper and isolated temporary storage; no automatic model request or authorization.
 - Commit page-number edits on Enter/blur, cancel with Escape, and keep the persisted cursor separate from typing.
 - Use native modal dialogs with explicit keyboard wrapping for import, metadata and reading-task edits; preserve file/title/goal after failed import and support single-PDF drag/drop.

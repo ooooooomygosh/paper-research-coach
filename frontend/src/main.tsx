@@ -34,6 +34,7 @@ import CoachPanel from "./Coach";
 import { Lineage, Ideas, Reviews, Settings, Exports } from "./Panels";
 import "./style.css";
 import "./quiet-reading.css";
+import "./workbench-polish.css";
 import {
   TranslationTools,
   TranslationPopover,
@@ -629,6 +630,8 @@ export function App() {
                 适宽
               </button>
               <button
+                className="immersive-toggle"
+                aria-pressed={immersive}
                 aria-label={immersive ? "退出沉浸模式" : "进入沉浸模式"}
                 title="⌘ / Ctrl + Shift + Enter"
                 onClick={immersiveToggle}
@@ -639,9 +642,9 @@ export function App() {
                 <MoreHorizontal size={20} />
               </button>
             </div>
-          ) : (
+          ) : tab !== "read" ? (
             <button onClick={() => setTab("read")}>返回阅读</button>
-          )}
+          ) : null}
         </header>
         {error && (
           <div className="toast" role="status">

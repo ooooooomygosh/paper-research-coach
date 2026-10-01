@@ -46,3 +46,13 @@ Applied here: one reading promise, honest examples, two installation routes, opt
 ## Verification boundary
 
 See [Testing](TESTING.md) for historical integration runs. This review adds focused regression tests for page drafts, import retry, modal lifecycle, bibliographic search and a disposable demo. Actual PR CI and browser results are recorded with the PR; prior successful runs are not relabelled as this version’s evidence. No new live-model matrix or user study is implied.
+
+## Final workbench pass — 2026-10-01
+
+The final pass adds consistent paper/desk surfaces, readable secondary text, a visible split handle, grouped pagination, deliberate input focus and hover feedback. Welcome, dialog and drawer entry motion lasts 140–360 ms; source pages and streamed answers do not animate. System reduced-motion preferences disable transitions and entry animations throughout the workbench.
+
+Touch immersion now keeps a 44 × 44 exit control visible. The empty welcome screen no longer offers a redundant “return to reading” button. Version guidance remains accurate after merging and points to rc6 or newer.
+
+Browser inspection also caught two functional issues missed by the earlier screenshot-only check: the synthetic PDF used inline content streams, leaving PDF.js text extraction empty, and the server CSP blocked PDF.js embedded fonts. The demo now writes indirect stream/font objects; CSP permits self-hosted and data fonts while retaining the existing script and connection restrictions. The browser check selects an actual PDF passage, verifies its original-text popover, and fails on CSP violations or a black paper capture.
+
+Local verification: 58 frontend tests, 115 backend tests, production build, dependency audit (zero vulnerabilities), Skill validation and package generation passed. Extended Chromium checks cover original-text selection, modal focus, page drafts, keyboard split adjustment, reduced motion, touch immersion exit and desktop/narrow layouts. CI reruns these checks for the final PR commit; remote results are linked from the PR. This remains synthetic interface validation; the reader trials and physical-device priorities above remain open.

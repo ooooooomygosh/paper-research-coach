@@ -76,7 +76,7 @@ def _write_pdf(path: Path) -> None:
                                  NameObject("/Subtype"): NameObject("/Type1"),
                                  NameObject("/BaseFont"): NameObject("/Helvetica")})
         page[NameObject("/Resources")] = DictionaryObject({
-            NameObject("/Font"): DictionaryObject({NameObject("/F1"): font})})
+            NameObject("/Font"): DictionaryObject({NameObject("/F1"): writer._add_object(font)})})
         commands = []
 
         def text(x, y, size, value):
@@ -95,7 +95,9 @@ def _write_pdf(path: Path) -> None:
         text(550, 34, 9, str(number))
         stream = DecodedStreamObject()
         stream.set_data("\n".join(commands).encode("ascii"))
-        page[NameObject("/Contents")] = stream
+        # PDF streams must be indirect objects; inline streams render but can
+        # leave PDF.js text extraction empty, breaking selection and search.
+        page[NameObject("/Contents")] = writer._add_object(stream)
     writer.add_metadata({"/Title": "Synthetic reading practice", "/Author": "Paper Research Coach"})
     with path.open("wb") as output:
         writer.write(output)

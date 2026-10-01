@@ -13,7 +13,7 @@ A local workspace that keeps **the paper, one concrete question, and your thinki
 
 *Actual built UI; the paper, values and dialogue are explicitly illustrative, not live-model output or evidence of learning benefit. [Reproduce the showcase and full-size screenshots](docs/SHOWCASE.md).*
 
-> **Preview software, not a proven learning intervention.** This source prepares `2.0.0rc6`. Until it is merged and released, the rc5 download does not include these changes, including the new `prc-demo` command.
+> **Preview software, not a proven learning intervention.** These features, including `prc-demo`, require `2.0.0rc6` or newer. Choose that version in Releases; if its packages are not available yet, follow the source quickstart.
 
 ## What reading looks like
 
