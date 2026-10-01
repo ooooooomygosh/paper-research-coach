@@ -10,16 +10,12 @@ export function TranslationTools({
   job,
   readableJob,
   reload,
-  view,
-  setView,
   open,
 }: {
   paper: Row;
   job: any;
   readableJob?: any;
   reload: () => void;
-  view: PdfView;
-  setView: (v: PdfView) => void;
   open: boolean;
 }) {
   const [profile, setProfile] = useState<any>(null),
@@ -204,18 +200,6 @@ export function TranslationTools({
       )}
       {readable && (
         <>
-          <label>
-            阅读视图
-            <select
-              aria-label="PDF 阅读视图"
-              value={view}
-              onChange={(e) => setView(e.target.value as PdfView)}
-            >
-              <option value="original">原文</option>
-              <option value="mono">中文译文</option>
-              <option value="dual">中英对照</option>
-            </select>
-          </label>
           <div className="translation-downloads">
             <a
               href={`/api/translation/jobs/${readJob.id}/pdf/dual`}

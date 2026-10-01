@@ -113,3 +113,5 @@ prc export pdf --paper PAPER_ID
 `python scripts/package_release.py` 在 `dist/` 输出 Skill ZIP、wheel 和源码 sdist。main 上验证成功后为当前版本建立预览版；同版本保留原发布物，不覆盖，升级版本才建立新预览版。
 
 SQLite 是权威状态，Markdown/CSV 是导出。本地保存不等于离线 AI。备份、模型数据流和访问边界见 [安全指南](SECURITY.md)。测试通过不等于教育效果，见 [真人试读协议](HUMAN-TRIAL.md) 与 [审视清单](FINAL-REVIEW.md)。原创代码与文档采用 [MIT](../LICENSE)，第三方保留自身许可与 [来源](SOURCES.md)。
+
+阅读时可直接在磨砂工具栏切换「原文 / 中文 / 双语」。尚未生成的译本暂不可选，生成任务仍在「更多阅读工具 → 翻译」中管理。

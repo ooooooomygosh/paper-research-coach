@@ -41,6 +41,9 @@ export default function PdfReader({
   draftAnchor,
   onExport,
   exporting = false,
+  view = "original",
+  availableViews,
+  onViewChange,
 }: {
   paper: Row;
   page: number;
@@ -58,6 +61,9 @@ export default function PdfReader({
   draftAnchor?: any;
   onExport?: () => void;
   exporting?: boolean;
+  view?: "original" | "mono" | "dual";
+  availableViews?: { mono: boolean; dual: boolean };
+  onViewChange?: (view: "original" | "mono" | "dual") => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     layer = useRef<HTMLDivElement>(null),
@@ -624,6 +630,11 @@ export default function PdfReader({
         )}
       </div>
       <div className="pdf-floating-tools" role="toolbar" aria-label="PDF 快捷工具">
+        {onViewChange && <select className="pdf-view-select" aria-label="PDF 阅读视图" title="切换原文、中文或双语；译文生成后可用" value={view} onChange={(e) => onViewChange(e.target.value as "original" | "mono" | "dual")}>
+          <option value="original">原文</option>
+          <option value="mono" disabled={!availableViews?.mono}>中文</option>
+          <option value="dual" disabled={!availableViews?.dual}>双语</option>
+        </select>}
         <button title="放大 · 支持双指缩放" aria-label="PDF 放大" disabled={!doc || displayZoom >= MAX_ZOOM} onClick={() => changeZoom(zoom + .15)}><ZoomIn size={17} /></button>
         <output aria-label="PDF 缩放比例">{Math.round(displayZoom * 100)}%</output>
         <button title="缩小" aria-label="PDF 缩小" disabled={!doc || displayZoom <= MIN_ZOOM} onClick={() => changeZoom(zoom - .15)}><ZoomOut size={17} /></button>

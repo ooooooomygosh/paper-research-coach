@@ -43,3 +43,6 @@
   .pdf-floating-tools .compact-pages { flex-direction: row; }
   .pdf-stage > .pdf-scroll { padding-bottom: 110px; }
 }
+
+.pdf-floating-tools .pdf-view-select { width: 46px; min-width: 0; padding: 5px 0; border: 0; border-radius: 7px; background: transparent; color: inherit; font-size: 11px; cursor: pointer; }
+.pdf-floating-tools .pdf-view-select:hover { background: #dfe8daca; }

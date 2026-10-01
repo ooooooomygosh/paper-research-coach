@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0rc9
+
+- Move original, Chinese and bilingual PDF view switching into the floating toolbar, with unavailable translations disabled until ready.
+
 ## 2.0.0rc8
 
 - Consolidate page navigation, zoom, fit, region selection and annotated downloads in the floating PDF toolbar; remove duplicate controls from the header and reading drawer.
