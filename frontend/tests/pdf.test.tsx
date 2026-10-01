@@ -91,7 +91,7 @@ it("can render another page after a page-rendering failure", async () => {
   mock.fail = 3;
   render(<Reader version="old" />);
   expect(await screen.findByRole("alert")).toBeTruthy();
-  fireEvent.click(screen.getByLabelText("上一页"));
+  fireEvent.click(screen.getByLabelText("PDF 上一页"));
   await waitFor(() => expect(mock.calls).toContainEqual([3, 2]));
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   expect(document.querySelector("canvas")).toBeTruthy();
@@ -123,7 +123,7 @@ it("locates a region using the current PDF.js point API and follows zoom", async
     expect(parseFloat(highlight!.style.height)).toBeCloseTo(66);
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
   });
-  fireEvent.click(screen.getByLabelText("放大"));
+  fireEvent.click(screen.getByLabelText("PDF 放大"));
   await waitFor(() => {
     const highlight = document.querySelector<HTMLElement>(".anchor-highlight");
     expect(highlight).not.toBeNull();
@@ -210,11 +210,11 @@ it("fits the page width and keeps keyboard navigation out of page input editing"
   Object.defineProperty(box, "clientWidth", { value: 500 });
   box.style.paddingLeft = "10px";
   box.style.paddingRight = "10px";
-  fireEvent.click(screen.getByLabelText("适应宽度"));
+  fireEvent.click(screen.getByLabelText("PDF 适应宽度"));
   await waitFor(() => expect(screen.getByLabelText("PDF 缩放比例").textContent).toBe("80%"));
-  fireEvent.click(screen.getByLabelText("适应宽度"));
+  fireEvent.click(screen.getByLabelText("PDF 适应宽度"));
   await waitFor(() => expect(screen.getByLabelText("PDF 缩放比例").textContent).toBe("80%"));
-  fireEvent.keyDown(screen.getByLabelText("PDF 页码"), { key: "ArrowRight" });
+  fireEvent.keyDown(screen.getByLabelText("阅读页码"), { key: "ArrowRight" });
   expect(setPage).not.toHaveBeenCalled();
   fireEvent.keyDown(screen.getByLabelText("PDF 阅读器"), { key: "ArrowRight" });
   expect(setPage).toHaveBeenCalledWith(1);

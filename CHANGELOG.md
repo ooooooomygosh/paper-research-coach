@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0rc8
+
+- Consolidate page navigation, zoom, fit, region selection and annotated downloads in the floating PDF toolbar; remove duplicate controls from the header and reading drawer.
+- Keep direct page entry in the toolbar, with a compact wrapped layout on narrow screens.
+
 ## 2.0.0rc7 — PDF gestures and translated annotations
 
 - Add focal-point-preserving trackpad/touch pinch zoom and a compact frosted toolbar for zoom, fit, page navigation, region selection and annotated PDF download. Gestures preview the existing canvas and rasterize once on release.

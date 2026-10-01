@@ -8,7 +8,7 @@ Skill ZIP：放进现有宿主，不运行本地服务。Wheel (`.whl`)：带完
 
 The Skill ZIP is for an existing agent host. The wheel includes the built UI. Source archives require a frontend build. This repository does not promise a published PyPI package or a signed desktop installer.
 
-**版本 / Version:** 双指缩放和译文批注需要 `2.0.0rc7` 或更新版本；安装包尚未生成时可使用下面的源码方式。rc5 不包含 `prc-demo`。预发布下载在 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases)，不要依赖 `/latest`。Check the version of the file you downloaded; main can be ahead of release packages.
+**版本 / Version:** 双指缩放和译文批注需要 `2.0.0rc8` 或更新版本；安装包尚未生成时可使用下面的源码方式。rc5 不包含 `prc-demo`。预发布下载在 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases)，不要依赖 `/latest`。Check the version of the file you downloaded; main can be ahead of release packages.
 
 ## macOS / Linux：从 wheel 安装
 

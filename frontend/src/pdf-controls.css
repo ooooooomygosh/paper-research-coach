@@ -35,3 +35,11 @@
 }
 /* Export feedback must leave the reading toolbar reachable. */
 .reading-open > .toast { top: 64px; right: 18px; max-width: min(420px, calc(100vw - 36px)); }
+.pdf-floating-tools .compact-pages { flex-direction: column; gap: 2px; border: 0; padding: 0; }
+.pdf-floating-tools .compact-pages input { width: 34px; height: 27px; padding: 2px; text-align: center; font-size: 12px; }
+.pdf-floating-tools .compact-pages span { font-size: 10px; color: #52664f; }
+@media (max-width: 600px), (max-height: 650px) {
+  .pdf-floating-tools { flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100% - 24px); }
+  .pdf-floating-tools .compact-pages { flex-direction: row; }
+  .pdf-stage > .pdf-scroll { padding-bottom: 110px; }
+}

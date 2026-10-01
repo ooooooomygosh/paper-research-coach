@@ -1,3 +1,4 @@
+import PageNavigation from "./PageNavigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -13,8 +14,6 @@ import "./reading-experience.css";
 import "./pdf-controls.css";
 import { boundZoom, MIN_ZOOM, MAX_ZOOM, usePdfZoom, type ZoomFocus } from "./usePdfZoom";
 import {
-  ChevronLeft,
-  ChevronRight,
   MousePointer2,
   Scan,
   ZoomIn,
@@ -442,79 +441,7 @@ export default function PdfReader({
         createPortal(
           <div className="pdf-tools-content">
             {" "}
-            <div className="reader-toolbar">
-              <button
-                aria-label="上一页"
-                disabled={page === 0}
-                onClick={() => setPage(page - 1)}
-              >
-                <ChevronLeft size={17} />
-              </button>
-              <label>
-                第{" "}
-                <input
-                  aria-label="PDF 页码"
-                  type="number"
-                  min="1"
-                  max={paper.page_count || 1}
-                  value={page + 1}
-                  onChange={(e) =>
-                    setPage(
-                      Math.max(
-                        0,
-                        Math.min(
-                          paper.page_count - 1,
-                          Number(e.target.value) - 1,
-                        ),
-                      ),
-                    )
-                  }
-                />{" "}
-                / {paper.page_count} 页
-              </label>
-              <button
-                aria-label="下一页"
-                disabled={page >= paper.page_count - 1}
-                onClick={() => setPage(page + 1)}
-              >
-                <ChevronRight size={17} />
-              </button>
-              <span className="toolbar-space" />
-              <button
-                aria-label="缩小"
-                onClick={() => {
-                  changeZoom(zoom - 0.15);
-                }}
-              >
-                <ZoomOut size={16} />
-              </button>
-              <span>{Math.round(zoom * 100)}%</span>
-              <button
-                aria-label="放大"
-                onClick={() => {
-                  changeZoom(zoom + 0.15);
-                }}
-              >
-                <ZoomIn size={16} />
-              </button>
-              <button
-                aria-label="适应宽度"
-                aria-pressed={fitWidth}
-                onClick={() => {
-                  setFitWidth(true);
-                  fit();
-                }}
-              >
-                适宽
-              </button>
-              <button
-                className={region ? "active" : ""}
-                onClick={() => setRegion(!region)}
-              >
-                {region ? <MousePointer2 size={16} /> : <Scan size={16} />}框选
-              </button>
-            </div>
-            <PdfNavigation
+<PdfNavigation
               doc={doc}
               sourceKey={paper.id + ":" + paper.source_version}
               page={page}
@@ -555,79 +482,7 @@ export default function PdfReader({
       ) : (
         <>
           {" "}
-          <div className="reader-toolbar">
-            <button
-              aria-label="上一页"
-              disabled={page === 0}
-              onClick={() => setPage(page - 1)}
-            >
-              <ChevronLeft size={17} />
-            </button>
-            <label>
-              第{" "}
-              <input
-                aria-label="PDF 页码"
-                type="number"
-                min="1"
-                max={paper.page_count || 1}
-                value={page + 1}
-                onChange={(e) =>
-                  setPage(
-                    Math.max(
-                      0,
-                      Math.min(
-                        paper.page_count - 1,
-                        Number(e.target.value) - 1,
-                      ),
-                    ),
-                  )
-                }
-              />{" "}
-              / {paper.page_count} 页
-            </label>
-            <button
-              aria-label="下一页"
-              disabled={page >= paper.page_count - 1}
-              onClick={() => setPage(page + 1)}
-            >
-              <ChevronRight size={17} />
-            </button>
-            <span className="toolbar-space" />
-            <button
-              aria-label="缩小"
-              onClick={() => {
-                changeZoom(zoom - 0.15);
-              }}
-            >
-              <ZoomOut size={16} />
-            </button>
-            <span>{Math.round(zoom * 100)}%</span>
-            <button
-              aria-label="放大"
-              onClick={() => {
-                changeZoom(zoom + 0.15);
-              }}
-            >
-              <ZoomIn size={16} />
-            </button>
-            <button
-              aria-label="适应宽度"
-              aria-pressed={fitWidth}
-              onClick={() => {
-                setFitWidth(true);
-                fit();
-              }}
-            >
-              适宽
-            </button>
-            <button
-              className={region ? "active" : ""}
-              onClick={() => setRegion(!region)}
-            >
-              {region ? <MousePointer2 size={16} /> : <Scan size={16} />}框选
-            </button>
-          </div>
-          <PdfNavigation
+<PdfNavigation
             doc={doc}
             sourceKey={paper.id + ":" + paper.source_version}
             page={page}
@@ -774,8 +629,7 @@ export default function PdfReader({
         <button title="缩小" aria-label="PDF 缩小" disabled={!doc || displayZoom <= MIN_ZOOM} onClick={() => changeZoom(zoom - .15)}><ZoomOut size={17} /></button>
         <button title="适应宽度" aria-label="PDF 适应宽度" aria-pressed={fitWidth} disabled={!doc} onClick={() => { zoomFocus.current = null; setFitWidth(true); fit(); }}><Maximize size={16} /></button>
         <span className="pdf-tool-divider" />
-        <button title="上一页" aria-label="PDF 上一页" disabled={!doc || page <= 0} onClick={() => setPage(page - 1)}><ChevronLeft size={17} /></button>
-        <button title="下一页" aria-label="PDF 下一页" disabled={!doc || page >= doc.numPages - 1} onClick={() => setPage(page + 1)}><ChevronRight size={17} /></button>
+        <PageNavigation page={page} count={doc?.numPages || 0} onChange={setPage} labelPrefix="PDF " />
         <span className="pdf-tool-divider" />
         <button title="框选区域" aria-label="PDF 框选区域" aria-pressed={region} disabled={!doc || (derived && !rendition)} onClick={() => setRegion(!region)}><Scan size={17} /></button>
         {onExport && <button title="下载当前 PDF（含批注）" aria-label="下载当前 PDF（含批注）" disabled={!doc || exporting || (derived && !rendition)} onClick={onExport}><Download size={17} /></button>}
