@@ -402,18 +402,18 @@
     width: 44px;
     min-height: 44px;
     padding: 0;
-    opacity: 0.35;
+    opacity: 0.85;
     transform: none;
     border-radius: 50%;
   }
   .immersive-controls > :not(.reading-toolbar),
-  .immersive-controls .reading-toolbar > :not(:last-child) {
+  .immersive-controls .reading-toolbar > :not(.immersive-toggle) {
     display: none;
   }
   .immersive-controls .reading-toolbar {
     margin: 0;
   }
-  .immersive-controls .reading-toolbar > :last-child {
+  .immersive-controls .reading-toolbar > .immersive-toggle {
     width: 44px;
     height: 44px;
     font-size: 0;

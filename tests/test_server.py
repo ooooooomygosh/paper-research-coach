@@ -22,6 +22,9 @@ def test_requires_credentials_and_same_origin(store):
     )
     assert c.post("/api/login", json={"token": "test-token"}).status_code == 200
     assert c.get("/api/state").status_code == 200
+    policy = c.get("/api/state").headers["Content-Security-Policy"]
+    assert "font-src 'self' data:;" in policy
+    assert "script-src 'self' 'wasm-unsafe-eval';" in policy
     assert c.post("/api/import", json={"title": "x"}).status_code == 403
     assert (
         c.post(

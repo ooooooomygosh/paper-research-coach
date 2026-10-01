@@ -20,17 +20,21 @@ import {
   MoreHorizontal,
   Maximize2,
   Minimize2,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { api, ApiError, put, anchorFor, type Row } from "./api";
 import { readLaunchInput } from "./launch";
+import { filterPapers } from "./library-search";
+import PageNavigation from "./PageNavigation";
+import Welcome from "./Welcome";
+import Dialog from "./Dialog";
+import { ImportModal, PaperEditor } from "./PaperDialogs";
 import PdfReader from "./PdfReader";
 import Notes from "./Notes";
 import CoachPanel from "./Coach";
 import { Lineage, Ideas, Reviews, Settings, Exports } from "./Panels";
 import "./style.css";
 import "./quiet-reading.css";
+import "./workbench-polish.css";
 import {
   TranslationTools,
   TranslationPopover,
@@ -97,7 +101,13 @@ export function App() {
   const [pdfView, setPdfView] = useState<PdfView>("original");
   const [selection, setSelection] = useState<any>(null);
   const layout = useRef<HTMLDivElement>(null);
+  const toolsTrigger = useRef<HTMLElement | null>(null);
+  function closeTools() {
+    setToolsOpen(false);
+    toolsTrigger.current?.focus();
+  }
   function openTools(section = "translate") {
+    toolsTrigger.current = document.activeElement as HTMLElement;
     setToolsTab(section);
     setToolsOpen(true);
   }
@@ -130,7 +140,7 @@ export function App() {
   }
   useEffect(() => {
     function keyboard(e: KeyboardEvent) {
-      if (e.defaultPrevented) return;
+      if (e.defaultPrevented || document.querySelector("dialog[open]")) return;
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Enter") {
         e.preventDefault();
         immersiveToggle();
@@ -138,7 +148,7 @@ export function App() {
       if (e.key === "Escape") {
         if (toolsOpen) {
           e.preventDefault();
-          setToolsOpen(false);
+          closeTools();
         } else if (selection) {
           e.preventDefault();
           setSelection(null);
@@ -413,6 +423,7 @@ export function App() {
       report(String(e));
     }
   }
+  const visiblePapers = filterPapers(state.papers, search);
   if (!ready)
     return (
       <main className="login">
@@ -425,6 +436,7 @@ export function App() {
           双击电脑上的“打开论文工作台”启动文件，会自动完成连接。 也可以在 Codex
           中说：“打开我的论文阅读工作台”。
         </p>
+        <p className="small muted">已经安装？在终端运行 <code>prc open</code>，请勿分享带登录信息的启动链接。</p>
         <button className="primary" onClick={() => void start()}>
           已从启动器打开，重新检查连接
         </button>
@@ -517,17 +529,13 @@ export function App() {
           <Search size={14} />
           <input
             aria-label="查找论文"
-            placeholder="查找论文…"
+            placeholder="标题、作者、年份…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="paper-list">
-          {state.papers
-            .filter((p: Row) =>
-              p.title.toLowerCase().includes(search.toLowerCase()),
-            )
-            .map((p: Row) => (
+          {visiblePapers.map((p: Row) => (
               <button
                 key={p.id}
                 className={selected === p.id ? "current" : ""}
@@ -553,6 +561,13 @@ export function App() {
                 </div>
               </button>
             ))}
+          {!!state.papers.length && !visiblePapers.length && (
+            <div className="library-empty" role="status">
+              <p>没有找到“{search}”</p>
+              <small>试试标题、作者、年份或 DOI。</small>
+              <button className="text-button" onClick={() => setSearch("")}>清除搜索</button>
+            </div>
+          )}
           {!state.papers.length && (
             <p className="muted small">
               导入第一篇论文，
@@ -607,37 +622,7 @@ export function App() {
           </span>
           {paper && tab === "read" ? (
             <div className="reading-toolbar">
-              <div className="compact-pages">
-                <button
-                  aria-label="上一页"
-                  disabled={page <= 0}
-                  onClick={() => movePage(page - 1)}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <input
-                  aria-label="阅读页码"
-                  type="number"
-                  min={1}
-                  max={paper.page_count || 1}
-                  value={page + 1}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (Number.isFinite(n))
-                      movePage(
-                        Math.max(0, Math.min(paper.page_count - 1, n - 1)),
-                      );
-                  }}
-                />
-                <span>/ {paper.page_count}</span>
-                <button
-                  aria-label="下一页"
-                  disabled={page >= paper.page_count - 1}
-                  onClick={() => movePage(page + 1)}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+              <PageNavigation page={page} count={paper.page_count || 0} onChange={movePage} />
               <button
                 onClick={() => setFitRequest((v) => v + 1)}
                 aria-label="PDF 适宽"
@@ -645,6 +630,8 @@ export function App() {
                 适宽
               </button>
               <button
+                className="immersive-toggle"
+                aria-pressed={immersive}
                 aria-label={immersive ? "退出沉浸模式" : "进入沉浸模式"}
                 title="⌘ / Ctrl + Shift + Enter"
                 onClick={immersiveToggle}
@@ -655,9 +642,9 @@ export function App() {
                 <MoreHorizontal size={20} />
               </button>
             </div>
-          ) : (
+          ) : tab !== "read" ? (
             <button onClick={() => setTab("read")}>返回阅读</button>
-          )}
+          ) : null}
         </header>
         {error && (
           <div className="toast" role="status">
@@ -681,26 +668,7 @@ export function App() {
             }}
           />
         ) : !paper ? (
-          <div className="welcome">
-            <span className="eyebrow">从一篇值得读的论文开始</span>
-            <h1>
-              把阅读变成
-              <br />
-              自己的研究判断。
-            </h1>
-            <p>
-              打开论文，留下直觉，在工作台里一起检验。
-              <br />
-              一次推进一个问题，不急着读完全部。
-            </p>
-            <button className="primary" onClick={() => setImporting(true)}>
-              <Plus size={17} />
-              导入论文
-            </button>
-            <button className="text-button" onClick={() => setTab("settings")}>
-              连接 Zotero <ArrowRight size={16} />
-            </button>
-          </div>
+          <Welcome onImport={() => setImporting(true)} onConnect={() => setTab("settings")} />
         ) : (
           <>
             <div className="paper-heading">
@@ -967,7 +935,7 @@ export function App() {
                     )}
                     <button
                       aria-label="关闭阅读工具"
-                      onClick={() => setToolsOpen(false)}
+                      onClick={closeTools}
                     >
                       <X size={18} />
                     </button>
@@ -1145,8 +1113,7 @@ export function App() {
         />
       )}
       {taskEditor && (
-        <div className="modal-backdrop">
-          <div className="modal">
+        <Dialog label="当前阅读任务" onClose={() => setTaskEditor(null)}>
             <span className="eyebrow">允许跳读、返回或改变深度</span>
             <h2>当前阅读任务</h2>
             <label>
@@ -1242,244 +1209,8 @@ export function App() {
               </button>
               <button onClick={() => setTaskEditor(null)}>取消</button>
             </div>
-          </div>
-        </div>
+        </Dialog>
       )}
-    </div>
-  );
-}
-function PaperEditor({
-  paper,
-  onClose,
-  onDone,
-  report,
-}: {
-  paper: Row;
-  onClose: () => void;
-  onDone: () => void;
-  report: (s: string) => void;
-}) {
-  const [value, setValue] = useState(paper),
-    [file, setFile] = useState<File | null>(null),
-    [path, setPath] = useState(paper.source_path || ""),
-    [busy, setBusy] = useState(false);
-  return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <h2>论文信息与版本</h2>
-        <div className="form-grid">
-          {[
-            ["title", "论文名称"],
-            ["authors", "作者"],
-            ["year", "年份"],
-            ["doi", "DOI"],
-            ["url", "来源链接"],
-            ["goal", "阅读目标"],
-          ].map(([k, label]) => (
-            <label key={k}>
-              {label}
-              <input
-                value={value[k]}
-                onChange={(e) => setValue({ ...value, [k]: e.target.value })}
-              />
-            </label>
-          ))}
-          <label>
-            论文类型
-            <select
-              value={value.paper_type}
-              onChange={(e) =>
-                setValue({ ...value, paper_type: e.target.value })
-              }
-            >
-              {[
-                ["empirical", "实证 / 算法"],
-                ["theory", "理论"],
-                ["measurement", "测量"],
-                ["dataset", "数据集"],
-                ["survey", "综述"],
-                ["systems", "系统工程"],
-              ].map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            阅读状态
-            <select
-              value={value.status}
-              onChange={(e) => setValue({ ...value, status: e.target.value })}
-            >
-              {[
-                ["queued", "待读"],
-                ["reading", "阅读中"],
-                ["paused", "暂停"],
-                ["done", "已完成"],
-              ].map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <button
-          className="primary"
-          disabled={busy}
-          onClick={async () => {
-            try {
-              await put("paper", value);
-              onDone();
-            } catch (e) {
-              report(String(e));
-            }
-          }}
-        >
-          保存信息
-        </button>
-        <div className="divider" />
-        <h3>确认 PDF 版本</h3>
-        <p className="small muted">
-          换版会保留旧笔记，将旧位置标为待重新核实。不会修改原始 PDF。
-        </p>
-        <label>
-          本地 PDF 路径
-          <input value={path} onChange={(e) => setPath(e.target.value)} />
-        </label>
-        <label>
-          或选择新版 PDF
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-          />
-        </label>
-        <div className="button-row">
-          <button
-            disabled={busy || (!path && !file)}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                if (file) {
-                  const r = await fetch("/api/upload?replace=" + paper.id, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/pdf" },
-                    body: file,
-                  });
-                  if (!r.ok) throw new Error((await r.json()).error);
-                } else await api("source/" + paper.id, { path });
-                onDone();
-                report("已确认来源版本；旧位置需要重新核实");
-              } catch (e) {
-                report(String(e));
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            确认此 PDF 版本
-          </button>
-          <button onClick={onClose}>关闭</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-function ImportModal({
-  onClose,
-  onDone,
-  report,
-}: {
-  onClose: () => void;
-  onDone: (p: Row) => void;
-  report: (s: string) => void;
-}) {
-  const [title, setTitle] = useState(""),
-    [path, setPath] = useState(""),
-    [goal, setGoal] = useState(""),
-    [file, setFile] = useState<File | null>(null),
-    [busy, setBusy] = useState(false);
-  async function submit() {
-    setBusy(true);
-    try {
-      let p;
-      if (file) {
-        const r = await fetch(
-          "/api/upload?title=" +
-            encodeURIComponent(title || file.name.replace(/\.pdf$/i, "")),
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/pdf" },
-            body: file,
-          },
-        );
-        p = await r.json();
-        if (!r.ok) throw new Error(p.error || "无法读取 PDF");
-        if (goal) p = await put("paper", { ...p, goal });
-      } else p = await api("import", { title, path, goal });
-      onDone(p);
-    } catch (e) {
-      report(String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <div className="panel-title">
-          <h2>打开一篇论文</h2>
-          <button aria-label="关闭导入" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        <label className="file-drop">
-          <BookOpen size={26} />
-          <span>{file ? file.name : "选择 PDF 文件"}</span>
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            onChange={(e) => {
-              const f = e.target.files?.[0] || null;
-              setFile(f);
-              if (f && !title) setTitle(f.name.replace(/\.pdf$/i, ""));
-            }}
-          />
-        </label>
-        <label>
-          论文名称
-          <input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </label>
-        <label>
-          这次阅读为了什么？
-          <textarea
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            placeholder="例如：判断这个方法是否适合我的问题"
-          />
-        </label>
-        <details>
-          <summary>或使用已有本地路径</summary>
-          <input
-            placeholder="/path/to/paper.pdf"
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
-          />
-          <p className="small muted">
-            只建立只读连接。也可以不填路径，先保存论文书目。
-          </p>
-        </details>
-        <button
-          className="primary"
-          disabled={busy || !title.trim()}
-          onClick={submit}
-        >
-          {busy ? "正在导入…" : "开始阅读"}
-          <ArrowRight size={16} />
-        </button>
-      </div>
     </div>
   );
 }

@@ -55,7 +55,7 @@ it("looks up saved translation and discusses the original anchor", async () => {
     "translation/jobs/translated/selection",
   ]);
 });
-it("explains missing translation and closes the topmost layer with Escape", () => {
+it("previews source without requiring translation and closes the topmost layer with Escape", () => {
   const close = vi.fn();
   const underlying = vi.fn();
   document.addEventListener("keydown", underlying);
@@ -74,7 +74,7 @@ it("explains missing translation and closes the topmost layer with Escape", () =
     />,
   );
   expect(
-    screen.getByText("生成整篇双语 PDF 后，这里会显示对应中文。"),
+    screen.getByText("可以直接讨论这句话，不需要先翻译整篇论文。"),
   ).toBeTruthy();
   fireEvent.keyDown(document, { key: "Escape" });
   expect(close).toHaveBeenCalledOnce();

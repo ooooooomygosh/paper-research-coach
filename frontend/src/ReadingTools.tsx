@@ -276,7 +276,7 @@ export function TranslationPopover({
   }, [job?.id, job?.state, job?.pdf_ready, selection]);
   useEffect(() => {
     function escape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !document.querySelector("dialog[open]")) {
         e.preventDefault();
         e.stopImmediatePropagation();
         onClose();
@@ -292,14 +292,14 @@ export function TranslationPopover({
     <div
       className="translation-popover"
       role="dialog"
-      aria-label="对应中文"
+      aria-label={hasTranslation(job) ? "对应中文" : "原文选区"}
       style={{
         left: Math.max(12, Math.min(selection.x, window.innerWidth - 360)),
         top: Math.max(12, Math.min(selection.y, window.innerHeight - 300)),
       }}
     >
       <div className="translation-popover-heading">
-        <span>{result?.level === "paragraph" ? "对应段落" : "对应中文"}</span>
+        <span>{!hasTranslation(job) ? "原文选区" : result?.level === "paragraph" ? "对应段落" : "对应中文"}</span>
         <button aria-label="关闭译文" onClick={onClose}>
           <X size={15} />
         </button>
@@ -310,8 +310,9 @@ export function TranslationPopover({
           result?.message ||
           (hasTranslation(job)
             ? "正在查找对应译文…"
-            : "生成整篇双语 PDF 后，这里会显示对应中文。")}
+            : selection.anchor?.quote || "已选择原文位置。")}
       </p>
+      {!hasTranslation(job) && <p className="selection-help">可以直接讨论这句话，不需要先翻译整篇论文。</p>}
       <button
         disabled={!source}
         onClick={() => {

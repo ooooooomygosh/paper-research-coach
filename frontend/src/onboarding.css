@@ -1,0 +1,58 @@
+/* Small, task-specific surfaces. The reading canvas keeps its existing layout. */
+.prc-dialog {
+  color: #27352e;
+  background: #fffefa;
+  width: min(580px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 80px #162c2330;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.prc-dialog::backdrop { background: #162c235c; }
+.prc-dialog .panel-title { margin-bottom: 4px; }
+.prc-dialog .file-drop { margin: 22px 0; transition: background .15s, border-color .15s; }
+.prc-dialog .file-drop.dragging,
+.prc-dialog .file-drop:focus-within { background: var(--tint); border-color: var(--green); }
+.prc-dialog .form-error { color: #943b31; font-size: 13px; }
+.prc-dialog code, .welcome-demo code, .login code {
+  background: var(--tint); padding: 3px 7px; border-radius: 4px;
+}
+.welcome.welcome-reading { max-width: 820px; margin: clamp(32px, 7vh, 88px) auto; padding: 0 24px; }
+.welcome-reading h1 { font-size: clamp(32px, 4.6vw, 52px); line-height: 1.23; letter-spacing: -.035em; margin: 20px 0; }
+.welcome-reading .eyebrow { color: #536b58; font-size: 12px; letter-spacing: .12em; }
+.welcome-reading .welcome-lead { color: #556459; font-size: 16px; line-height: 1.9; }
+.welcome-actions { display: flex; align-items: center; gap: 24px; margin: 26px 0 42px; }
+.welcome-actions > .primary { padding: 12px 22px; }
+.welcome-actions > .text-button { font-size: 14px; }
+.first-reading { list-style: none; padding: 26px 0 0; margin: 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
+.first-reading li { display: flex; gap: 10px; }
+.first-reading li > span { color: #687663; font-size: 12px; padding-top: 3px; font-variant-numeric: tabular-nums; }
+.first-reading strong { font-size: 14px; font-weight: 600; }
+.first-reading p { font-size: 13px; line-height: 1.85; color: #5c6b60; margin: 8px 0 0; }
+.welcome-reading .welcome-footnote { font-size: 12px; color: #657367; line-height: 1.8; margin: 28px 0 14px; }
+.welcome-demo { font-size: 12px; color: #546959; }
+.welcome-demo summary { cursor: pointer; padding: 8px 0; }
+.welcome-demo p { font-size: 12px; line-height: 1.9; max-width: 620px; margin: 8px 0; }
+.library-empty { padding: 20px 2px; color: var(--muted); overflow-wrap: anywhere; }
+.library-empty p { margin-bottom: 6px; font-size: 13px; }
+.library-empty small { display: block; line-height: 1.8; }
+.library-empty button { margin-top: 12px; }
+@media (max-width: 600px) {
+  .welcome.welcome-reading { margin-top: 24px; padding: 0 8px; }
+  .first-reading { grid-template-columns: 1fr; gap: 18px; }
+  .welcome-actions { margin-bottom: 28px; }
+  .prc-dialog .form-grid { grid-template-columns: 1fr; }
+}
+@media (pointer: coarse) {
+  .compact-pages button, .reading-toolbar button, .prc-dialog button { min-width: 44px; min-height: 44px; }
+  .compact-pages input { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prc-dialog .file-drop { transition: none; }
+}
+
+.translation-popover .selection-help { color: var(--muted); font-size: 12px; line-height: 1.7; }
