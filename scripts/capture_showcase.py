@@ -159,10 +159,12 @@ def capture(output: Path, executable: str | None = None) -> None:
                 exit_button.tap()
                 assert tablet.get_by_label("进入沉浸模式", exact=True).is_visible()
                 touch.close()
+                from check_pdf_controls import check_pdf_controls
+                controls = check_pdf_controls(browser, store, paper, port, token, output)
                 browser.close()
                 if errors:
                     raise RuntimeError("Browser errors: " + "; ".join(errors))
-                print(json.dumps({"browser_errors": errors, "viewport": [1440, 1000],
+                print(json.dumps({**controls, "browser_errors": errors, "viewport": [1440, 1000],
                                   "narrow_viewport": [390, 844], "dialog_focus": "passed",
                                   "reduced_motion": "passed", "touch_immersion_exit": "passed",
                                   "keyboard_divider": "passed", "source": "synthetic", "dialogue": "scripted, not live AI"}, ensure_ascii=False))

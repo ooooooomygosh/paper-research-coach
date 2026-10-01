@@ -174,6 +174,12 @@ class Store:
                     if anchor:
                         if anchor.paper_id != paper_id:
                             raise ValueError("Anchor belongs to another paper")
+                        if anchor.rendition and anchor.status != "stale":
+                            from .renditions import resolve_rendition
+
+                            if anchor.source_version != paper["source_version"]:
+                                raise ValueError("译文批注需要当前原文版本。")
+                            resolve_rendition(self.root, db, paper, anchor.source_version, anchor.rendition)
                         if (
                             anchor.status != "stale"
                             and anchor.page_index is not None

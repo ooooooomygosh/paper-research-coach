@@ -136,3 +136,29 @@ it("retains the request identifier when translation start loses its response", a
     vi.mocked(api).mock.calls.some(([path]) => path === "coach/send/p"),
   ).toBe(false);
 });
+
+it("keeps translated geometry when a source match arrives and saves an unmapped region", async () => {
+  const rendition = { job_id: "translated", view: "dual", document_version: "a".repeat(64), page_index: 0, quote: "", rects: [[650, 100, 800, 200]] };
+  const anchor = { paper_id: "p", source_version: "v", page_index: null, rects: [], status: "unresolved", rendition };
+  const mark = vi.fn().mockResolvedValue(undefined);
+  render(<TranslationPopover selection={{ anchor, view: "dual", x: 10, y: 10 }} job={{ id: "translated", state: "completed" }} onClose={vi.fn()} onSource={vi.fn()} onDiscuss={vi.fn()} onMark={mark} />);
+  expect(screen.getByRole("dialog", { name: "区域批注" })).toBeTruthy();
+  fireEvent.click(screen.getByText("保留标记"));
+  await screen.findByText("已保留在 PDF");
+  expect(mark).toHaveBeenCalledWith(anchor);
+  expect(vi.mocked(api)).not.toHaveBeenCalled();
+  expect((screen.getByText("讨论这处") as HTMLButtonElement).disabled).toBe(true);
+});
+
+it("preserves both source evidence and the exact translated selection for marking", async () => {
+  const rendition = { job_id: "translated", view: "mono", document_version: "a".repeat(64), page_index: 0, quote: "中文原话", rects: [[50, 100, 200, 130]] };
+  const anchor = { paper_id: "p", source_version: "v", page_index: null, rects: [], status: "unresolved", rendition };
+  const original = { paper_id: "p", source_version: "v", page_index: 0, quote: "Source evidence", rects: [[40, 80, 160, 90]], status: "verified" };
+  vi.mocked(api).mockResolvedValue({ status: "ready", text: "中文对应句", source_anchor: original });
+  const mark = vi.fn().mockResolvedValue(undefined);
+  render(<TranslationPopover selection={{ anchor, view: "mono", x: 10, y: 10 }} job={{ id: "translated", state: "completed" }} onClose={vi.fn()} onSource={vi.fn()} onDiscuss={vi.fn()} onMark={mark} />);
+  await screen.findByText("中文对应句");
+  fireEvent.click(screen.getByText("保留标记"));
+  await screen.findByText("已保留在 PDF");
+  expect(mark).toHaveBeenCalledWith({ ...original, rendition });
+});

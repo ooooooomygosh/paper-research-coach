@@ -7,7 +7,7 @@ import {
   History,
   Link2,
 } from "lucide-react";
-import { api, put, id, location, sameAnchor, ApiError, type Row } from "./api";
+import { api, put, id, anchorQuote, location, sameAnchor, ApiError, type Row } from "./api";
 export default function Notes({
   paper,
   notes,
@@ -15,6 +15,7 @@ export default function Notes({
   onLocate,
   refresh,
   report,
+  newNoteRequest,
 }: {
   paper: Row;
   notes: Row[];
@@ -22,6 +23,7 @@ export default function Notes({
   onLocate: (a: any) => void;
   refresh: () => void;
   report: (s: string) => void;
+  newNoteRequest?: { id: string; anchor: any } | null;
 }) {
   const key = "prc-draft-" + paper.id;
   const jobKey = key + "-operation";
@@ -106,6 +108,9 @@ export default function Notes({
       update({ ...current.current, anchor });
     }
   }, [anchor]);
+  useEffect(() => {
+    if (newNoteRequest?.anchor?.paper_id === paper.id) void fresh(newNoteRequest.anchor);
+  }, [newNoteRequest?.id]);
   function emptyStatus(value: any) {
     return value.revision > 0
       ? "内容为空，原笔记保持不变"
@@ -216,8 +221,11 @@ export default function Notes({
       busy.current = false;
     }
   }
-  async function fresh() {
-    if (busy.current) return;
+  async function fresh(nextAnchor: any = null) {
+    if (busy.current) {
+      setStatus("当前想法正在保存，完成后可点“新想法”在选区记笔记");
+      return;
+    }
     const snapshot = current.current;
     await save();
     if (retry.current || busy.current) return;
@@ -235,7 +243,7 @@ export default function Notes({
       author: "user",
       provenance: "USER",
       revision: 0,
-      anchor: null,
+      anchor: nextAnchor,
     };
     current.current = next;
     setDraft(next);
@@ -309,7 +317,7 @@ export default function Notes({
             </button>
           )}
         </div>
-        {draft.anchor?.quote && <blockquote>{draft.anchor.quote}</blockquote>}
+        {anchorQuote(draft.anchor) && <blockquote>{anchorQuote(draft.anchor)}</blockquote>}
         {anchor && !sameAnchor(anchor, draft.anchor) && <button className="text-button" onClick={() => update({ ...current.current, anchor })}>
           将此笔记的出处改为当前选区
         </button>}
@@ -318,7 +326,7 @@ export default function Notes({
             <Check size={12} />
             {status || "输入后自动保存原话"}
           </span>
-          <button title="开始新的想法" onClick={fresh}>
+          <button title="开始新的想法" onClick={() => void fresh(anchor)}>
             <Plus size={15} />
             新想法
           </button>

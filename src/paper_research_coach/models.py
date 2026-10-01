@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, model_serializer
 
 
 def now() -> str:
@@ -45,6 +45,32 @@ class Paper(Record):
     zotero_collection: str = ""
 
 
+class RenditionAnchor(BaseModel):
+    """Geometry on one immutable translated PDF, separate from source evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+    job_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,80}$")
+    view: Literal["mono", "dual"]
+    document_version: str = Field(pattern=r"^[a-f0-9]{64}$")
+    page_index: int = Field(ge=0)
+    page_label: str = ""
+    quote: str = ""
+    rects: list[tuple[float, float, float, float]] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def check_geometry(self):
+        check_rectangles(self.rects)
+        return self
+
+
+def check_rectangles(rects):
+    import math
+
+    for x0, y0, x1, y1 in rects:
+        if not all(math.isfinite(x) for x in (x0, y0, x1, y1)) or x1 <= x0 or y1 <= y0:
+            raise ValueError("Invalid PDF rectangle")
+
+
 class Anchor(BaseModel):
     model_config = ConfigDict(extra="forbid")
     paper_id: str
@@ -57,20 +83,20 @@ class Anchor(BaseModel):
     # Unrotated PDF user-space points: x0, y0, x1, y1. Origin bottom-left.
     rects: list[tuple[float, float, float, float]] = Field(default_factory=list)
     status: Literal["verified", "inferred", "unresolved", "stale"] = "unresolved"
+    rendition: RenditionAnchor | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler):
+        data = handler(self)
+        if self.rendition is None:
+            data.pop("rendition", None)  # Keep durable pre-rendition request fingerprints.
+        return data
 
     @model_validator(mode="after")
     def check_geometry(self):
         if self.rects and self.page_index is None:
             raise ValueError("Region anchors require a page index")
-        for x0, y0, x1, y1 in self.rects:
-            import math
-
-            if (
-                not all(math.isfinite(x) for x in (x0, y0, x1, y1))
-                or x1 <= x0
-                or y1 <= y0
-            ):
-                raise ValueError("Invalid PDF rectangle")
+        check_rectangles(self.rects)
         return self
 
 

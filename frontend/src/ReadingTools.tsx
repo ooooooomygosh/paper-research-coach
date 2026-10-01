@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { X } from "lucide-react";
-import { api, id, type Row } from "./api";
+import { api, id, anchorQuote, type Row } from "./api";
 import { hasTranslation } from "./TranslationLibrary";
 
 export type PdfView = "original" | "mono" | "dual";
@@ -243,28 +243,37 @@ export function TranslationPopover({
   onClose,
   onDiscuss,
   onSource,
+  onMark,
+  onNote,
 }: {
   selection: { anchor: any; view: PdfView; x: number; y: number };
   job: any;
   onClose: () => void;
   onDiscuss: (a: any) => void;
   onSource: (a: any) => void;
+  onMark?: (a: any) => Promise<void>;
+  onNote?: (a: any) => void;
 }) {
   const [result, setResult] = useState<any>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [saving, setSaving] = useState(false),
+    [saved, setSaved] = useState(false);
   useEffect(() => {
     let disposed = false;
     setResult(null);
     setError("");
-    if (!hasTranslation(job)) return;
+    setSaved(false);
+    if (!hasTranslation(job) || !anchorQuote(selection.anchor)) return;
+    const rendition = selection.anchor.rendition;
     api(`translation/jobs/${job.id}/selection`, {
-      anchor: selection.anchor,
+      anchor: rendition ? { ...selection.anchor, page_index: rendition.page_index, page_label: rendition.page_label, quote: rendition.quote, rects: rendition.rects, rendition: null } : selection.anchor,
       view: selection.view,
     })
       .then((r) => {
         if (!disposed) {
-          setResult(r);
-          if (r.source_anchor) onSource(r.source_anchor);
+          const source = r.source_anchor && (rendition ? { ...r.source_anchor, rendition } : r.source_anchor);
+          setResult({ ...r, source_anchor: source });
+          if (source) onSource(source);
         }
       })
       .catch(() => {
@@ -285,21 +294,21 @@ export function TranslationPopover({
     document.addEventListener("keydown", escape, true);
     return () => document.removeEventListener("keydown", escape, true);
   }, [onClose]);
-  const source =
-    result?.source_anchor ||
-    (selection.view === "original" ? selection.anchor : null);
+  const source = result?.source_anchor || selection.anchor;
+  const discussionSource = result?.source_anchor || (selection.view === "original" ? selection.anchor : null);
+  const markAnchor = useRef<any>(null);
   return (
     <div
       className="translation-popover"
       role="dialog"
-      aria-label={hasTranslation(job) ? "对应中文" : "原文选区"}
+      aria-label={!anchorQuote(selection.anchor) ? "区域批注" : hasTranslation(job) ? "对应中文" : "原文选区"}
       style={{
         left: Math.max(12, Math.min(selection.x, window.innerWidth - 360)),
         top: Math.max(12, Math.min(selection.y, window.innerHeight - 300)),
       }}
     >
       <div className="translation-popover-heading">
-        <span>{!hasTranslation(job) ? "原文选区" : result?.level === "paragraph" ? "对应段落" : "对应中文"}</span>
+        <span>{!anchorQuote(selection.anchor) ? "区域批注" : !hasTranslation(job) ? "原文选区" : result?.level === "paragraph" ? "对应段落" : "对应中文"}</span>
         <button aria-label="关闭译文" onClick={onClose}>
           <X size={15} />
         </button>
@@ -308,20 +317,28 @@ export function TranslationPopover({
         {error ||
           result?.text ||
           result?.message ||
-          (hasTranslation(job)
+          (!anchorQuote(selection.anchor) ? "已框选这处区域，可保存标记或记下你的想法。" : hasTranslation(job)
             ? "正在查找对应译文…"
-            : selection.anchor?.quote || "已选择原文位置。")}
+            : anchorQuote(selection.anchor) || "已选择原文位置。")}
       </p>
-      {!hasTranslation(job) && <p className="selection-help">可以直接讨论这句话，不需要先翻译整篇论文。</p>}
+      {!hasTranslation(job) && !!anchorQuote(selection.anchor) && <p className="selection-help">可以直接讨论这句话，不需要先翻译整篇论文。</p>}
+      <div className="selection-actions">
+      {onMark && <button disabled={saving || saved} onClick={async () => {
+        setSaving(true);
+        try { markAnchor.current ||= source; await onMark(markAnchor.current); setSaved(true); } catch { setError("标记未保存，请重试。"); } finally { setSaving(false); }
+      }}>{saved ? "已保留在 PDF" : saving ? "正在保存…" : "保留标记"}</button>}
+      {onNote && <button onClick={() => { onNote(source); onClose(); }}>记笔记</button>}
       <button
-        disabled={!source}
+        disabled={!discussionSource}
+        title={!discussionSource ? "这处译文尚未对应原文，可先保存批注" : undefined}
         onClick={() => {
-          onDiscuss(source);
+          onDiscuss(discussionSource);
           onClose();
         }}
       >
         讨论这处
       </button>
+      </div>
     </div>
   );
 }

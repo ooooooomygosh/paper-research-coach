@@ -1,0 +1,37 @@
+.pdf-stage { position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.pdf-stage > .pdf-scroll { flex: 1; min-width: 0; min-height: 0; height: auto; touch-action: pan-x pan-y; }
+.pdf-gesturing .pdf-page { will-change: transform; pointer-events: none; }
+.pdf-gesturing, .pdf-gesturing * { user-select: none !important; }
+.pdf-floating-tools {
+  position: absolute; z-index: 8; right: 12px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px;
+  border: 1px solid #ffffffbc; border-radius: 14px;
+  background: #fafbf5db; color: #365744;
+  box-shadow: 0 3px 18px #263d2520, 0 1px 3px #263d2510;
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+}
+.pdf-floating-tools button {
+  width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent;
+}
+.pdf-floating-tools button:hover:not(:disabled), .pdf-floating-tools button[aria-pressed="true"] { background: #dfe8daca; }
+.pdf-floating-tools output { font-size: 10px; font-variant-numeric: tabular-nums; padding: 1px 0; color: #52664f; }
+.pdf-tool-divider { height: 1px; width: 22px; margin: 3px 0; background: #b9c7b16b; }
+.saved-annotation.rectangle { background: #d8e3cc20; border: 1.5px solid #62804e; border-radius: 2px; }
+.pdf-page .draft-annotation { position: absolute; border: 1.5px dashed #62804e; background: #d8e3cc20; pointer-events: none; z-index: 3; }
+.selection-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.selection-actions button { padding: 6px 9px; font-size: 12px; }
+.selection-actions .selection-saved { font-size: 12px; color: var(--green); padding: 6px 0; }
+@media (max-width: 600px), (max-height: 650px) {
+  .pdf-floating-tools { top: auto; bottom: 10px; right: 50%; transform: translateX(50%); flex-direction: row; gap: 2px; padding: 4px; border-radius: 12px; }
+  .pdf-floating-tools output { min-width: 33px; text-align: center; }
+  .pdf-tool-divider { width: 1px; height: 20px; margin: 0 2px; }
+  .pdf-stage > .pdf-scroll { padding-bottom: 62px; }
+}
+@media (pointer: coarse) {
+  .pdf-floating-tools button { width: 40px; height: 44px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .pdf-floating-tools { background: #fafbf5; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+/* Export feedback must leave the reading toolbar reachable. */
+.reading-open > .toast { top: 64px; right: 18px; max-width: min(420px, calc(100vw - 36px)); }

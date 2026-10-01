@@ -419,7 +419,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def export_file(request: Request):
         data = await request.json()
         result = await asyncio.to_thread(
-            export, store, data["kind"], data.get("paper_id")
+            export, store, data["kind"], data.get("paper_id"), rendition=data.get("rendition")
         )
         return {
             "download": "/api/download/" + Path(result["path"]).name,
