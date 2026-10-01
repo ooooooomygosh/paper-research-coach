@@ -107,8 +107,6 @@ it("retains the request identifier when translation start loses its response", a
       paper={{ id: "p", source_version: "v" }}
       job={null}
       reload={vi.fn()}
-      view="original"
-      setView={vi.fn()}
       open
     />,
   );

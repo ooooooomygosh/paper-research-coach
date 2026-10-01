@@ -168,12 +168,10 @@ it("offers bilingual reading while sentence alignment is still running and ignor
         model: "gpt-6-luna",
       }}
       reload={vi.fn()}
-      view="original"
-      setView={vi.fn()}
       open
     />,
   );
-  await screen.findByLabelText("PDF 阅读视图");
+  await screen.findByText("下载双语 PDF");
   expect(screen.getByText("下载双语 PDF")).toBeTruthy();
   expect(screen.getByText("停止翻译")).toBeTruthy();
   cleanup();

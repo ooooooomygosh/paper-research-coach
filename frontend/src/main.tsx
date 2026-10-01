@@ -833,6 +833,9 @@ export function App() {
                             y: placement?.y || 100,
                           });
                       }}
+                      view={pdfView}
+                      availableViews={{ mono: !!translationPdfJob?.documents?.mono, dual: !!translationPdfJob?.documents?.dual }}
+                      onViewChange={(v) => { setPdfView(v); setSelection(null); setAnchor(null); setFocusAnchor(null); }}
                       toolsContainer={pdfTools}
                       fileUrl={
                         pdfView !== "original" &&
@@ -998,12 +1001,6 @@ export function App() {
                         job={translationJob}
                         readableJob={translationPdfJob}
                         reload={() => void reloadTranslation()}
-                        view={pdfView}
-                        setView={(v) => {
-                          setPdfView(v);
-                          setSelection(null);
-                          setAnchor(null);
-                        }}
                         open={toolsOpen && toolsTab === "translate"}
                       />
                       <button

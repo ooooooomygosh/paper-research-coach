@@ -103,3 +103,5 @@ prc export pdf --paper PAPER_ID
 See [Quick start](QUICKSTART.md), [Contributing](../CONTRIBUTING.md) and [Showcase](SHOWCASE.md). `prc-demo` is temporary: export anything you need to keep before exiting. `python scripts/package_release.py` builds the Skill ZIP, wheel and source sdist in `dist/`. Successful main verification creates a prerelease for a new package version; existing artifacts are kept immutable.
 
 SQLite is authoritative; Markdown/CSV are exports. Local storage does not mean offline AI. Consult [Security](SECURITY.md) for backups and access boundaries. Passing software tests is not a learning-effect result: see the [Human trial protocol](HUMAN-TRIAL.md) and [Review](FINAL-REVIEW.md). Original code and documentation use [MIT](../LICENSE); third-party resources retain their licenses and [attribution](SOURCES.md).
+
+Switch between original, Chinese and bilingual PDFs directly in the frosted toolbar. Unavailable translations stay disabled; manage generation under More reading tools → Translation.

@@ -63,10 +63,7 @@ def check_pdf_controls(browser, store, paper, port, token, output):
     ready()
 
     def change_view(view):
-        page.get_by_label('更多阅读工具', exact=True).click()
-        page.get_by_role('button', name='翻译', exact=True).click()
         page.get_by_label('PDF 阅读视图', exact=True).select_option(view)
-        page.get_by_label('关闭阅读工具', exact=True).click()
         ready(view)
 
     def region():
