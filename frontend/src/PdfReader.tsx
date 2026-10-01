@@ -10,6 +10,8 @@ import {
 import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "./pdf-text-layer.css";
 import "./reading-experience.css";
+import "./pdf-controls.css";
+import { boundZoom, MIN_ZOOM, MAX_ZOOM, usePdfZoom, type ZoomFocus } from "./usePdfZoom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,8 +19,10 @@ import {
   Scan,
   ZoomIn,
   ZoomOut,
+  Download,
+  Maximize,
 } from "lucide-react";
-import { anchorFor, type Row } from "./api";
+import { anchorFor, visibleAnchor, type Row } from "./api";
 import PdfNavigation from "./PdfNavigation";
 GlobalWorkerOptions.workerSrc = worker;
 export default function PdfReader({
@@ -34,6 +38,10 @@ export default function PdfReader({
   fileUrl,
   documentKey = "original",
   derived = false,
+  rendition,
+  draftAnchor,
+  onExport,
+  exporting = false,
 }: {
   paper: Row;
   page: number;
@@ -47,6 +55,10 @@ export default function PdfReader({
   fileUrl?: string;
   documentKey?: string;
   derived?: boolean;
+  rendition?: { job_id: string; view: "mono" | "dual"; document_version: string } | null;
+  draftAnchor?: any;
+  onExport?: () => void;
+  exporting?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     layer = useRef<HTMLDivElement>(null),
@@ -63,18 +75,35 @@ export default function PdfReader({
   const labels = useRef<string[] | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const [fitWidth, setFitWidth] = useState(true);
-  const positionKey = "prc-viewport-" + paper.id + ":" + paper.source_version;
+  const positionKey = "prc-viewport-" + paper.id + ":" + paper.source_version + (documentKey === "original" ? "" : ":" + documentKey);
   const savedScroll = useRef({ top: 0, left: 0 });
   const restoredPage = useRef<number | null>(null);
   const restoring = useRef(true);
   const renderKey =
-    paper.id + ":" + paper.source_version + ":" + documentKey + ":" + page;
+    paper.id + ":" + paper.source_version + ":" + documentKey + ":" + page + ":" + zoom;
+  const zoomFocus = useRef<ZoomFocus | null>(null);
+  function changeZoom(next: number, focus?: ZoomFocus) {
+    const box = scroller.current, sheet = frame.current;
+    if (!focus && box && sheet) {
+      const b = box.getBoundingClientRect(), f = sheet.getBoundingClientRect();
+      const clientX = b.left + b.width / 2, clientY = b.top + b.height / 2;
+      focus = { x: (clientX - f.left) / zoom, y: (clientY - f.top) / zoom, clientX, clientY };
+    }
+    zoomFocus.current = focus || null;
+    setFitWidth(false);
+    setZoom(boundZoom(next));
+  }
+  const { displayZoom, suppressSelectionUntil } = usePdfZoom({
+    scroller, frame, zoom, ready: !!doc && rendered === renderKey,
+    documentKey: paper.id + ":" + paper.source_version + ":" + documentKey,
+    onCommit: changeZoom,
+  });
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(positionKey) || "{}");
       setFitWidth(saved.fit !== false);
       if (Number.isFinite(saved.zoom))
-        setZoom(Math.max(0.25, Math.min(2.5, saved.zoom)));
+        setZoom(boundZoom(saved.zoom));
       savedScroll.current = {
         top: Number(saved.top) || 0,
         left: Number(saved.left) || 0,
@@ -122,6 +151,16 @@ export default function PdfReader({
   }
   useEffect(() => {
     if (rendered !== renderKey || !scroller.current) return;
+    if (zoomFocus.current && frame.current) {
+      const focus = zoomFocus.current, b = frame.current.getBoundingClientRect();
+      const box = scroller.current;
+      box.scrollLeft += b.left + focus.x * zoom - focus.clientX;
+      box.scrollTop += b.top + focus.y * zoom - focus.clientY;
+      zoomFocus.current = null;
+      restoring.current = false;
+      rememberScroll();
+      return;
+    }
     if (fitWidth) fit();
     if (restoring.current) {
       const box = scroller.current;
@@ -148,7 +187,7 @@ export default function PdfReader({
       parseFloat(style.paddingLeft || "0") -
       parseFloat(style.paddingRight || "0");
     if (width > 0) {
-      const next = Math.max(0.25, Math.min(2.5, (width * v.scale) / v.width));
+      const next = boundZoom((width * v.scale) / v.width);
       if (Math.abs(next - zoom) > 0.005) {
         restoring.current = true;
         setZoom(next);
@@ -162,13 +201,11 @@ export default function PdfReader({
     observer.observe(scroller.current);
     return () => observer.disconnect();
   }, [fitWidth, zoom, rendered]);
-  const pageNotes = (derived ? [] : notes).filter(
+  const pageNotes = notes.filter(
     (n) =>
       n.paper_id === paper.id &&
-      n.anchor?.paper_id === paper.id &&
-      n.anchor?.source_version === paper.source_version &&
-      n.anchor?.status === "verified" &&
-      n.anchor?.page_index === page,
+      (!derived || !!rendition) &&
+      visibleAnchor(n.anchor, paper, rendition)?.page_index === page,
   );
   function highlightStyle(r: number[]) {
     const v = viewport.current;
@@ -238,14 +275,16 @@ export default function PdfReader({
         viewport.current = null;
         setSize({ width: v.width, height: v.height });
         const c = canvas.current!;
-        c.width = v.width * devicePixelRatio;
-        c.height = v.height * devicePixelRatio;
+        // Bound raster memory for wide bilingual pages at high zoom.
+        const pixelRatio = Math.min(devicePixelRatio, Math.sqrt(16_000_000 / (v.width * v.height)));
+        c.width = v.width * pixelRatio;
+        c.height = v.height * pixelRatio;
         c.style.width = v.width + "px";
         c.style.height = v.height + "px";
         render = p.render({
           canvas: c,
           viewport: v,
-          transform: [devicePixelRatio, 0, 0, devicePixelRatio, 0, 0],
+          transform: [pixelRatio, 0, 0, pixelRatio, 0, 0],
         });
         // Cancellation may happen while text content is still loading.
         void render.promise.catch(() => {});
@@ -290,8 +329,14 @@ export default function PdfReader({
       Math.max(p1[1], p2[1]),
     ];
   }
+  function selectionAnchor(extra: any) {
+    const local = { page_index: page, page_label: labels.current?.[page] || "", quote: "", rects: [], ...extra };
+    return derived && rendition
+      ? anchorFor(paper, page, { page_index: null, status: "unresolved", rendition: { ...rendition, ...local } })
+      : anchorFor(paper, page, local);
+  }
   function selected() {
-    if (region || !viewport.current || rendered !== renderKey) return;
+    if (region || !viewport.current || rendered !== renderKey || Date.now() < suppressSelectionUntil.current || (derived && !rendition)) return;
     const s = window.getSelection();
     if (
       !s?.rangeCount ||
@@ -315,7 +360,7 @@ export default function PdfReader({
       .map(coords);
     if (rects.length)
       onAnchor(
-        anchorFor(paper, page, {
+        selectionAnchor({
           quote: s.toString(),
           rects,
           page_label: labels.current?.[page] || "",
@@ -327,13 +372,13 @@ export default function PdfReader({
       );
   }
   function regionEnd(e: React.PointerEvent) {
-    if (!drag || !viewport.current || rendered !== renderKey) return;
+    if (!drag || !viewport.current || rendered !== renderKey || Date.now() < suppressSelectionUntil.current) return;
     const b = frame.current!.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - b.left, b.width)),
       y = Math.max(0, Math.min(e.clientY - b.top, b.height));
     if (Math.abs(x - drag.x) > 3 && Math.abs(y - drag.y) > 3)
       onAnchor(
-        anchorFor(paper, page, {
+        selectionAnchor({
           rects: [
             coords({
               left: b.left + Math.min(x, drag.x),
@@ -344,33 +389,24 @@ export default function PdfReader({
           ],
           page_label: labels.current?.[page] || "",
         }),
+        { x: b.left + Math.min(x, drag.x), y: b.top + Math.max(y, drag.y) + 8 },
       );
     setDrag(null);
     setRegion(false);
   }
-  const focused =
-    !derived &&
-    rendered === renderKey &&
-    focusAnchor?.paper_id === paper.id &&
-    focusAnchor?.status === "verified" &&
-    focusAnchor.source_version === paper.source_version &&
-    focusAnchor.page_index === page
-      ? focusAnchor.rects || []
-      : [];
+  const visibleFocus = (!derived || rendition) && visibleAnchor(focusAnchor, paper, rendition);
+  const focused = rendered === renderKey && visibleFocus?.page_index === page ? visibleFocus.rects || [] : [];
+  const visibleDraft = (!derived || rendition) && visibleAnchor(draftAnchor, paper, rendition);
   useEffect(() => {
     if (
-      !derived &&
       rendered === renderKey &&
-      focusAnchor?.paper_id === paper.id &&
-      focusAnchor?.status === "verified" &&
-      focusAnchor.source_version === paper.source_version &&
-      focusAnchor.page_index === page
+      visibleFocus?.page_index === page
     ) {
       frame.current
         ?.querySelector(".anchor-highlight")
         ?.scrollIntoView({ block: "center", inline: "center" });
     }
-  }, [focusAnchor, rendered, page, paper.source_version]);
+  }, [focusAnchor, rendered, page, paper.source_version, documentKey]);
   return (
     <div
       className="reader"
@@ -447,8 +483,7 @@ export default function PdfReader({
               <button
                 aria-label="缩小"
                 onClick={() => {
-                  setFitWidth(false);
-                  setZoom(Math.max(0.25, zoom - 0.15));
+                  changeZoom(zoom - 0.15);
                 }}
               >
                 <ZoomOut size={16} />
@@ -457,8 +492,7 @@ export default function PdfReader({
               <button
                 aria-label="放大"
                 onClick={() => {
-                  setFitWidth(false);
-                  setZoom(Math.min(2.5, zoom + 0.15));
+                  changeZoom(zoom + 0.15);
                 }}
               >
                 <ZoomIn size={16} />
@@ -562,8 +596,7 @@ export default function PdfReader({
             <button
               aria-label="缩小"
               onClick={() => {
-                setFitWidth(false);
-                setZoom(Math.max(0.25, zoom - 0.15));
+                changeZoom(zoom - 0.15);
               }}
             >
               <ZoomOut size={16} />
@@ -572,8 +605,7 @@ export default function PdfReader({
             <button
               aria-label="放大"
               onClick={() => {
-                setFitWidth(false);
-                setZoom(Math.min(2.5, zoom + 0.15));
+                changeZoom(zoom + 0.15);
               }}
             >
               <ZoomIn size={16} />
@@ -632,6 +664,7 @@ export default function PdfReader({
           )}
         </>
       )}
+      <div className="pdf-stage">
       <div className="pdf-scroll" ref={scroller} onScroll={rememberScroll}>
         {error && (
           <div className="notice" role="alert">
@@ -657,12 +690,12 @@ export default function PdfReader({
             <div ref={layer} className="textLayer" />
             {rendered === renderKey &&
               pageNotes.flatMap((n) =>
-                (n.anchor.rects || []).map((r: number[], i: number) => {
+                (visibleAnchor(n.anchor, paper, rendition)?.rects || []).map((r: number[], i: number) => {
                   const style = highlightStyle(r);
                   return style ? (
                     <div
                       key={n.id + ":" + i}
-                      className="saved-annotation"
+                      className={"saved-annotation" + (n.annotation_type === "rectangle" || !((n.anchor.rendition || n.anchor).quote) ? " rectangle" : "")}
                       data-note-id={n.id}
                       aria-hidden="true"
                       style={style}
@@ -670,6 +703,9 @@ export default function PdfReader({
                   ) : null;
                 }),
               )}
+            {rendered === renderKey && visibleDraft?.page_index === page && (visibleDraft.rects || []).map((r: number[], i: number) => (
+              <div key={i} className="draft-annotation" aria-hidden="true" style={highlightStyle(r)} />
+            ))}
             {focused.map((r: number[], i: number) => {
               const v = viewport.current;
               if (!v) return null;
@@ -692,6 +728,7 @@ export default function PdfReader({
               <div
                 className="region-layer"
                 onPointerDown={(e) => {
+                  if (!e.isPrimary || Date.now() < suppressSelectionUntil.current) { setDrag(null); return; }
                   e.currentTarget.setPointerCapture(e.pointerId);
                   const b = frame.current!.getBoundingClientRect();
                   setDrag({
@@ -730,6 +767,19 @@ export default function PdfReader({
             )}
           </div>
         )}
+      </div>
+      <div className="pdf-floating-tools" role="toolbar" aria-label="PDF 快捷工具">
+        <button title="放大 · 支持双指缩放" aria-label="PDF 放大" disabled={!doc || displayZoom >= MAX_ZOOM} onClick={() => changeZoom(zoom + .15)}><ZoomIn size={17} /></button>
+        <output aria-label="PDF 缩放比例">{Math.round(displayZoom * 100)}%</output>
+        <button title="缩小" aria-label="PDF 缩小" disabled={!doc || displayZoom <= MIN_ZOOM} onClick={() => changeZoom(zoom - .15)}><ZoomOut size={17} /></button>
+        <button title="适应宽度" aria-label="PDF 适应宽度" aria-pressed={fitWidth} disabled={!doc} onClick={() => { zoomFocus.current = null; setFitWidth(true); fit(); }}><Maximize size={16} /></button>
+        <span className="pdf-tool-divider" />
+        <button title="上一页" aria-label="PDF 上一页" disabled={!doc || page <= 0} onClick={() => setPage(page - 1)}><ChevronLeft size={17} /></button>
+        <button title="下一页" aria-label="PDF 下一页" disabled={!doc || page >= doc.numPages - 1} onClick={() => setPage(page + 1)}><ChevronRight size={17} /></button>
+        <span className="pdf-tool-divider" />
+        <button title="框选区域" aria-label="PDF 框选区域" aria-pressed={region} disabled={!doc || (derived && !rendition)} onClick={() => setRegion(!region)}><Scan size={17} /></button>
+        {onExport && <button title="下载当前 PDF（含批注）" aria-label="下载当前 PDF（含批注）" disabled={!doc || exporting || (derived && !rendition)} onClick={onExport}><Download size={17} /></button>}
+      </div>
       </div>
       {!toolsContainer && (
         <div className="reader-footer">

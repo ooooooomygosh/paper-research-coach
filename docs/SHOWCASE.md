@@ -31,3 +31,7 @@ The separate `Reading browser checks` workflow performs these checks on Ubuntu a
 Checks cover actual PDF text selection and its original-text popover, CSP violations, black PDF capture detection, keyboard split adjustment, reduced motion, direct touch immersion exit, page-number draft cancellation, native modal keyboard containment, Escape order and invoking-focus restoration, desktop layout and narrow-viewport horizontal overflow. Browser JavaScript errors cause failure. Viewport sizes are 1440 × 1000 and 390 × 844; a narrow Chromium viewport is not a tested iPad or Pencil device.
 
 Use screenshots without browser chrome, URLs, launch tokens or private paths. Keep captions beside the images explaining synthetic source and scripted dialogue. Do not alter the UI to hide unavailable model connections or invent completed learning outcomes. The source fixture itself also labels invented values and missing experimental evidence.
+
+## PDF interaction regression checks
+
+The same browser workflow runs `check_pdf_controls.py`: trackpad pinch around a stable focal point, actual Chromium multi-touch input, independent notes in mono/dual layouts, refresh persistence, and native annotations in the downloaded PDF. Translation layout fixtures duplicate synthetic English content to test coordinate separation; they are not model-generated bilingual examples. Browser artifacts include the layout-test screenshots. Safari event handling is implemented; these checks do not certify physical Safari/iPad hardware.

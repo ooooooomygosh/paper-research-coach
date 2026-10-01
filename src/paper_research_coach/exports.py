@@ -24,6 +24,9 @@ COMPARISON_FIELDS = [
 def location(anchor):
     if not anchor:
         return "待定位"
+    if anchor.get("rendition"):
+        r = anchor["rendition"]
+        return f"{'双语' if r['view'] == 'dual' else '中文'} PDF {r['page_index'] + 1} · {anchor['status']}"
     return " · ".join(
         str(x)
         for x in [
@@ -143,35 +146,62 @@ def comparison_csv(store: Store):
     return out.getvalue()
 
 
-def annotated_pdf(store: Store, paper_id: str, destination: Path):
+def annotated_pdf(store: Store, paper_id: str, destination: Path, rendition=None):
     from pypdf import PdfReader, PdfWriter
-    from pypdf.annotations import Highlight, Text
-    from pypdf.generic import ArrayObject, FloatObject
+    from pypdf.annotations import Highlight, Text, Rectangle
+    from pypdf.generic import ArrayObject, FloatObject, NameObject, TextStringObject
 
     p = store.get("paper", paper_id)
     if store.check_source(paper_id)["status"] != "current":
         raise ValueError(
             "The PDF is unavailable or has changed; reconcile its version first"
         )
-    if destination.resolve() == Path(p["source_path"]).resolve():
+    source = Path(p["source_path"])
+    target = None
+    if rendition:
+        from .models import RenditionAnchor
+        from .renditions import resolve_rendition
+
+        target = RenditionAnchor.model_validate(rendition)
+        with store.connect() as db:
+            source = resolve_rendition(store.root, db, p, p["source_version"], target)
+    if destination.resolve() in (Path(p["source_path"]).resolve(), source.resolve()):
         raise ValueError("Export must be separate from the source PDF")
-    reader, writer = PdfReader(p["source_path"]), PdfWriter()
+    reader, writer = PdfReader(source), PdfWriter()
     writer.clone_document_from_reader(reader)
     skipped = []
     for n in store.list("note", paper_id):
         a = n.get("anchor")
         if (
             not a
-            or a["status"] != "verified"
+            or a["status"] == "stale"
             or a["source_version"] != p["source_version"]
-            or a["page_index"] is None
         ):
             skipped.append(n["id"])
             continue
+        if target:
+            r = a.get("rendition")
+            if not r or any(r.get(k) != getattr(target, k) for k in ("job_id", "view", "document_version")):
+                skipped.append(n["id"])
+                continue
+            a = r
+        elif a["status"] != "verified" or a["page_index"] is None:
+            skipped.append(n["id"])
+            continue
         page = a["page_index"]
+        if not 0 <= page < len(reader.pages):
+            skipped.append(n["id"])
+            continue
         content = f"{n['provenance']}: {n['content']}"
         if a["rects"]:
             rects = a["rects"]
+            if n.get("annotation_type") == "rectangle" or not a.get("quote"):
+                for rect in rects:
+                    ann = Rectangle(rect=tuple(rect))
+                    ann[NameObject("/Contents")] = TextStringObject(content)
+                    ann[NameObject("/C")] = ArrayObject([FloatObject(c) for c in (0.38, 0.50, 0.31)])
+                    writer.add_annotation(page_number=page, annotation=ann)
+                continue
             bounds = (
                 min(r[0] for r in rects),
                 min(r[1] for r in rects),
@@ -186,8 +216,6 @@ def annotated_pdf(store: Store, paper_id: str, destination: Path):
                 ]
             )
             ann = Highlight(rect=bounds, quad_points=points, highlight_color="ffda75")
-            from pypdf.generic import NameObject, TextStringObject
-
             ann[NameObject("/Contents")] = TextStringObject(content)
             ann[NameObject("/CA")] = FloatObject(0.18)
         else:
@@ -201,7 +229,7 @@ def annotated_pdf(store: Store, paper_id: str, destination: Path):
 
 
 def export(
-    store: Store, kind: str, paper_id: str | None = None, output: str | None = None
+    store: Store, kind: str, paper_id: str | None = None, output: str | None = None, rendition=None
 ):
     if kind != "comparison" and not paper_id:
         raise ValueError("Choose a paper")
@@ -216,7 +244,7 @@ def export(
         else folder / f"{paper_id or 'library'}-{kind}-{uid()[:8]}{suffix}"
     )
     if kind == "pdf":
-        return annotated_pdf(store, paper_id, dest)
+        return annotated_pdf(store, paper_id, dest, rendition=rendition)
     handlers = {"paper": paper_card, "ideas": idea_cards, "talk": talk_outline}
     text = (
         comparison_csv(store)

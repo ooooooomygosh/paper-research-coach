@@ -21,7 +21,7 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import { api, ApiError, put, anchorFor, type Row } from "./api";
+import { api, ApiError, put, anchorFor, anchorQuote, id, type Row } from "./api";
 import { readLaunchInput } from "./launch";
 import { filterPapers } from "./library-search";
 import PageNavigation from "./PageNavigation";
@@ -97,9 +97,13 @@ export function App() {
   const [translationJob, setTranslationJob] = useState<any>(null);
   const [translationPdfJob, setTranslationPdfJob] = useState<any>(null);
   const [translationIndex, setTranslationIndex] = useState<any>({});
+  const translationChoice = useRef("");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [newNoteRequest, setNewNoteRequest] = useState<{ id: string; anchor: any } | null>(null);
   const translatedRead = useRef("");
   const [pdfView, setPdfView] = useState<PdfView>("original");
   const [selection, setSelection] = useState<any>(null);
+  const [markedSelection, setMarkedSelection] = useState("");
   const layout = useRef<HTMLDivElement>(null);
   const toolsTrigger = useRef<HTMLElement | null>(null);
   function closeTools() {
@@ -321,7 +325,7 @@ export function App() {
           j.current !== false,
       );
       setTranslationJob(current || null);
-      const readable = result.papers?.[pid];
+      const readable = result.data.find((j: any) => j.id === translationChoice.current && j.paper_id === pid && j.current && hasTranslation(j)) || result.papers?.[pid];
       setTranslationPdfJob(hasTranslation(readable) ? readable : null);
       if (!hasTranslation(readable)) setPdfView("original");
       else if (translatedRead.current === pid) {
@@ -334,6 +338,7 @@ export function App() {
   }
   useEffect(() => {
     setTranslationJob(null);
+    translationChoice.current = "";
     setTranslationPdfJob(null);
     setPdfView("original");
     setSelection(null);
@@ -370,13 +375,14 @@ export function App() {
     setSelection(null);
     if (paper)
       localStorage.setItem(
-        "prc-page-" + paper.id + ":" + paper.source_version,
+        "prc-page-" + paper.id + ":" + paper.source_version + (pdfView === "original" ? "" : ":" + translationPdfJob?.id + ":" + pdfView),
         String(n),
       );
     setPage(n);
     setFocusAnchor(null);
     clearTimeout(pageTimer.current);
     const pid = selectedRef.current;
+    if (pdfView !== "original") return;
     pageTimer.current = setTimeout(async () => {
       try {
         const c = await api("context/" + pid);
@@ -388,10 +394,28 @@ export function App() {
       }
     }, 600);
   }
-  function locate(a: any) {
-    setPdfView("original");
+  async function locate(a: any) {
     if (a.status === "stale" || a.source_version !== paper.source_version) {
       report("这条笔记属于旧版本。原话仍在，请重新核实位置。");
+      return;
+    }
+    if (a.rendition) {
+      try {
+        const r = a.rendition;
+        const job = await api("translation/jobs/" + r.job_id);
+        if (job.paper_id !== paper.id || !job.current || job.documents?.[r.view]?.document_version !== r.document_version) {
+          report("这条批注对应的译本已改变或不可用，笔记仍然保留。");
+          return;
+        }
+        translationChoice.current = job.id;
+        setTranslationPdfJob(job);
+        setPdfView(r.view);
+        setTab("read");
+        setPage(r.page_index);
+        setSelection(null);
+        setFocusAnchor(a);
+        setToolsOpen(false);
+      } catch (e) { report(String(e)); }
       return;
     }
     if (a.page_index === null) {
@@ -399,8 +423,23 @@ export function App() {
       return;
     }
     setTab("read");
+    setPdfView("original");
     movePage(a.page_index);
     setFocusAnchor(a);
+  }
+  async function exportCurrentPdf() {
+    if (!paper || exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const document = translationPdfJob?.documents?.[pdfView];
+      const rendition = pdfView === "original" ? undefined : {
+        job_id: translationPdfJob.id, view: pdfView, document_version: document.document_version, page_index: 0,
+      };
+      const result = await api("export", { kind: "pdf", paper_id: paper.id, rendition });
+      const link = window.document.createElement("a");
+      link.href = result.download; link.download = ""; link.click();
+      if (result.unplaced_note_ids.length) report("已导出当前 PDF；其他版本或未定位的笔记保留在笔记库。");
+    } catch (e) { report(String(e)); } finally { setExportingPdf(false); }
   }
   async function pause() {
     try {
@@ -622,7 +661,7 @@ export function App() {
           </span>
           {paper && tab === "read" ? (
             <div className="reading-toolbar">
-              <PageNavigation page={page} count={paper.page_count || 0} onChange={movePage} />
+              <PageNavigation page={page} count={(pdfView === "original" ? paper.page_count : translationPdfJob?.documents?.[pdfView]?.page_count) || paper.page_count || 0} onChange={movePage} />
               <button
                 onClick={() => setFitRequest((v) => v + 1)}
                 aria-label="PDF 适宽"
@@ -794,10 +833,9 @@ export function App() {
                       page={page}
                       setPage={movePage}
                       onAnchor={(a, placement) => {
-                        if (pdfView === "original") setAnchor(a);
-                        else setAnchor(null);
-                        if (a.quote)
+                        setAnchor(a);
                           setSelection({
+                            id: id(),
                             anchor: a,
                             view: pdfView,
                             x: placement?.x || 40,
@@ -815,9 +853,15 @@ export function App() {
                       documentKey={
                         pdfView === "original"
                           ? "original"
-                          : translationPdfJob?.id + ":" + pdfView
+                          : translationPdfJob?.id + ":" + pdfView + ":" + translationPdfJob?.documents?.[pdfView]?.document_version
                       }
                       derived={pdfView !== "original"}
+                      rendition={pdfView !== "original" && translationPdfJob?.documents?.[pdfView] ? {
+                        job_id: translationPdfJob.id, view: pdfView, document_version: translationPdfJob.documents[pdfView].document_version,
+                      } : null}
+                      draftAnchor={selection?.id === markedSelection ? null : selection?.anchor}
+                      onExport={() => void exportCurrentPdf()}
+                      exporting={exportingPdf}
                       focusAnchor={focusAnchor}
                       notes={context.notes || []}
                       onLocateNote={locate}
@@ -993,6 +1037,7 @@ export function App() {
                         paper={paper}
                         notes={context.notes}
                         anchor={anchor}
+                        newNoteRequest={newNoteRequest}
                         onLocate={locate}
                         refresh={() => void refresh()}
                         report={report}
@@ -1041,11 +1086,21 @@ export function App() {
                 </aside>
                 {selection && (
                   <TranslationPopover
+                    key={selection.id}
                     selection={selection}
                     job={translationPdfJob}
                     onClose={() => setSelection(null)}
                     onSource={(a) => {
                       if (selection.view !== "original") setAnchor(a);
+                    }}
+                    onMark={async (a) => {
+                      await put("note", { id: selection.id, paper_id: paper.id, revision: 0, author: "user", provenance: "USER", content: anchorQuote(a) || "区域标记", anchor: a, annotation_type: anchorQuote(a) ? "highlight" : "rectangle" }, selection.id);
+                      await refresh();
+                      setMarkedSelection(selection.id);
+                    }}
+                    onNote={(a) => {
+                      setAnchor(a); setNewNoteRequest({ id: id(), anchor: a }); openTools("notes");
+                      requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('textarea[aria-label="记录想法"]')?.focus());
                     }}
                     onDiscuss={(a) => {
                       setAnchor(a);

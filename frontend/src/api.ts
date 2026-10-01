@@ -66,11 +66,31 @@ export function sameAnchor(a: any, b: any): boolean {
     quote: v.quote || "",
     rects: v.rects || [],
     status: v.status || "unresolved",
+    rendition: v.rendition ? {
+      job_id: v.rendition.job_id, view: v.rendition.view,
+      document_version: v.rendition.document_version,
+      page_index: v.rendition.page_index, page_label: v.rendition.page_label || "",
+      quote: v.rendition.quote || "", rects: v.rendition.rects || [],
+    } : null,
   };
   return JSON.stringify(normalized(a)) === JSON.stringify(normalized(b));
 }
 export function location(a: any) {
+  if (a?.rendition) {
+    const r = a.rendition;
+    return `${r.view === "dual" ? "双语" : "中文"} PDF 第 ${r.page_index + 1} 页${a.status === "stale" ? " · 旧版本，待重定位" : ""}`;
+  }
   return !a
     ? "待定位"
     : `${a.page_index === null ? "待定位" : "PDF 第 " + (a.page_index + 1) + " 页"}${a.page_label ? " · 页码 " + a.page_label : ""}${a.status === "stale" ? " · 旧版本，待重定位" : a.status !== "verified" ? " · 待核实" : ""}`;
+}
+
+export const anchorQuote = (anchor: any) => anchor?.rendition?.quote || anchor?.quote || "";
+
+/** Read only geometry belonging to the displayed PDF; source and translated layouts differ. */
+export function visibleAnchor(anchor: any, paper: Row, rendition?: { job_id: string; view: string; document_version: string } | null) {
+  if (!anchor || anchor.paper_id !== paper.id || anchor.source_version !== paper.source_version || anchor.status === "stale") return null;
+  if (!rendition) return anchor.status === "verified" ? anchor : null;
+  const target = anchor.rendition;
+  return target && target.job_id === rendition.job_id && target.view === rendition.view && target.document_version === rendition.document_version ? target : null;
 }

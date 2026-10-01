@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc6"
+  version: "2.0.0rc7"
   language: "zh-CN; follow the learner's language"
 ---
 

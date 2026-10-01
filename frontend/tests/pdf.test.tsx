@@ -211,9 +211,9 @@ it("fits the page width and keeps keyboard navigation out of page input editing"
   box.style.paddingLeft = "10px";
   box.style.paddingRight = "10px";
   fireEvent.click(screen.getByLabelText("适应宽度"));
-  await waitFor(() => expect(screen.getByText("80%")).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText("PDF 缩放比例").textContent).toBe("80%"));
   fireEvent.click(screen.getByLabelText("适应宽度"));
-  await waitFor(() => expect(screen.getByText("80%")).toBeTruthy());
+  await waitFor(() => expect(screen.getByLabelText("PDF 缩放比例").textContent).toBe("80%"));
   fireEvent.keyDown(screen.getByLabelText("PDF 页码"), { key: "ArrowRight" });
   expect(setPage).not.toHaveBeenCalled();
   fireEvent.keyDown(screen.getByLabelText("PDF 阅读器"), { key: "ArrowRight" });
@@ -269,4 +269,41 @@ it("restores the saved page's scroll after the parent loads its page asynchronou
   );
   await waitFor(() => expect(box.scrollTop).toBe(300));
   localStorage.removeItem(key);
+});
+
+it("restores only the matching translated rendition, never another layout or regenerated file", async () => {
+  const rendition = { job_id: "job", view: "dual" as const, document_version: "a".repeat(64) };
+  const anchor = { paper_id: "p", source_version: "v", status: "unresolved", page_index: null,
+    rects: [], rendition: { ...rendition, page_index: 0, quote: "", rects: [[100, 200, 160, 260]] } };
+  const note = { id: "translated", paper_id: "p", revision: 1, content: "My translated-page note", anchor, annotation_type: "rectangle" };
+  const props = { paper: { id: "p", source_version: "v", revision: 1, page_count: 3 }, page: 0, setPage: vi.fn(), onAnchor: vi.fn(), focusAnchor: null, notes: [note] };
+  const view = render(<PdfReader {...props} derived documentKey="job:dual" rendition={rendition} />);
+  await waitFor(() => expect(document.querySelectorAll(".saved-annotation.rectangle")).toHaveLength(1));
+  const box = document.querySelector<HTMLElement>(".saved-annotation")!;
+  expect(parseFloat(box.style.left)).toBeCloseTo(110);
+  fireEvent.click(screen.getByLabelText("PDF 放大"));
+  await waitFor(() => expect(parseFloat(document.querySelector<HTMLElement>(".saved-annotation")!.style.left)).toBeCloseTo(125));
+  view.rerender(<PdfReader {...props} derived documentKey="job:mono" rendition={{ ...rendition, view: "mono" }} />);
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
+  expect(document.querySelector(".saved-annotation")).toBeNull();
+  view.rerender(<PdfReader {...props} derived documentKey="job:new" rendition={{ ...rendition, document_version: "b".repeat(64) }} />);
+  expect(document.querySelector(".saved-annotation")).toBeNull();
+  view.rerender(<PdfReader {...props} />);
+  expect(document.querySelector(".saved-annotation")).toBeNull();
+});
+
+it("zooms with trackpad pinch events but leaves ordinary wheel scrolling native", async () => {
+  render(<PdfReader paper={{ id: "wheel", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()} focusAnchor={null} />);
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
+  const scroll = document.querySelector(".pdf-scroll")!;
+  const wheel = new WheelEvent("wheel", { deltaY: -40, bubbles: true, cancelable: true });
+  fireEvent(scroll, wheel);
+  expect(wheel.defaultPrevented).toBe(false);
+  expect(screen.getByLabelText("PDF 缩放比例").textContent).toBe("110%");
+  const calls = mock.calls.length;
+  fireEvent.wheel(scroll, { ctrlKey: true, deltaY: -40, clientX: 200, clientY: 200 });
+  expect(parseInt(screen.getByLabelText("PDF 缩放比例").textContent!)).toBeGreaterThan(110);
+  expect(mock.calls).toHaveLength(calls); // Gesture preview reuses the existing canvas.
+  await waitFor(() => expect(mock.calls.length).toBeGreaterThan(calls));
+  expect(document.querySelector<HTMLElement>(".pdf-page")!.style.transform).toBe("");
 });

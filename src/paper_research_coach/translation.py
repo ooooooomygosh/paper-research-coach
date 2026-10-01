@@ -491,9 +491,20 @@ class Translation:
             and check[1]
         )
         pdf_ready = current and self.ready_artifacts(job)
+        documents = {}
+        if pdf_ready:
+            from .renditions import inspect_pdf, rendition_file
+
+            for view in ("mono", "dual"):
+                try:
+                    info = inspect_pdf(rendition_file(self.store.root, job, view))
+                    documents[view] = {k: info[k] for k in ("document_version", "page_count")}
+                except Exception:
+                    # An unreadable artifact can still be retried; never invent geometry.
+                    pass
         return {
             k: v
-            for k, v in {**job, "current": current, "pdf_ready": pdf_ready}.items()
+            for k, v in {**job, "current": current, "pdf_ready": pdf_ready, "documents": documents}.items()
             if k not in ("artifacts", "source_path", "provider", "fingerprint")
         }
 

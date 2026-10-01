@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0rc7 — PDF gestures and translated annotations
+
+- Add focal-point-preserving trackpad/touch pinch zoom and a compact frosted toolbar for zoom, fit, page navigation, region selection and annotated PDF download. Gestures preview the existing canvas and rasterize once on release.
+- Persist translated selections separately from original-source evidence, scoped to the translation job, layout and PDF content hash. Restore highlights and rectangles in their matching Chinese/bilingual PDF after reload; reject changed files and unrelated layouts.
+- Add explicit mark/note actions for text and regions, preserve preceding drafts when starting a note on a new selection, and export native highlight/rectangle annotations in the selected PDF.
+- Extend browser checks with actual touch input, trackpad zoom/focal position, cross-view annotation persistence and annotated downloads; preserve legacy request fingerprints.
+
 ## 2.0.0rc6 — reading polish
 
 - Refine paper surfaces, toolbar grouping, split-handle visibility, focus/hover feedback and restrained dialog/drawer motion; honor reduced motion and keep a direct touch immersion exit.

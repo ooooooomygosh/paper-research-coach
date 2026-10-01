@@ -23,6 +23,7 @@ import {
   location,
   sameAnchor,
   anchorFor,
+  anchorQuote,
   type Row,
 } from "./api";
 import {
@@ -975,7 +976,7 @@ export default function CoachPanel({
             <div>
               <button className="anchor-label" onClick={() => onLocate(anchor)}>
                 <MapPin size={12} />
-                {anchor.quote ? "已附上选中文字" : "已附上选区"}
+                {anchorQuote(anchor) ? "已附上选中文字" : "已附上选区"}
               </button>
               <button aria-label="移除对话选区" onClick={onClearAnchor}>
                 <X size={12} />
@@ -983,8 +984,8 @@ export default function CoachPanel({
             </div>
           )}
         </div>
-        {anchor?.quote && (
-          <blockquote className="coach-selection">{anchor.quote}</blockquote>
+        {anchorQuote(anchor) && (
+          <blockquote className="coach-selection">{anchorQuote(anchor)}</blockquote>
         )}
         {toolsContainer ? (
           createPortal(

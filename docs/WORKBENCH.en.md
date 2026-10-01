@@ -16,6 +16,14 @@ Automatic initialization is capped at 3000 characters, and ordinary per-turn pos
 
 Use secondary tools for coaching preferences, model connection, notes and evidence. Direct questions and explicit explanations do not require a complete reading route or translated PDF. Eight dimensions represent coverage, not measured mastery. Note consent and local performance-recording consent remain separate; AI explanations and Continue clicks do not demonstrate independent understanding.
 
+## PDF zoom and annotations (rc7+)
+
+Pinch on a trackpad or touchscreen to zoom around the gesture position (25%–400%). Ordinary scrolling stays native. A frosted toolbar provides zoom, fit width, previous/next page, region selection and download; it becomes horizontal below the page on narrow screens.
+
+Select text or a region, then keep the mark or write a note. Chinese and bilingual annotations persist on their exact PDF layout across reloads. They are scoped to the translation job and file hash, so regenerated layouts cannot silently reuse old coordinates. Existing notes remain available.
+
+The toolbar downloads the current PDF with native highlights, rectangles and note contents embedded in a separate copy. Original files are preserved. Source-aligned passages can still be discussed as original evidence; unmapped translated selections can be saved as notes.
+
 ## Optional bilingual translation
 
 Choose the translation model and reasoning effort independently of the coach, using the existing Codex login. The configured default is GPT-6-Luna / low; use the actual available-model list. Each task snapshots its model and languages.
