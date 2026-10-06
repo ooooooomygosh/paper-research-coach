@@ -1,42 +1,124 @@
+<div align="center">
+
+<img src="docs/images/logo.svg" width="88" height="88" alt="Paper Research Coach">
+
 # Paper Research Coach
 
-### Read beyond the summary. Make the judgment your own.
+**Read beyond the summary. Make the judgment your own.**
 
-A local workspace that keeps **the paper, one concrete question, and your thinking** together. Also available as a portable reading-coach Skill. Built for researchers who want to understand, check, and transfer a paper’s ideas—not collect another AI summary.
-
-[中文](README.md) · [Quick start](docs/QUICKSTART.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Contributing](CONTRIBUTING.md)
+A local workspace that keeps **the paper, your question and your thinking** together, and a portable reading-coach Skill for Claude Code, Codex and Pi.<br>
+It does not write you another summary. It checks the evidence with you, one passage at a time, and leaves the judgment in your hands.
 
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-526653.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/ooooooomygosh/paper-research-coach?include_prereleases&label=release&color=365c47)](https://github.com/ooooooomygosh/paper-research-coach/releases)
+[![Python](https://img.shields.io/badge/python-3.10%2B-526653)](docs/QUICKSTART.md)
+[![Agent Skill](https://img.shields.io/badge/Agent%20Skill-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Pi-7f9871)](#quick-start)
+[![License: MIT](https://img.shields.io/badge/license-MIT-526653)](LICENSE)
 
-![Actual workbench: source on the left and a source-grounded discussion on the right. Synthetic paper and scripted dialogue.](docs/images/reading.webp)
+[简体中文](README.md) · **English** · [Quick start](docs/QUICKSTART.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Design](docs/DESIGN.md) · [Contributing](CONTRIBUTING.md)
 
-*Actual built UI; the paper, values and dialogue are explicitly illustrative, not live-model output or evidence of learning benefit. [Reproduce the showcase and full-size screenshots](docs/SHOWCASE.md).*
+</div>
 
-> **Preview software, not a proven learning intervention.** Pinch zoom and translated-PDF annotations require `2.0.0rc9` or newer; `prc-demo` is available from rc6. Choose that version in Releases; if its packages are not available yet, follow the source quickstart.
+<br>
 
-## What reading looks like
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/reading-dark.webp">
+  <img src="docs/images/reading.webp" alt="Actual workbench: the PDF on the left and a discussion about the same passage on the right; the quoted source travels with the reader's question.">
+</picture>
 
-Keep the source visible. Start with a figure, equation, unfamiliar sentence, or a claim you disagree with. Ask for a hint or a direct explanation; the reading route is not a mandatory lesson sequence.
+<p align="center"><sub>Actual UI, following your light / dark theme · synthetic paper and a labelled scripted dialogue, not live-model output; no model was connected · <a href="docs/SHOWCASE.md">Reproduce</a></sub></p>
 
-| Your question | The coach’s job |
-|---|---|
-| What did the authors actually notice? | Separate the distinctive observation from background and the proposed method. |
-| Does this result support the claim? | Inspect the evidence, matched budgets, alternative explanations and limits. |
-| Is my difficulty language or the concept? | Separate translation, prerequisite knowledge and the paper’s argument; preserve qualifiers. |
-| Where did my thought come from? | Keep your words apart from AI commentary, with a return path to the source. |
-| What changes in my research next? | Record a provisional judgment, unresolved question or smallest useful test—not a compulsory summary. |
+> [!NOTE]
+> **Preview software, not a proven learning intervention.** Pinch zoom and translated-PDF annotations require `2.0.0rc9` or newer; `prc-demo` is available from rc6. If the packages for a version are not in Releases yet, follow the [source quick start](docs/QUICKSTART.md).
 
-> **Reader:** Could this gain just come from taking more measurements?  
-> **Coach:** First check whether Figure 1 matches the two measurement budgets. Would that explanation still hold? A direct explanation is fine too.
+## How it differs from “summarise this paper”
 
-*This is an illustrative exchange, not a live-model result. Solving a local question or deciding not to pursue a paper is also a valid outcome.*
+|  | Typical AI paper assistant | Paper Research Coach |
+|---|---|---|
+| **Each turn gives you** | A page-long summary | One passage, one question, at most one thinking task |
+| **Who judges** | The AI states a conclusion | A provisional judgment, checked against the source; ask for a hint, a direct explanation, or a challenge |
+| **Your thoughts** | Lost in the chat | Saved verbatim, apart from AI comments, with a page anchor |
+| **Evidence** | Hard to trace back | Every message and note returns to its place in the PDF; anchors from an older PDF version are flagged |
+| **What remains** | Another summary | A provisional judgment, open questions and the smallest useful test |
+| **Your data** | Uploaded | PDFs and notes stay local; only the turns you send reach the configured model |
 
-## Choose your starting point
+## Highlights
 
-### Reading guidance only: install the Skill
+<table>
+<tr>
+<td width="33%" valign="top">
 
-Download `paper-research-coach-skill-*.zip` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases). Extract the complete folder into your host’s skill directory:
+**💬 Talk about the source**<br>
+Select a sentence and choose “discuss”; the quote travels with your question and stays in the conversation. Enter sends, Shift + Enter breaks a line.
+
+</td>
+<td width="33%" valign="top">
+
+**🖍️ Marks are not opinions**<br>
+A highlight is the paper's words, a note is yours. Kept marks are never discussed as your view; add a thought at the same place at any time.
+
+</td>
+<td width="33%" valign="top">
+
+**🧭 Detour and come back**<br>
+The eight-step route is an evidence map, not a syllabus. After a local question, the return point is still where you left it.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**🌗 Built for focus**<br>
+The library is collapsed while reading. Immersive mode, dark theme, pinch zoom, fit-width and position recovery.
+
+</td>
+<td valign="top">
+
+**🌐 Non-native friendly**<br>
+Separates language barriers from conceptual gaps; no whole-paper translation required. In optional bilingual PDFs, marks are kept per rendition.
+
+</td>
+<td valign="top">
+
+**🔌 Two ways, one method**<br>
+Install the Skill for coaching in your agent, or run the local workbench to read and discuss side by side. Zotero, translation and exports are optional.
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/welcome.webp" alt="Welcome screen: start with one paper worth reading"></td>
+<td width="50%"><img src="docs/images/annotations.webp" alt="Highlights and region marks kept separately in a side-by-side PDF view"></td>
+</tr>
+<tr>
+<td align="center"><sub>First run: import one PDF and start</sub></td>
+<td align="center"><sub>Marks kept per rendition in the side-by-side view (both columns are synthetic English, a layout test)</sub></td>
+</tr>
+</table>
+
+## Quick start
+
+### Option 1: Claude Code (recommended)
+
+```text
+/plugin marketplace add ooooooomygosh/paper-research-coach
+/plugin install paper-research-coach@paper-research-coach
+```
+
+Attach a paper and ask: **“Guide my reading of this paper. Start with the authors' key observation.”** It uses your host's existing model; no Python, Node.js, Zotero or separate API key from this project is needed.
+
+### Option 2: Codex, Pi and other hosts
+
+```bash
+npx skills add ooooooomygosh/paper-research-coach
+```
+
+<details>
+<summary>Without npx: install the Skill by hand</summary>
+
+Download `paper-research-coach-skill-*.zip` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) and extract the **complete folder** into your host's skill directory:
 
 | Host | User-level directory |
 |---|---|
@@ -44,46 +126,88 @@ Download `paper-research-coach-skill-*.zip` from [Releases](https://github.com/o
 | Claude Code | `~/.claude/skills/paper-research-coach/` |
 | Pi | `~/.pi/agent/skills/paper-research-coach/` |
 
-Attach a paper and ask: **“Use paper-research-coach to guide my reading. Start with the authors’ key observation.”** Keep `references` and `assets`, not just `SKILL.md`. This mode uses your host’s existing model setup; it does not require this project’s Python, Node.js or Zotero installation. Format compatibility is not a claim that every host and model has been tested.
+Keep `references` and `assets`, not just `SKILL.md`. Format compatibility is not a claim that every host and model has been tested.
 
-### Source and conversation together: install the workbench
+</details>
 
-Requires **Python 3.10+**. Download the `.whl` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases), then run in the download directory:
+### Option 3: the local workbench
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-# Replace the filename with the wheel you actually downloaded.
-python -m pip install "./paper_research_coach-<version>-py3-none-any.whl"
-prc open
-```
-
-The wheel already includes the interface. **Node.js is only needed for source development.** See [Quick start](docs/QUICKSTART.md) for Windows, source installation and troubleshooting. The workbench’s AI conversation currently uses a locally authenticated Codex CLI; the Skill’s multi-host support does not mean the workbench has all those backends.
-
-Then: **import one PDF → select one passage → ask your current question.** Zotero and whole-paper translation are optional, not prerequisites.
-
-The new preview includes a disposable example:
+Requires **Python 3.10+**. Download the `.whl` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases), then in the download directory:
 
 ```bash
-prc-demo
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install "./paper_research_coach-<version>-py3-none-any.whl"   # use the actual filename
+prc open        # open your library
+prc-demo        # or try a three-page synthetic paper first; your library is untouched
 ```
 
-It opens an original three-page synthetic paper in a separate temporary library on port `8766`. It does not read your personal papers, call a model automatically, or grant recording/sync consent. `Ctrl+C` stops the service and removes the example records. Export outside that temporary folder before stopping to keep anything. This command is not in rc5.
+Then: **import one PDF → select one passage → ask your current question.** The wheel already includes the interface; Node.js is only for source development. The workbench's AI conversation uses a locally authenticated Codex CLI; reading, marking and notes work without it. Windows, source installs and troubleshooting: [Quick start](docs/QUICKSTART.md).
 
-## Quiet by default
+## What a turn looks like
 
-The library is collapsed while reading. Keep the PDF and one persistent conversation side by side; use fit-width, position recovery, adjustable panes and immersive reading. Notes, sync and model configuration stay in secondary tools. Existing conversations, drafts and evidence anchors remain intact.
+> **Reader:** Could this gain just come from taking more measurements?
+>
+> **Coach:** First check whether Figure 1 matches the two measurement budgets. Would that explanation still hold? A direct explanation is fine too.
 
-Zotero, a OneDrive / Obsidian directory, bilingual translation, review and exports are optional extensions: [Workbench guide](docs/WORKBENCH.en.md).
+<sub>An illustrative exchange, not a live-model result. Solving one local question or deciding not to pursue a paper are valid outcomes too.</sub>
+
+| Your question | The coach's job |
+|---|---|
+| What did the authors actually notice? | Separate the distinctive observation from background and the proposed method. |
+| Does this result support the claim? | Inspect the evidence, matched budgets, alternative explanations and limits. |
+| Is my difficulty language or the concept? | Separate translation, prerequisite knowledge and the paper's argument; preserve qualifiers. |
+| Where did my thought come from? | Keep your words apart from AI commentary, with a return path to the source. |
+| What changes in my research next? | Record a provisional judgment, an open question or the smallest useful test. |
 
 ## Privacy and limits
 
-Papers and reading records are stored locally, and the service binds to loopback. **Local storage does not mean offline AI.** Using the coach or translation sends relevant content to the configured model provider. Zotero writes require authorization. Never share the private launch link, which carries an access credential. See [Data and access boundaries](docs/SECURITY.md).
+- Papers and reading records are stored locally and the service binds to loopback. **Local storage does not mean offline AI**: using the coach or translation sends relevant content to the configured model provider.
+- Zotero writes require your authorization. Never share the launch link, which carries an access credential. See [Data and access boundaries](docs/SECURITY.md).
+- There is no human learning-effect claim, no full Safari / iPad / Pencil certification and no guaranteed OCR for scanned PDFs. Zotero items with several attachments currently use the first PDF. See [Testing](docs/TESTING.md) and [Review](docs/FINAL-REVIEW.md).
 
-There is no human learning-effect claim, no full Safari / iPad / Pencil certification, no real-time cross-device collaboration, and no guarantee of OCR for scanned PDFs. Zotero currently uses the first PDF attachment of an item: check the version before annotating. See [Testing](docs/TESTING.md) and [Review](docs/FINAL-REVIEW.md).
+## FAQ
+
+<details>
+<summary><b>Do I need a separate paid API key?</b></summary>
+
+The Skill uses the model your host (Claude Code, Codex, Pi) is already configured with. The workbench's coach currently runs through a locally signed-in Codex CLI; reading, marking, notes and exports need no model at all.
+
+</details>
+
+<details>
+<summary><b>Does it grade me or decide that I have “mastered” something?</b></summary>
+
+No. Only if you enable recording of answers and feedback does it store one observation per ability, quoting your own words and the criterion used. Clicks, reading an AI explanation or completed steps are never treated as evidence of mastery.
+
+</details>
+
+<details>
+<summary><b>Does it work with Zotero or Obsidian?</b></summary>
+
+Yes, optionally. Zotero sync needs Zotero 10+ with the local API enabled and your authorization. OneDrive / Obsidian folders, bilingual translation, review and talk exports are covered in the [Workbench guide](docs/WORKBENCH.en.md).
+
+</details>
+
+<details>
+<summary><b>What about scanned PDFs?</b></summary>
+
+Automatic OCR is not guaranteed. You can mark a region and discuss its image with the coach; an empty text layer is not an empty page.
+
+</details>
 
 ## Contribute
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md). Describe the reading task that was interrupted—not just the control you would like to add. Use synthetic reproduction material; do not submit private PDFs, databases, credentials or conversations.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Describe the reading task that was interrupted, not just the control you would like to add. Use synthetic reproduction material; do not submit private PDFs, databases, credentials or conversations.
+
+If this project helps you read, a star ⭐ helps other careful readers find it.
+
+<a href="https://star-history.com/#ooooooomygosh/paper-research-coach&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ooooooomygosh/paper-research-coach&type=Date&theme=dark">
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ooooooomygosh/paper-research-coach&type=Date" width="600">
+  </picture>
+</a>
+
+## License and credits
 
 Original code and documentation: [MIT](LICENSE). [Reading-method sources](docs/SOURCES.md) and [translation-component licensing](docs/THIRD_PARTY_TRANSLATION.md) retain their respective boundaries.

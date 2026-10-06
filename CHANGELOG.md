@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Render PDFs in browsers without the very newest JavaScript APIs: pdf.js 6's modern build calls `Map#getOrInsertComputed` and `Math.sumPrecise`, so every page failed on e.g. Chromium 141. Use the polyfilled legacy build and log swallowed render errors.
+- Add a dark theme that follows the system. Roughly 230 near-duplicate colours became ~20 semantic tokens; light mode is visually unchanged and the PDF page is gently dimmed at night.
+- Conversation: Enter sends and Shift+Enter breaks a line (IME confirmation never sends); the composer grows with the draft; the quoted passage stays visible under the learner's question; replies no longer repeat its location; finished turns are no longer stamped “已保存”; `**加粗：**正文` renders in Chinese replies (remark-cjk-friendly).
+- An unavailable coach now says so (未连接 / 需要登录) with a reconnect action, instead of “连接中” forever; reading, marks and notes stay usable.
+- Annotations: a kept highlight is shown as “原文标记”, not “我的原话”, is no longer counted or sent to the coach as a pending learner thought, and “写下想法” starts a thought at the same place.
+- Install the Skill as a Claude Code plugin (`/plugin marketplace add ooooooomygosh/paper-research-coach`) or with `npx skills add`; name common Chinese requests in the Skill description; check that all release versions agree.
+- Redesign the README in both languages with a light/dark hero screenshot, comparison table, feature grid, three install paths and an FAQ.
+- `npm audit fix` for a new high-severity `source-map-js` advisory that failed the CI audit step; collapse duplicated portal/inline coach JSX.
+
 ## 2.0.0rc9
 
 - Move original, Chinese and bilingual PDF view switching into the floating toolbar, with unavailable translations disabled until ready.

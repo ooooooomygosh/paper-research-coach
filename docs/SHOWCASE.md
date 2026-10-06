@@ -4,7 +4,7 @@
 
 The showcase is the actual built workbench, not a marketing mockup. The paper, values and notes are synthetic. Any conversation injected by the capture script is labelled **预设带读示例 · 非实时模型回复** in the UI. It is not evidence of model quality or learning benefit.
 
-The committed WebP is a 1440-pixel-wide copy of the desktop capture. Full-size desktop, welcome, import-dialog and narrow-viewport PNGs are available in the `reading-showcase` artifact of [Reading browser checks](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/showcase.yml), retained for 14 days. The script below recreates them after artifact expiry.
+The committed WebPs are 1440-pixel-wide copies of the desktop captures: `reading.webp`, its dark-theme twin `reading-dark.webp` (the README picks one with `<picture>`), `welcome.webp` and `annotations.webp` from the PDF annotation check. Full-size desktop, welcome, import-dialog and narrow-viewport PNGs are available in the `reading-showcase` artifact of [Reading browser checks](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/showcase.yml), retained for 14 days. The script below recreates them after artifact expiry.
 
 ## First reading
 
