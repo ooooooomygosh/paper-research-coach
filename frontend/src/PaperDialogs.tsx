@@ -261,7 +261,11 @@ export function ImportModal({
           disabled={busy || !title.trim()}
           onClick={submit}
         >
-          {busy ? "正在导入…" : file || path.trim() ? "打开论文" : "保存书目信息"}
+          {busy
+            ? "正在导入…"
+            : file || path.trim() || !title.trim()
+              ? "打开论文"
+              : "保存书目信息"}
           <ArrowRight size={16} />
         </button>
     </Dialog>

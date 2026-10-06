@@ -481,3 +481,27 @@ it("does not send while an IME is composing, including keyCode 229 fallback", as
   fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
   await waitFor(() => expect(sentBodies()).toHaveLength(1));
 });
+
+it("explains an unavailable coach instead of showing a perpetual connecting state", async () => {
+  const offline = {
+    state: "unavailable",
+    message: "CLI 连接暂不可用",
+    models: [],
+  };
+  let current: any = offline;
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return current;
+    if (path === "coach/reconnect") return (current = status);
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    return {};
+  });
+  view();
+  const notice = await screen.findByRole("status");
+  expect(notice.textContent).toContain("AI 带读暂未连接");
+  expect(screen.getByText("未连接")).toBeTruthy();
+  expect(screen.queryByText("连接中")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "重新连接" }));
+  await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+  expect(api).toHaveBeenCalledWith("coach/reconnect", {});
+  expect(screen.getByText("已连接")).toBeTruthy();
+});
