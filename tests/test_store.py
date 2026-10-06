@@ -248,3 +248,13 @@ def test_changed_words_return_to_pending_discussion(store, paper):
     )
     n = store.put("note", n | {"content": "new words"}, n["revision"])
     assert not n["discussed"]
+
+
+def test_a_kept_highlight_is_paper_text_not_a_pending_thought(store, paper, anchor):
+    quoted = anchor | {"quote": "Budget-matched evidence distinguishes competing explanations."}
+    store.put("note", dict(paper_id=paper["id"], content=quoted["quote"], anchor=quoted))
+    store.put("note", dict(paper_id=paper["id"], content="区域标记", anchor=anchor | {"quote": ""},
+                           annotation_type="rectangle"))
+    thought = store.put("note", dict(paper_id=paper["id"], content="Is the budget really matched?",
+                                     anchor=quoted))
+    assert [n["id"] for n in store.context(paper["id"])["pending_thoughts"]] == [thought["id"]]

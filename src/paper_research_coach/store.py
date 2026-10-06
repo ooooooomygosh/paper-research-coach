@@ -10,6 +10,16 @@ from pathlib import Path
 from .models import Commit, MODELS, Paper, Session, now
 
 
+
+def is_bare_mark(note: dict) -> bool:
+    """A kept highlight or region whose text is the paper's, not a learner thought."""
+    anchor = note.get("anchor") or {}
+    if note.get("author") != "user" or not anchor:
+        return False
+    quote = ((anchor.get("rendition") or {}).get("quote") or anchor.get("quote") or "").strip()
+    content = note.get("content", "").strip()
+    return content == quote if quote else content == "区域标记"
+
 class Conflict(ValueError):
     pass
 
@@ -379,7 +389,9 @@ class Store:
             "source_check": self.check_source(paper_id),
             "session": self.list("session", paper_id),
             "pending_thoughts": [
-                n for n in self.list("note", paper_id) if not n["discussed"] and n["author"] != "assistant"
+                n
+                for n in self.list("note", paper_id)
+                if not n["discussed"] and n["author"] != "assistant" and not is_bare_mark(n)
             ],
             "notes": self.list("note", paper_id),
             "ideas": self.list("idea", paper_id),

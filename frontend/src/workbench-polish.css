@@ -87,3 +87,17 @@ select:focus-visible {
   .compact-pages { padding-right: 4px; }
   .welcome-actions { flex-wrap: wrap; gap: 16px 24px; }
 }
+
+/* Conversation: the quoted source travels with the learner's words, quietly. */
+.coach-message .anchor-label { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-width: 100%; margin: 6px 0 8px; padding: 0; border: 0; background: none; color: var(--muted); font-size: 11px; text-align: left; }
+.coach-message .anchor-label > span { display: inline-flex; align-items: center; gap: 4px; }
+.coach-message .anchor-label q { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; quotes: none; padding: 1px 0 1px 10px; border-left: 2px solid var(--green-soft); color: var(--text-2); font-size: 12.5px; line-height: 1.65; }
+.coach-message .anchor-label:hover, .coach-message .anchor-label:focus-visible { color: var(--green); background: none; }
+.coach-message .anchor-label:hover q { border-left-color: var(--green); }
+.coach-status { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--muted); }
+.coach-status.streaming::before, .coach-status.queued::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green-soft); animation: coach-breathe 1.4s ease-in-out infinite; }
+.coach-status.failed, .coach-status.interrupted { color: var(--warn-text); }
+@keyframes coach-breathe { 50% { opacity: 0.25; } }
+.coach-compose textarea { resize: none; overflow-y: auto; }
+.reading-open .coach-compose textarea { min-height: 52px; max-height: 260px; }
+@media (prefers-reduced-motion: reduce) { .coach-status::before { animation: none; } }

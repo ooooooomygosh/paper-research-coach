@@ -1469,3 +1469,5 @@ blockquote {
 .coach-offline p { margin: 0; flex: 1; }
 .coach-offline b { color: var(--text); font-weight: 600; margin-right: 4px; }
 .coach-offline button { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 5px 9px; font-size: 12px; }
+.note-card.mark-note .note-meta b { color: var(--muted); font-weight: 500; }
+.note-card .mark-quote { margin: 6px 0 4px; padding: 2px 0 2px 10px; border-left: 3px solid #e9d27a; color: var(--text-2); font-size: 13px; line-height: 1.7; }

@@ -222,10 +222,38 @@ it("an unmounted save cannot overwrite the newer mounted draft", async () => {
 });
 
 it("restores the same region after a coach comment without saving a stale revision", async () => {
-  const note = { id: "region", paper_id: "p", content: "my region thought", author: "user", provenance: "USER", revision: 1, anchor: { paper_id: "p", source_version: "v1", page_index: 0, rects: [[1, 2, 3, 4]], status: "verified" } };
-  const latest = { ...note, revision: 2, discussed: true, anchor: { ...note.anchor, page_label: "", section: "", figure: "", quote: "" } };
+  const note = {
+    id: "region",
+    paper_id: "p",
+    content: "my region thought",
+    author: "user",
+    provenance: "USER",
+    revision: 1,
+    anchor: {
+      paper_id: "p",
+      source_version: "v1",
+      page_index: 0,
+      rects: [[1, 2, 3, 4]],
+      status: "verified",
+    },
+  };
+  const latest = {
+    ...note,
+    revision: 2,
+    discussed: true,
+    anchor: {
+      ...note.anchor,
+      page_label: "",
+      section: "",
+      figure: "",
+      quote: "",
+    },
+  };
   localStorage.setItem("prc-draft-p", JSON.stringify(note));
-  localStorage.setItem("prc-draft-p-operation", JSON.stringify({value: note, op: "stale-metadata"}));
+  localStorage.setItem(
+    "prc-draft-p-operation",
+    JSON.stringify({ value: note, op: "stale-metadata" }),
+  );
   render(<Notes {...props} notes={[latest]} />);
   await tick(500);
   expect(write).not.toHaveBeenCalled();
@@ -235,9 +263,23 @@ it("restores the same region after a coach comment without saving a stale revisi
 });
 
 it("browsing a new selection never silently moves an existing note's source", async () => {
-  const original = { paper_id: "p", source_version: "v", page_index: 0, quote: "original", status: "verified" };
+  const original = {
+    paper_id: "p",
+    source_version: "v",
+    page_index: 0,
+    quote: "original",
+    status: "verified",
+  };
   const next = { ...original, page_index: 1, quote: "new selection" };
-  const note = { id: "existing", paper_id: "p", content: "my original thought", author: "user", provenance: "USER", revision: 2, anchor: original };
+  const note = {
+    id: "existing",
+    paper_id: "p",
+    content: "my original thought",
+    author: "user",
+    provenance: "USER",
+    revision: 2,
+    anchor: original,
+  };
   localStorage.setItem("prc-draft-p", JSON.stringify(note));
   const mounted = render(<Notes {...props} notes={[note]} />);
   await tick(500);
@@ -245,8 +287,51 @@ it("browsing a new selection never silently moves an existing note's source", as
   mounted.rerender(<Notes {...props} notes={[note]} anchor={next} />);
   await tick(600);
   expect(write).not.toHaveBeenCalled();
-  expect(JSON.parse(localStorage.getItem("prc-draft-p")!).anchor).toEqual(original);
+  expect(JSON.parse(localStorage.getItem("prc-draft-p")!).anchor).toEqual(
+    original,
+  );
   fireEvent.click(screen.getByText("将此笔记的出处改为当前选区"));
   await tick(500);
   expect(write.mock.calls.at(-1)![1].anchor).toEqual(next);
+});
+
+it("shows a kept highlight as the paper's words, not mine, and does not count it as pending", async () => {
+  const anchor = {
+    paper_id: "p",
+    page_index: 1,
+    quote: "No error bars are reported.",
+  };
+  render(
+    <Notes
+      {...props}
+      notes={[
+        {
+          id: "m",
+          revision: 1,
+          author: "user",
+          content: "No error bars are reported.",
+          anchor,
+          discussed: false,
+        },
+        {
+          id: "t",
+          revision: 1,
+          author: "user",
+          content: "可能只是噪声",
+          anchor,
+          discussed: false,
+        },
+      ]}
+    />,
+  );
+  expect(screen.getByText("原文标记")).toBeTruthy();
+  expect(screen.getAllByText("我的原话")).toHaveLength(1);
+  expect(screen.getByText("1 条待讨论")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "写下想法" }));
+  await tick(50);
+  expect(write).not.toHaveBeenCalledWith(
+    "note",
+    expect.objectContaining({ id: "m" }),
+    expect.anything(),
+  );
 });

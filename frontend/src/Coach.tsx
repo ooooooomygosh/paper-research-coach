@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowUp,
   Square,
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+// CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
@@ -132,6 +134,7 @@ export default function CoachPanel({
   );
   const canAttachImage = imageMatchesPage(paper, page, anchor);
   const scroll = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
   const atBottom = useRef(true);
   const alive = useRef(true);
   const currentText = useRef(text);
@@ -215,6 +218,13 @@ export default function CoachPanel({
     );
     setIntentChoice("auto");
   }, [anchor, page, paper.id, paper.source_version, chosen]);
+  // Grow with the draft up to a bounded height, so long answers stay visible.
+  useLayoutEffect(() => {
+    const t = composer.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = Math.min(t.scrollHeight + 2, 260) + "px";
+  }, [text]);
   function change(value: string) {
     setText(value);
     localStorage.setItem(key, value);
@@ -239,6 +249,7 @@ export default function CoachPanel({
   ) {
     if (
       snapshot.read_only ||
+      status?.state !== "ready" ||
       sending ||
       connecting ||
       snapshot.busy ||
@@ -817,7 +828,7 @@ export default function CoachPanel({
             </button>
           </div>
         )}
-        {snapshot.messages.map((m) => (
+        {snapshot.messages.map((m, index) => (
           <article key={m.id} className={"coach-message " + m.role}>
             <div className="coach-message-label">
               {m.role === "user"
@@ -832,27 +843,41 @@ export default function CoachPanel({
               {m.role === "user" && m.help_mode && m.help_mode !== "guided" && (
                 <span>{helpLabels[m.help_mode]}</span>
               )}
-              <span>
-                {m.status === "queued"
-                  ? "准备回复…"
-                  : m.status === "streaming"
-                    ? "正在回复…"
-                    : m.status === "interrupted"
-                      ? "已停止"
-                      : m.status === "failed"
-                        ? "未完成"
-                        : "已保存"}
-              </span>
+              {m.status !== "completed" && (
+                <span className={"coach-status " + m.status}>
+                  {m.status === "queued"
+                    ? "准备回复…"
+                    : m.status === "streaming"
+                      ? "正在回复…"
+                      : m.status === "interrupted"
+                        ? "已停止"
+                        : m.status === "failed"
+                          ? "未完成"
+                          : ""}
+                </span>
+              )}
             </div>
-            {m.anchor && (
-              <button
-                className="anchor-label"
-                onClick={() => onLocate(m.anchor)}
-              >
-                <MapPin size={13} />
-                {location(m.anchor)}
-              </button>
-            )}
+            {m.anchor &&
+              !(
+                m.role === "assistant" &&
+                sameAnchor(snapshot.messages[index - 1]?.anchor, m.anchor)
+              ) && (
+                <button
+                  className={
+                    "anchor-label" + (anchorQuote(m.anchor) ? " quoted" : "")
+                  }
+                  title="回到原文位置"
+                  onClick={() => onLocate(m.anchor)}
+                >
+                  <span>
+                    <MapPin size={13} />
+                    {location(m.anchor)}
+                  </span>
+                  {m.role === "user" && anchorQuote(m.anchor) && (
+                    <q>{anchorQuote(m.anchor)}</q>
+                  )}
+                </button>
+              )}
             <div className="coach-prose">
               {m.context_scope && (
                 <details className="coach-source-scope">
@@ -874,7 +899,7 @@ export default function CoachPanel({
                 <p className="verbatim">{m.content}</p>
               ) : (
                 <Markdown
-                  remarkPlugins={[remarkGfm, remarkMath]}
+                  remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
                     a: (props) => (
@@ -1035,12 +1060,16 @@ export default function CoachPanel({
               ? "写下你的判断、理由或仍不确定的地方…"
               : "写下问题或反驳；这次讨论会保留主线返回点…"
           }
+          ref={composer}
+          rows={2}
           value={text}
           onChange={(e) => change(e.target.value)}
           onKeyDown={(e) => {
+            // Enter sends, Shift+Enter breaks a line; IME confirmation never sends.
             if (
-              (e.ctrlKey || e.metaKey) &&
               e.key === "Enter" &&
+              !e.shiftKey &&
+              !e.altKey &&
               !e.nativeEvent.isComposing &&
               e.nativeEvent.keyCode !== 229
             ) {
@@ -1050,7 +1079,7 @@ export default function CoachPanel({
           }}
         />
         <div className="coach-compose-footer">
-          <span>⌘ / Ctrl + Enter</span>
+          <span>Enter 发送 · Shift + Enter 换行</span>
           {snapshot.busy ? (
             <button
               className="coach-stop"

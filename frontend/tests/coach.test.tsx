@@ -475,11 +475,59 @@ it("does not send while an IME is composing, including keyCode 229 fallback", as
   await screen.findByText("已连接本机 CLI");
   const input = screen.getByLabelText("发给论文教练的消息");
   fireEvent.change(input, { target: { value: "输入中文" } });
+  fireEvent.keyDown(input, { key: "Enter", isComposing: true });
   fireEvent.keyDown(input, { key: "Enter", ctrlKey: true, isComposing: true });
   fireEvent.keyDown(input, { key: "Enter", metaKey: true, keyCode: 229 });
+  fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
   expect(sentBodies()).toHaveLength(0);
-  fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
+  fireEvent.keyDown(input, { key: "Enter" });
   await waitFor(() => expect(sentBodies()).toHaveLength(1));
+});
+
+it("renders CJK bold after full-width punctuation and keeps the quoted source with my words", async () => {
+  const anchor = {
+    paper_id: "p",
+    source_version: "version",
+    page_index: 0,
+    quote: "Both policies receive 20 observations.",
+    status: "verified",
+  };
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/"))
+      return {
+        ...snapshot,
+        messages: [
+          {
+            id: "u",
+            role: "user",
+            content: "会不会只是测量更多？",
+            status: "completed",
+            anchor,
+          },
+          {
+            id: "a",
+            role: "assistant",
+            content: "**你来判断：**还缺什么证据？",
+            status: "completed",
+            anchor,
+          },
+        ],
+      };
+    return {};
+  });
+  view();
+  const bold = await screen.findByText("你来判断：");
+  expect(bold.tagName).toBe("STRONG");
+  expect(
+    screen.getByText("Both policies receive 20 observations."),
+  ).toBeTruthy();
+  // The reply shares the question's location, so it is shown once, and
+  // completed turns are not labelled with a redundant saved status.
+  expect(
+    document.querySelectorAll(".coach-messages .anchor-label"),
+  ).toHaveLength(1);
+  expect(screen.queryByText("已保存")).toBeNull();
 });
 
 it("explains an unavailable coach instead of showing a perpetual connecting state", async () => {
