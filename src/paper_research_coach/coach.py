@@ -279,6 +279,7 @@ TOOLS = [
                     "selection",
                     "sources",
                     "reading-flow",
+                    "questions",
                 ],
             }
         },
@@ -961,6 +962,7 @@ class Coach:
                 "selection",
                 "sources",
                 "reading-flow",
+                "questions",
             ]:
                 raise ValueError("Unknown skill resource")
             return {
