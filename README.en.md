@@ -15,7 +15,7 @@ It does not write you another summary. It checks the evidence with you, one pass
 [![Agent Skill](https://img.shields.io/badge/Agent%20Skill-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Pi-7f9871)](#quick-start)
 [![License: MIT](https://img.shields.io/badge/license-MIT-526653)](LICENSE)
 
-[简体中文](README.md) · **English** · [Quick start](docs/QUICKSTART.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Design](docs/DESIGN.md) · [Contributing](CONTRIBUTING.md)
+[简体中文](README.md) · **English** · [Quick start](docs/QUICKSTART.md) · [Reading method](docs/METHOD.en.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Design](docs/DESIGN.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -41,6 +41,20 @@ It does not write you another summary. It checks the evidence with you, one pass
 | **Evidence** | Hard to trace back | Every message and note returns to its place in the PDF; anchors from an older PDF version are flagged |
 | **What remains** | Another summary | A provisional judgment, open questions and the smallest useful test |
 | **Your data** | Uploaded | PDFs and notes stay local; only the turns you send reach the configured model |
+
+## Why read this way
+
+The habits students use most — rereading, highlighting, summarising — are among the least effective; familiarity with material in front of you easily passes for understanding, and a fluent AI summary makes the illusion stronger. This method spends its effort on getting **you** to predict, check, explain and recall, drawing on three kinds of sources:
+
+| Source | Representatives | Practices it brings |
+|---|---|---|
+| Researchers’ experience | Harry Shum & Gang Hua’s “three levels, four stages, ten questions”, Shuyi Wang (relaying Peter Carr), Keshav, Mu Li, Nielsen, Hamming | Don’t read linearly: abstract → conclusion → figures → introduction → discussion, methods last, stop any time; skim / careful / study; ten questions as a coverage check; end with a next research step |
+| Scientific method | Platt’s *Strong Inference*, Chamberlin’s multiple hypotheses, Popper, Toulmin | For a key claim, list alternatives and seek discriminating evidence and strong simple baselines |
+| Learning science | Cognitive apprenticeship, scaffolding, cognitive load, retrieval practice, the generation effect, self-explanation | One move per turn; predict before looking; fade help by ability; keep your own words; recall with the paper closed |
+
+Each paper should push you up one level: from **passive** reading (what it says) to **active** (what it is for), **critical** (does it hold up) and **creative** (what can I do with it). The pocket version: after each paper, be able to say **what judgment it changes, why you believe it, and how it changes your next step**.
+
+👉 The seven principles, where the eight-step route comes from, the theory behind each practice and a reading list are in **[The reading method](docs/METHOD.en.md)**. These sources motivate the design; they do not show that this tool improves learning.
 
 ## Highlights
 

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Explain the reading method: `docs/METHOD.md` (and English) sets out why each practice is there — the passive → active → critical → creative ladder, a non-linear reading order, the seven principles with the researchers' advice, scientific-method and learning-science work behind them, Hua Gang's ten questions mapped onto the eight steps, what it helps with and what it does not promise. Both READMEs gain a short “why read this way” section.
+- Coach with the method, not only cite it: new `references/questions.md` (reading order, Kajiya's five introduction questions, critical and creative questions, the ten-question template, getting unstuck), loaded by the Skill and available to the workbench coach; selection, coaching, notebook and review references gain venue priority, parking non-blocking terms, abstract self-translation, the “never reread” note standard and half-page reviews. Four new eval scenarios cover them.
+- Sources: record the two Zhihu articles (Wang Shuyi; Shum and Hua) as read in full and add the learning-science and scientific-method literature with DOIs.
 - Render PDFs in browsers without the very newest JavaScript APIs: pdf.js 6's modern build calls `Map#getOrInsertComputed` and `Math.sumPrecise`, so every page failed on e.g. Chromium 141. Use the polyfilled legacy build and log swallowed render errors.
 - Add a dark theme that follows the system. Roughly 230 near-duplicate colours became ~20 semantic tokens; light mode is visually unchanged and the PDF page is gently dimmed at night.
 - Conversation: Enter sends and Shift+Enter breaks a line (IME confirmation never sends); the composer grows with the draft; the quoted passage stays visible under the learner's question; replies no longer repeat its location; finished turns are no longer stamped “已保存”; `**加粗：**正文` renders in Chinese replies (remark-cjk-friendly).
