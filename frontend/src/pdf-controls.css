@@ -5,19 +5,19 @@
 .pdf-floating-tools {
   position: absolute; z-index: 8; right: 12px; top: 50%; transform: translateY(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px;
-  border: 1px solid #ffffffbc; border-radius: 14px;
-  background: #fafbf5db; color: #365744;
+  border: 1px solid color-mix(in srgb, var(--surface) 74%, transparent); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent); color: var(--green);
   box-shadow: 0 3px 18px #263d2520, 0 1px 3px #263d2510;
   -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
 }
 .pdf-floating-tools button {
   width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent;
 }
-.pdf-floating-tools button:hover:not(:disabled), .pdf-floating-tools button[aria-pressed="true"] { background: #dfe8daca; }
-.pdf-floating-tools output { font-size: 10px; font-variant-numeric: tabular-nums; padding: 1px 0; color: #52664f; }
-.pdf-tool-divider { height: 1px; width: 22px; margin: 3px 0; background: #b9c7b16b; }
-.saved-annotation.rectangle { background: #d8e3cc20; border: 1.5px solid #62804e; border-radius: 2px; }
-.pdf-page .draft-annotation { position: absolute; border: 1.5px dashed #62804e; background: #d8e3cc20; pointer-events: none; z-index: 3; }
+.pdf-floating-tools button:hover:not(:disabled), .pdf-floating-tools button[aria-pressed="true"] { background: color-mix(in srgb, var(--tint-strong) 79%, transparent); }
+.pdf-floating-tools output { font-size: 10px; font-variant-numeric: tabular-nums; padding: 1px 0; color: var(--text-2); }
+.pdf-tool-divider { height: 1px; width: 22px; margin: 3px 0; background: color-mix(in srgb, var(--green-soft) 42%, transparent); }
+.saved-annotation.rectangle { background: color-mix(in srgb, var(--tint-strong) 13%, transparent); border: 1.5px solid var(--green); border-radius: 2px; }
+.pdf-page .draft-annotation { position: absolute; border: 1.5px dashed var(--green); background: color-mix(in srgb, var(--tint-strong) 13%, transparent); pointer-events: none; z-index: 3; }
 .selection-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .selection-actions button { padding: 6px 9px; font-size: 12px; }
 .selection-actions .selection-saved { font-size: 12px; color: var(--green); padding: 6px 0; }
@@ -31,13 +31,13 @@
   .pdf-floating-tools button { width: 40px; height: 44px; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .pdf-floating-tools { background: #fafbf5; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .pdf-floating-tools { background: var(--surface-2); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 /* Export feedback must leave the reading toolbar reachable. */
 .reading-open > .toast { top: 64px; right: 18px; max-width: min(420px, calc(100vw - 36px)); }
 .pdf-floating-tools .compact-pages { flex-direction: column; gap: 2px; border: 0; padding: 0; }
 .pdf-floating-tools .compact-pages input { width: 34px; height: 27px; padding: 2px; text-align: center; font-size: 12px; }
-.pdf-floating-tools .compact-pages span { font-size: 10px; color: #52664f; }
+.pdf-floating-tools .compact-pages span { font-size: 10px; color: var(--text-2); }
 @media (max-width: 600px), (max-height: 650px) {
   .pdf-floating-tools { flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100% - 24px); }
   .pdf-floating-tools .compact-pages { flex-direction: row; }
@@ -45,4 +45,4 @@
 }
 
 .pdf-floating-tools .pdf-view-select { width: 46px; min-width: 0; padding: 5px 0; border: 0; border-radius: 7px; background: transparent; color: inherit; font-size: 11px; cursor: pointer; }
-.pdf-floating-tools .pdf-view-select:hover { background: #dfe8daca; }
+.pdf-floating-tools .pdf-view-select:hover { background: color-mix(in srgb, var(--tint-strong) 79%, transparent); }

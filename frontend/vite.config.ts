@@ -19,7 +19,11 @@ export default defineConfig({
   build: {
     outDir: "../src/paper_research_coach/static",
     emptyOutDir: true,
-    rollupOptions: { output: { manualChunks: { pdf: ["pdfjs-dist"] } } },
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => (id.includes("/node_modules/pdfjs-dist/") ? "pdf" : undefined),
+      },
+    },
   },
   server: { proxy: { "/api": "http://127.0.0.1:8765" } },
 });

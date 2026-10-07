@@ -7,7 +7,7 @@ import {
   History,
   Link2,
 } from "lucide-react";
-import { api, put, id, anchorQuote, location, sameAnchor, ApiError, type Row } from "./api";
+import { api, put, id, anchorQuote, isBareMark, location, sameAnchor, ApiError, type Row } from "./api";
 export default function Notes({
   paper,
   notes,
@@ -283,7 +283,7 @@ export default function Notes({
     current.current = next;
     update(next);
   }
-  const pending = notes.filter((n) => !n.discussed && n.author !== "assistant").length;
+  const pending = notes.filter((n) => !n.discussed && n.author !== "assistant" && !isBareMark(n)).length;
   return (
     <aside className="notes-panel">
       <div className="panel-title">
@@ -348,24 +348,30 @@ export default function Notes({
         切到“教练对话”，点击“讨论待讨论笔记”，接着核对你的想法。
       </p>
       <div className="note-list">
-        {[...notes].reverse().map((n) => (
+        {[...notes].reverse().map((n) => {
+          const mark = isBareMark(n);
+          return (
           <article
             className={
-              "note-card " + (n.author === "assistant" ? "ai-note" : "")
+              "note-card " + (n.author === "assistant" ? "ai-note" : mark ? "mark-note" : "")
             }
             key={n.id}
           >
             <div className="note-meta">
               <b>
-                {n.author === "user"
+                {mark
+                  ? anchorQuote(n.anchor) ? "原文标记" : "区域标记"
+                  : n.author === "user"
                   ? "我的原话"
                   : n.author === "assistant"
                     ? "AI 评论"
                     : "Zotero 笔记"}
               </b>
-              <span className={n.discussed ? "discussed" : "pending"}>
-                {n.discussed ? "已讨论" : "已保存"}
-              </span>
+              {!mark && (
+                <span className={n.discussed ? "discussed" : "pending"}>
+                  {n.discussed ? "已讨论" : "已保存"}
+                </span>
+              )}
             </div>
             {n.anchor && (
               <button
@@ -376,7 +382,11 @@ export default function Notes({
                 {location(n.anchor)}
               </button>
             )}
-            <p className="preserve">{n.content}</p>
+            {mark ? (
+              anchorQuote(n.anchor) && <blockquote className="mark-quote">{n.content}</blockquote>
+            ) : (
+              <p className="preserve">{n.content}</p>
+            )}
             {n.links?.length > 0 && (
               <span className="small muted">
                 <Link2 size={12} /> 关联 {n.links.length} 条笔记
@@ -384,8 +394,16 @@ export default function Notes({
             )}
             <div className="note-actions">
               {!n.read_only && n.author !== "assistant" && (
-                <button className="text-button" onClick={() => edit(n)}>
-                  修改
+                <button
+                  className="text-button"
+                  onClick={async () => {
+                    // Keep the highlight; start a new thought at the same place.
+                    if (!mark) return edit(n);
+                    await fresh(n.anchor);
+                    document.querySelector<HTMLTextAreaElement>('textarea[aria-label="记录想法"]')?.focus();
+                  }}
+                >
+                  {mark ? "写下想法" : "修改"}
                 </button>
               )}
               <button
@@ -403,7 +421,8 @@ export default function Notes({
               </button>
             </div>
           </article>
-        ))}
+          );
+        })}
         {!notes.length && (
           <div className="empty small">
             第一条思考不需要完整。

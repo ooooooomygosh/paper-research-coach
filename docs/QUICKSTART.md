@@ -10,6 +10,15 @@ The Skill ZIP is for an existing agent host. The wheel includes the built UI. So
 
 **版本 / Version:** 双指缩放和译文批注需要 `2.0.0rc9` 或更新版本；安装包尚未生成时可使用下面的源码方式。rc5 不包含 `prc-demo`。预发布下载在 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases)，不要依赖 `/latest`。Check the version of the file you downloaded; main can be ahead of release packages.
 
+## Claude Code：两条命令安装 Skill / Install the Skill as a plugin
+
+```text
+/plugin marketplace add ooooooomygosh/paper-research-coach
+/plugin install paper-research-coach@paper-research-coach
+```
+
+Codex、Pi 等其他宿主可运行 `npx skills add ooooooomygosh/paper-research-coach`，或按 [README](../README.md#快速开始) 手动解压 Skill ZIP。Other hosts: `npx skills add`, or extract the Skill ZIP by hand.
+
 ## macOS / Linux：从 wheel 安装
 
 在下载目录执行，将文件名替换成实际文件名。Use the actual downloaded filename.

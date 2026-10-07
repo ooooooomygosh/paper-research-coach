@@ -13,7 +13,7 @@ const mock = vi.hoisted(() => ({
   fail: -1,
   calls: [] as number[][],
 }));
-vi.mock("pdfjs-dist", () => ({
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
   GlobalWorkerOptions: {},
   TextLayer: class {
     render() {

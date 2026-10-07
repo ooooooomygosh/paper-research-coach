@@ -86,6 +86,12 @@ export function location(a: any) {
 }
 
 export const anchorQuote = (anchor: any) => anchor?.rendition?.quote || anchor?.quote || "";
+/** A kept highlight or region: the words are the paper's, not a learner thought. */
+export function isBareMark(note: any) {
+  if (note?.author !== "user" || !note.anchor) return false;
+  const quote = anchorQuote(note.anchor).trim(), content = (note.content || "").trim();
+  return quote ? content === quote : content === "区域标记";
+}
 
 /** Read only geometry belonging to the displayed PDF; source and translated layouts differ. */
 export function visibleAnchor(anchor: any, paper: Row, rendition?: { job_id: string; view: string; document_version: string } | null) {

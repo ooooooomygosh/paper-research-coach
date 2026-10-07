@@ -32,7 +32,7 @@ def capture(output: Path, executable: str | None = None) -> None:
         conversation = coach.binding(paper["id"])["conversation_id"]
         anchor = store.list("note", paper["id"])[0]["anchor"]
         messages = [
-            ("user", "【预设读者问题】这个提升，会不会只是因为测量次数更多？", anchor),
+            ("user", "【预设读者问题】这里没有误差条。这个提升会不会只是因为测量次数更多？", anchor),
             ("assistant", "**预设带读示例 · 非实时模型回复**\n\n先看第 2 页：两组都是 **20 次观测**。这排除了“只是测量更多”这个解释，但还不能证明时机选择稳定有效。\n\n原文同时写着：*No error bars, repeated runs or trajectory details are reported.*\n\n我们现在只核对一个问题：**还缺什么证据，才能相信这 2 个单位的差距？**", anchor),
         ]
         for index, (role, content, source) in enumerate(messages):
@@ -77,6 +77,11 @@ def capture(output: Path, executable: str | None = None) -> None:
                 from PIL import Image
                 with Image.open(output / "reading.png") as shot:
                     assert min(shot.convert("RGB").getpixel((30, 90))) > 230, "PDF paper is not visible"
+                # The same scene in the dark theme, for the README's <picture> element.
+                page.emulate_media(color_scheme="dark")
+                page.wait_for_timeout(300)
+                page.screenshot(animations="disabled", path=str(output / "reading-dark.png"))
+                page.emulate_media(color_scheme="light")
                 passage = page.locator(".textLayer span").filter(has_text="Both policies receive 20 observations per episode.")
                 passage.evaluate("""e => {
                     const range = document.createRange(); range.selectNodeContents(e);

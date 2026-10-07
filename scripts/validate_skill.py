@@ -21,6 +21,20 @@ for path in skill.rglob("*.md"):
 for path in skill.rglob("*.json"):
     json.loads(path.read_text())
 assert len(json.loads((root / "evals/scenarios.json").read_text())) >= 15
+# One release version everywhere a user or host can see it.
+version = re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(), re.M)[1]
+market = json.loads((root / ".claude-plugin/marketplace.json").read_text())
+npm = json.loads((root / "frontend/package.json").read_text())["version"]
+versions = {
+    "pyproject.toml": version,
+    "__init__.py": re.search(r'"([^"]+)"', (root / "src/paper_research_coach/__init__.py").read_text())[1],
+    "SKILL.md": front["metadata"]["version"],
+    "marketplace.json": market["metadata"]["version"],
+    "package.json": re.sub(r"-rc\.(\d+)$", r"rc\1", npm),
+}
+assert len(set(versions.values())) == 1, versions
+assert [p["skills"] for p in market["plugins"]] == [["./skills/" + front["name"]]], market
 print(
-    "Skill frontmatter, progressive-disclosure links, JSON assets and scenario manifest: valid"
+    "Skill frontmatter, progressive-disclosure links, JSON assets, scenario manifest,"
+    " plugin marketplace and release versions: valid"
 )

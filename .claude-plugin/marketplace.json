@@ -1,0 +1,21 @@
+{
+  "name": "paper-research-coach",
+  "owner": {
+    "name": "ooooooomygosh"
+  },
+  "metadata": {
+    "description": "Evidence-first paper reading coach: read, question, annotate and turn papers into your own research judgment.",
+    "version": "2.0.0rc9"
+  },
+  "plugins": [
+    {
+      "name": "paper-research-coach",
+      "description": "Read a research paper with a coach that starts from your question, checks claims against the source, keeps your exact words separate from AI comments, and ends with a falsifiable next step. Works in plain chat; the local workbench and Zotero are optional.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/paper-research-coach"
+      ]
+    }
+  ]
+}

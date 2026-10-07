@@ -1,6 +1,6 @@
 ---
 name: paper-research-coach
-description: "Guide a graduate student through choosing, reading, questioning, comparing, remembering, and presenting research papers. Use when the user asks to read a paper together, understand its distinctive contribution or evidence, record reading thoughts, develop a falsifiable research idea, resume a reading session, or connect a paper to their own research. Works with or without the optional local Paper Research Coach workbench and Zotero. Not a generic bulk summarizer."
+description: "Guide a graduate student through choosing, reading, questioning, comparing, remembering, and presenting research papers. Use when the user asks to read a paper together, understand its distinctive contribution or evidence, record reading thoughts, develop a falsifiable research idea, resume a reading session, or connect a paper to their own research, including Chinese requests such as 带我读论文, 精读, 读不懂这段, 这个结论可信吗, 论文笔记, 组会汇报 or 选题. Works with or without the optional local Paper Research Coach workbench and Zotero. Not a generic bulk summarizer."
 license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:

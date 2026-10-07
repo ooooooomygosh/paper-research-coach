@@ -1,6 +1,6 @@
 {
   "name": "paper-research-coach-ui",
-  "version": "2.0.0-rc.5",
+  "version": "2.0.0-rc.9",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,6 +17,7 @@
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
     "rehype-katex": "^7.0.1",
+    "remark-cjk-friendly": "^2.3.2",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0"
   },

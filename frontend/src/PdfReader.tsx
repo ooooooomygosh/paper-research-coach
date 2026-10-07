@@ -7,8 +7,11 @@ import {
   TextLayer,
   type PDFDocumentProxy,
   type PDFPageProxy,
-} from "pdfjs-dist";
-import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+} from "pdfjs-dist/legacy/build/pdf.mjs";
+// The legacy build polyfills very recent APIs (e.g. Map#getOrInsertComputed,
+// Math.sumPrecise) that the modern pdf.js 6 build calls unconditionally; without
+// it, pages fail to render in browsers that are only a few months old.
+import worker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import "./pdf-text-layer.css";
 import "./reading-experience.css";
 import "./pdf-controls.css";
@@ -249,9 +252,10 @@ export default function PdfReader({
         labels.current = pageLabels;
         setDoc(d);
       })
-      .catch(() => {
-        if (!disposed)
-          setError("PDF 暂不可用。请检查文件位置；换版后需要重新确认锚点。");
+      .catch((e) => {
+        if (disposed) return;
+        console.warn("PDF document load failed", e);
+        setError("PDF 暂不可用。请检查文件位置；换版后需要重新确认锚点。");
       });
     return () => {
       disposed = true;
@@ -310,8 +314,9 @@ export default function PdfReader({
         }
       })
       .catch((e) => {
-        if (!disposed && e.name !== "RenderingCancelledException")
-          setError("此页无法显示，请尝试其他页。");
+        if (disposed || e.name === "RenderingCancelledException") return;
+        console.warn("PDF page render failed", e);
+        setError("此页无法显示，请尝试其他页。");
       });
     return () => {
       disposed = true;
