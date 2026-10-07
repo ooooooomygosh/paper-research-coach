@@ -839,7 +839,7 @@ class Coach:
                 options["model"] = body.model or config["model"]
             await self.native_thread(conversation, options)
             source_changed = bool(conversation.get("source_version") and conversation["source_version"] != paper["source_version"])
-            inputs, prefix_length = turn_input(body, source_changed=source_changed)
+            inputs, prefix_length = turn_input(body, source_changed=source_changed, flow=reading.snapshot(session, paper))
             conversation["source_version"] = paper["source_version"]
             answer["context_scope"] = {"page_index": body.context_page_index(), "notes_included": 0, "notes_total": len(self.store.list("note", pid)), "history_messages_included": 0, "automatic_characters": prefix_length, "retrieval_on_demand": True}
             if body.page_image:

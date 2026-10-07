@@ -369,6 +369,7 @@ export default function CoachPanel({
   const flow = snapshot.reading_flow;
   const flowDone = flow?.status === "completed";
   const flowStarted = flow?.status === "active";
+  const stepNumber = `${(flow?.steps || []).findIndex((s: any) => s.id === flow?.current) + 1}/${flow?.steps?.length || 8}`;
   const unavailable =
     status?.state !== "ready" ||
     snapshot.busy ||
@@ -417,92 +418,109 @@ export default function CoachPanel({
           ))}
         </select>
       </div>
-      <div className="coach-mainline" aria-label="论文跟读主线">
-        <div className="coach-mainline-heading">
-          <strong>
-            {flowDone
-              ? "本轮跟读已完成"
-              : flowStarted
-                ? flow.label
-                : "这篇论文的跟读主线"}
-          </strong>
-          <span title="核查进度不是掌握度">
-            已核查 {flow?.completed?.length || 0} / {flow?.steps?.length || 8}
-          </span>
-        </div>
-        <p>
-          {flowDone
-            ? "回到复习队列巩固理解，也可以继续讨论新问题。"
-            : flow?.return_action ||
-              flow?.goal ||
-              "从阅读目标到证据、研究启发和复习，按既定流程一起读。"}
-        </p>
-        {flow?.pending_question && (
-          <p className="coach-pending-question">
-            <b>当前问题：</b>
-            {flow.pending_question}
-          </p>
-        )}
-        {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
-        <button
-          className="primary"
-          disabled={unavailable}
-          onClick={() =>
-            void send(text, false, text.trim() ? "answer" : "follow")
-          }
-        >
-          {text.trim()
-            ? "回答并继续主线"
-            : flowDone
-              ? "回顾阅读总结"
-              : flowStarted
-                ? "继续主线"
-                : "开始跟读"}
-        </button>
-        <details>
-          <summary>查看阅读路线</summary>
-          <p>
-            这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。
-          </p>
-          <ol>
-            {(flow?.steps || []).map((step: any) => {
-              const receipt = flow?.completed?.find(
-                (c: any) => c.step === step.id,
-              );
-              return (
-                <li
-                  key={step.id}
-                  aria-current={
-                    !flowDone && flow?.current === step.id ? "step" : undefined
-                  }
-                >
-                  {receipt ? "✓ " : ""}
-                  {step.label}
-                  {receipt && (
-                    <details className="reading-receipt">
-                      <summary>核查依据</summary>
-                      <p>{receipt.evidence}</p>
-                      {flow.source_version === paper.source_version &&
-                        Number.isInteger(receipt.page_index) &&
-                        receipt.page_index >= 0 &&
-                        receipt.page_index < paper.page_count && (
-                          <button
-                            onClick={() =>
-                              onLocate(anchorFor(paper, receipt.page_index))
-                            }
-                          >
-                            查看 PDF 第 {receipt.page_index + 1} 页
-                          </button>
-                        )}
-                    </details>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </details>
-      </div>
     </>
+  );
+  const mainline = (
+    <div className="coach-mainline" aria-label="论文跟读主线">
+      <ol className="coach-progress-track" aria-hidden="true">
+        {(flow?.steps || []).map((step: any) => (
+          <li
+            key={step.id}
+            title={step.label}
+            className={
+              flow?.completed?.some((c: any) => c.step === step.id)
+                ? "done"
+                : flowStarted && flow?.current === step.id
+                  ? "current"
+                  : ""
+            }
+          />
+        ))}
+      </ol>
+      <div className="coach-mainline-heading">
+        <strong>
+          {flowDone
+            ? "本轮跟读已完成"
+            : flowStarted
+              ? `第 ${stepNumber} 步 · ${flow.label}`
+              : "这篇论文的跟读主线"}
+        </strong>
+        <span title="核查进度不是掌握度">
+          已核查 {flow?.completed?.length || 0} / {flow?.steps?.length || 8}
+        </span>
+      </div>
+      <p>
+        {flowDone
+          ? "回到复习队列巩固理解，也可以继续讨论新问题。"
+          : flowStarted
+            ? flow?.return_action || flow?.goal
+            : "八步：目标 → 贡献 → 设定 → 机制 → 证据 → 边界 → 启发 → 回忆。读到任何地方都可以选中原文插话，主线会停在原处等你。"}
+      </p>
+      {flow?.pending_question && (
+        <p className="coach-pending-question">
+          <b>当前问题：</b>
+          {flow.pending_question}
+        </p>
+      )}
+      {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
+      <button
+        className="primary"
+        disabled={unavailable}
+        onClick={() =>
+          void send(text, false, text.trim() ? "answer" : "follow")
+        }
+      >
+        {text.trim()
+          ? "回答并继续主线"
+          : flowDone
+            ? "回顾阅读总结"
+            : flowStarted
+              ? "继续主线"
+              : "开始跟读"}
+      </button>
+      <details>
+        <summary>查看八步路线与核查依据</summary>
+        <p>
+          这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。
+        </p>
+        <ol>
+          {(flow?.steps || []).map((step: any) => {
+            const receipt = flow?.completed?.find(
+              (c: any) => c.step === step.id,
+            );
+            return (
+              <li
+                key={step.id}
+                aria-current={
+                  !flowDone && flow?.current === step.id ? "step" : undefined
+                }
+              >
+                {receipt ? "✓ " : ""}
+                {step.label}
+                {receipt && (
+                  <details className="reading-receipt">
+                    <summary>核查依据</summary>
+                    <p>{receipt.evidence}</p>
+                    {flow.source_version === paper.source_version &&
+                      Number.isInteger(receipt.page_index) &&
+                      receipt.page_index >= 0 &&
+                      receipt.page_index < paper.page_count && (
+                        <button
+                          onClick={() =>
+                            onLocate(anchorFor(paper, receipt.page_index))
+                          }
+                        >
+                          查看 PDF 第 {receipt.page_index + 1} 页
+                        </button>
+                      )}
+                  </details>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </details>
+    </div>
   );
   const learningSummary = (
     <>
@@ -800,6 +818,7 @@ export default function CoachPanel({
           {sessionTools}
         </details>
       )}
+      {mainline}
       <div
         className="coach-messages"
         ref={scroll}
@@ -814,18 +833,20 @@ export default function CoachPanel({
       >
         {!snapshot.messages.length && (
           <div className="coach-welcome">
-            <span className="eyebrow">从当前疑问开始</span>
-            <h3>想从哪里开始？</h3>
-            <p>
-              随时提问，或从当前页开始一起读。刷新页面后，也会继续这篇论文的同一段对话。
-            </p>
-            <button
-              className="primary"
-              disabled={unavailable}
-              onClick={() => void send("", false, "follow")}
-            >
-              从当前页开始
-            </button>
+            <span className="eyebrow">怎么用</span>
+            <h3>一边读原文，一边一步步形成判断</h3>
+            <ol className="coach-howto">
+              <li>
+                点上方<b>开始跟读</b>：教练从“这次要判断什么”开始，每轮只推进一步、只问一个问题。
+              </li>
+              <li>
+                有问题时直接在下方输入你的回答，按 Enter 发送，主线随之前进；想先听讲解，就把“帮助方式”改为直接解释。
+              </li>
+              <li>
+                读到看不懂的地方，选中原文点<b>讨论这处</b>：这是插话，主线停在原步骤，问完点<b>继续主线</b>回来。
+              </li>
+            </ol>
+            <p>也可以不走主线，直接提问。刷新页面后会接着这篇论文的同一段对话。</p>
           </div>
         )}
         {snapshot.messages.map((m, index) => (
@@ -1032,17 +1053,7 @@ export default function CoachPanel({
             {anchorQuote(anchor)}
           </blockquote>
         )}
-        {toolsContainer ? (
-          createPortal(
-            <div className="coach-tools-content">{turnControls}</div>,
-            toolsContainer,
-          )
-        ) : (
-          <details className="coach-fallback-tools">
-            <summary>帮助偏好</summary>
-            {turnControls}
-          </details>
-        )}
+        {turnControls}
         {snapshot.read_only && (
           <button
             onClick={() =>

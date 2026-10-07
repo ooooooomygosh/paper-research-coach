@@ -553,3 +553,36 @@ it("explains an unavailable coach instead of showing a perpetual connecting stat
   expect(api).toHaveBeenCalledWith("coach/reconnect", {});
   expect(screen.getByText("已连接")).toBeTruthy();
 });
+
+it("keeps the mainline step, its button and the turn intent in the panel when a tools drawer exists", async () => {
+  const drawer = document.createElement("section");
+  document.body.append(drawer);
+  const steps = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"].map(
+    (id) => ({ id, label: id === "model" ? "问题设定" : id }),
+  );
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/"))
+      return {
+        ...snapshot,
+        reading_flow: {
+          status: "active",
+          current: "model",
+          label: "问题设定",
+          goal: "核对输入、输出、可用信息、假设与代价。",
+          steps,
+          completed: [{ step: "orient" }, { step: "insight" }],
+          pending_question: "决策时真正可用的信息是什么？",
+        },
+      };
+    return {};
+  });
+  const { container } = view({ toolsContainer: drawer, onOpenTools: vi.fn() });
+  await screen.findByText("第 3/8 步 · 问题设定");
+  const panel = container.querySelector(".coach-panel")!;
+  expect(panel.contains(screen.getByRole("button", { name: "继续主线", exact: true }))).toBe(true);
+  expect(panel.contains(screen.getByText("决策时真正可用的信息是什么？"))).toBe(true);
+  expect(panel.contains(screen.getByLabelText("本轮意图"))).toBe(true);
+  expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
+  drawer.remove();
+});

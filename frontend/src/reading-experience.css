@@ -153,3 +153,54 @@
 .coach-learning p {
   overflow-wrap: anywhere;
 }
+
+/* The mainline stays visible in the coach panel: where you are and one next action. */
+.coach-progress-track {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.coach-progress-track li {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.coach-progress-track li.done {
+  background: var(--green-soft);
+}
+.coach-progress-track li.current {
+  background: var(--green);
+}
+.coach-mainline .coach-mainline-heading strong {
+  font-size: 13px;
+}
+.coach-mainline > p:not(.coach-pending-question) {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.coach-compose .coach-turn-controls {
+  margin: 4px 0 6px;
+}
+.coach-howto {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+.coach-howto li + li {
+  margin-top: 6px;
+}
+@media (max-width: 640px) {
+  .coach-mainline > p:not(.coach-pending-question) {
+    display: none;
+  }
+  .coach-mainline > .coach-pending-question {
+    max-height: 48px;
+  }
+}
