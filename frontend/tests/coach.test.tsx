@@ -360,13 +360,13 @@ const sentBodies = () =>
     .mock.calls.filter(([p]) => p === "coach/send/p")
     .map(([, b]) => b);
 
-it("the ordinary send button answers a pending question and transmits help separately", async () => {
+it("the ordinary send button answers a pending question without any manual intent or help setting", async () => {
   activeFlow();
   view();
   await screen.findByText(/哪项对照能排除预算混杂？/);
-  fireEvent.change(screen.getByLabelText("帮助方式"), {
-    target: { value: "hint" },
-  });
+  expect(screen.queryByLabelText("帮助方式")).toBeNull();
+  expect(screen.queryByLabelText("本轮意图")).toBeNull();
+  expect(screen.getByText("Enter 发送，作为对待答问题的回答")).toBeTruthy();
   fireEvent.change(screen.getByLabelText("发给论文教练的消息"), {
     target: { value: "  需要匹配预算  " },
   });
@@ -374,24 +374,34 @@ it("the ordinary send button answers a pending question and transmits help separ
   await waitFor(() => expect(sentBodies()).toHaveLength(1));
   expect(sentBodies()[0]).toMatchObject({
     intent: "answer",
-    help_mode: "hint",
+    help_mode: "guided",
     content: "  需要匹配预算  ",
   });
 });
 
-it("explicit detours and selection discussions never advance the pending mainline", async () => {
+it("questions about a selection are detours that never advance the pending mainline", async () => {
   activeFlow();
-  view();
-  await screen.findByText(/哪项对照能排除预算混杂？/);
-  fireEvent.change(screen.getByLabelText("本轮意图"), {
-    target: { value: "detour" },
-  });
+  const anchor = {
+    paper_id: "p",
+    source_version: "version",
+    page_index: 1,
+    status: "verified",
+    quote: "oracle",
+    rects: [],
+  };
+  view({ anchor });
+  await screen.findByText("已附上选中文字");
+  expect(screen.queryByText(/哪项对照能排除预算混杂？/)).toBeNull();
+  expect(screen.getByText("Enter 发送 · 插话，主线停在第 1 步")).toBeTruthy();
   fireEvent.change(screen.getByLabelText("发给论文教练的消息"), {
     target: { value: "先解释一下 oracle" },
   });
   fireEvent.click(screen.getByLabelText("发送给论文教练"));
   await waitFor(() => expect(sentBodies()).toHaveLength(1));
   expect(sentBodies()[0].intent).toBe("detour");
+  fireEvent.click(screen.getByRole("button", { name: "直接讲这处" }));
+  await waitFor(() => expect(sentBodies()).toHaveLength(2));
+  expect(sentBodies()[1].intent).toBe("detour");
 });
 
 it("binds text to the selected page, disables a different page image and consumes only the submitted selection", async () => {
@@ -406,13 +416,7 @@ it("binds text to the selected page, disables a different page image and consume
   const clear = vi.fn();
   view({ anchor, onClearAnchor: clear });
   await screen.findByText("已连接本机 CLI");
-  expect(
-    (
-      screen.getByLabelText(
-        "同时发送当前整页图像（不只是选区）",
-      ) as HTMLInputElement
-    ).disabled,
-  ).toBe(true);
+  expect(screen.queryByRole("checkbox", { name: /整页图像/ })).toBeNull();
   fireEvent.change(screen.getByLabelText("发给论文教练的消息"), {
     target: { value: "解释这一句" },
   });
@@ -552,4 +556,40 @@ it("explains an unavailable coach instead of showing a perpetual connecting stat
   await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
   expect(api).toHaveBeenCalledWith("coach/reconnect", {});
   expect(screen.getByText("已连接")).toBeTruthy();
+});
+
+it("keeps the mainline step, its button and the pending question in the panel when a tools drawer exists", async () => {
+  const drawer = document.createElement("section");
+  document.body.append(drawer);
+  const steps = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"].map(
+    (id) => ({ id, label: id === "model" ? "问题设定" : id }),
+  );
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/"))
+      return {
+        ...snapshot,
+        reading_flow: {
+          status: "active",
+          current: "model",
+          label: "问题设定",
+          goal: "核对输入、输出、可用信息、假设与代价。",
+          steps,
+          completed: [{ step: "orient" }, { step: "insight" }],
+          pending_question: "决策时真正可用的信息是什么？",
+        },
+      };
+    return {};
+  });
+  const { container } = view({ toolsContainer: drawer, onOpenTools: vi.fn() });
+  await screen.findByText("第 3/8 步 · 问题设定");
+  const panel = container.querySelector(".coach-panel")!;
+  expect(panel.contains(screen.getByRole("button", { name: "继续主线", exact: true }))).toBe(true);
+  expect(panel.contains(screen.getByText("决策时真正可用的信息是什么？"))).toBe(true);
+  expect(drawer.querySelector(".coach-mainline")).toBeNull();
+  expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
+  expect(screen.queryByText("问题设定", { selector: ".coach-route li" })).toBeNull();
+  fireEvent.click(screen.getByTitle("查看八步路线与核查依据"));
+  expect(screen.getByLabelText("八步阅读路线")).toBeTruthy();
+  drawer.remove();
 });

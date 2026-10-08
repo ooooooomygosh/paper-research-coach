@@ -27,7 +27,7 @@ def bootstrap(paper, session):
     return result
 
 
-def turn_input(body, *, source_changed=False):
+def turn_input(body, *, source_changed=False, flow=None):
     prefix = f"我正在看 PDF 第 {body.context_page_index() + 1} 页。"
     if source_changed:
         prefix += "论文文件已更新，请重新核对当前版本的证据。"
@@ -38,7 +38,7 @@ def turn_input(body, *, source_changed=False):
     else:
         prefix += "讨论这次问题，保留原来的阅读返回点。"
     prefix += {
-        "guided": "请按当前理解提供最少必要帮助。",
+        "guided": "按我的消息判断帮助方式：要求直接讲就直接解释，只要提示就只给一条线索，请你反驳就检验一个替代解释，否则给最少必要帮助；要了提示或解释的回合不记为独立完成。",
         "hint": "请只给一个提示。",
         "explain": "请直接解释。",
         "challenge": "请检验我的判断。",
@@ -46,6 +46,9 @@ def turn_input(body, *, source_changed=False):
     if len(prefix) > 300:
         raise ValueError("位置提示超过容量。")
     inputs = [{"type": "text", "text": prefix}]
+    guide = reading.turn_guide(flow, body.intent)
+    if guide:
+        inputs.append({"type": "text", "text": guide})
     if body.anchor and body.anchor.quote:
         inputs.append(
             {
@@ -56,7 +59,7 @@ def turn_input(body, *, source_changed=False):
     inputs.append({"type": "text", "text": body.content})
     if body.page_image:
         inputs.append({"type": "image", "url": body.page_image})
-    return inputs, len(prefix)
+    return inputs, len(prefix) + len(guide)
 
 
 def brief_context(context):

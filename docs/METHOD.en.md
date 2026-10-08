@@ -125,7 +125,7 @@ Michael Mitzenmacher’s *How to Read a Research Paper*, quoted by Shum, phrases
 
 **When stuck.** Shum’s path, from cheap to expensive: look up terms → read references and reread → keep reading for the basic idea → ask “**what question were the authors trying to answer?**” → ask someone who knows → don’t get overwhelmed. Shuyi Wang adds: **note unfamiliar concepts and resolve them later**, or you break the flow of reading. The coach therefore asks whether a gap blocks the current judgment: if so, it isolates it with a minimal example; if not, it parks it to look up after the passage.
 
-**In the tool.** The four help preferences apply to this turn only and are not ability ratings; ability records need your actual answer — clicks, read explanations and “got it” are not evidence.
+**In the tool.** There is no help setting: say “just a hint”, “explain directly” or “challenge me” in your message and the coach follows it for that turn, defaulting to the least help needed. These choices are not ability ratings; ability records need your actual answer — clicks, read explanations and “got it” are not evidence.
 
 ### 6. Keep your own words, not a polished summary
 
