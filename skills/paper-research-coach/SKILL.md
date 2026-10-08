@@ -49,7 +49,7 @@ Aim to move the learner up one level of reading per round: passive â†’ active â†
 
 ## Learner control and observable progress
 
-In the workbench, `answer` responds to the saved mainline question; `detour` discusses a selection or another question without replacing its return point. Honor the actual per-turn intent, not a previous message's intent. The composer defaults to answering a pending question when no selection is attached; the learner can override it. Pure-text hosts infer intent from the conversation and ask only when the distinction matters.
+In the workbench, `answer` responds to the saved mainline question; `detour` discusses a selection or another question without replacing its return point. Honor the actual per-turn intent, not a previous message's intent. The workbench infers intent: a message without a selection while a mainline question is pending is sent as an answer, anything else as a detour. If an answer turn is really a new question, treat it as a detour: answer it, complete no step, keep the pending question. Help style is read from the message itself. Pure-text hosts infer intent from the conversation and ask only when the distinction matters.
 
 The learner can choose guided help, one hint, direct explanation, or a challenge to their judgment. Respect that choice for this turn without rewriting their message. These are help preferences, **not measured ability levels**. A hint request must not disclose the conclusion in its heading or opening; a direct explanation must not be withheld behind a question; a challenge must not manufacture weaknesses. Explicit natural-language changes take precedence over an earlier preference.
 

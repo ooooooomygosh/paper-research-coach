@@ -10,6 +10,7 @@ import {
   Plus,
   Maximize2,
   Minimize2,
+  ChevronDown,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -34,7 +35,6 @@ import {
   replyIntent,
   helpLabels,
   type HelpMode,
-  type IntentChoice,
 } from "./reading-context";
 
 type Message = {
@@ -123,15 +123,13 @@ export default function CoachPanel({
   const [expanded, setExpanded] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
-  const [intentChoice, setIntentChoice] = useState<IntentChoice>("auto");
-  const [helpMode, setHelpMode] = useState<HelpMode>("guided");
+  const [routeOpen, setRouteOpen] = useState(false);
   const currentAnchor = useRef(anchor);
   currentAnchor.current = anchor;
-  const effectiveIntent = replyIntent(
-    snapshot.reading_flow,
-    anchor,
-    intentChoice,
-  );
+  // Intent and help style are inferred, never configured: a selection is a
+  // detour, a reply to a pending mainline question is an answer, and the coach
+  // reads requests such as "just explain" from the message itself.
+  const effectiveIntent = replyIntent(snapshot.reading_flow, anchor, "auto");
   const canAttachImage = imageMatchesPage(paper, page, anchor);
   const scroll = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -216,7 +214,6 @@ export default function CoachPanel({
         !anchor?.quote &&
         imageMatchesPage(paper, page, anchor),
     );
-    setIntentChoice("auto");
   }, [anchor, page, paper.id, paper.source_version, chosen]);
   // Grow with the draft up to a bounded height, so long answers stay visible.
   useLayoutEffect(() => {
@@ -275,7 +272,7 @@ export default function CoachPanel({
             page_index:
               intent === "follow" ? page : contextPage(paper, page, anchor),
             source_version: paper.source_version,
-            help_mode: helpMode,
+            help_mode: "guided",
             model,
             effort,
             page_image: intent !== "follow" && includeImage ? pageImage() : "",
@@ -369,7 +366,8 @@ export default function CoachPanel({
   const flow = snapshot.reading_flow;
   const flowDone = flow?.status === "completed";
   const flowStarted = flow?.status === "active";
-  const stepNumber = `${(flow?.steps || []).findIndex((s: any) => s.id === flow?.current) + 1}/${flow?.steps?.length || 8}`;
+  const stepIndex = (flow?.steps || []).findIndex((s: any) => s.id === flow?.current);
+  const stepNumber = `${stepIndex >= 0 ? stepIndex + 1 : (flow?.completed?.length || 0) + 1}/${flow?.steps?.length || 8}`;
   const unavailable =
     status?.state !== "ready" ||
     snapshot.busy ||
@@ -420,106 +418,58 @@ export default function CoachPanel({
       </div>
     </>
   );
-  const mainline = (
-    <div className="coach-mainline" aria-label="论文跟读主线">
-      <ol className="coach-progress-track" aria-hidden="true">
-        {(flow?.steps || []).map((step: any) => (
-          <li
-            key={step.id}
-            title={step.label}
-            className={
-              flow?.completed?.some((c: any) => c.step === step.id)
-                ? "done"
-                : flowStarted && flow?.current === step.id
-                  ? "current"
-                  : ""
-            }
-          />
-        ))}
-      </ol>
-      <div className="coach-mainline-heading">
-        <strong>
-          {flowDone
-            ? "本轮跟读已完成"
-            : flowStarted
-              ? `第 ${stepNumber} 步 · ${flow.label}`
-              : "这篇论文的跟读主线"}
-        </strong>
-        <span title="核查进度不是掌握度">
-          已核查 {flow?.completed?.length || 0} / {flow?.steps?.length || 8}
-        </span>
-      </div>
+  const mainlineLabel = text.trim()
+    ? "回答并继续主线"
+    : flowDone
+      ? "回顾阅读总结"
+      : flowStarted
+        ? "继续主线"
+        : "开始跟读";
+  const route = (
+    <div className="coach-route" aria-label="八步阅读路线">
       <p>
         {flowDone
-          ? "回到复习队列巩固理解，也可以继续讨论新问题。"
+          ? "八步都已核查。回到复习队列巩固，也可以继续讨论新问题。"
           : flowStarted
             ? flow?.return_action || flow?.goal
-            : "八步：目标 → 贡献 → 设定 → 机制 → 证据 → 边界 → 启发 → 回忆。读到任何地方都可以选中原文插话，主线会停在原处等你。"}
+            : "目标 → 贡献 → 设定 → 机制 → 证据 → 边界 → 启发 → 回忆。每轮只推进一步；随时可以选中原文插话，主线停在原处。"}
       </p>
-      {flow?.pending_question && (
-        <p className="coach-pending-question">
-          <b>当前问题：</b>
-          {flow.pending_question}
-        </p>
-      )}
       {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
-      <button
-        className="primary"
-        disabled={unavailable}
-        onClick={() =>
-          void send(text, false, text.trim() ? "answer" : "follow")
-        }
-      >
-        {text.trim()
-          ? "回答并继续主线"
-          : flowDone
-            ? "回顾阅读总结"
-            : flowStarted
-              ? "继续主线"
-              : "开始跟读"}
-      </button>
-      <details>
-        <summary>查看八步路线与核查依据</summary>
-        <p>
-          这是核查记录，不是掌握度。独立理解需通过不看答案的回忆与迁移来检验。
-        </p>
-        <ol>
-          {(flow?.steps || []).map((step: any) => {
-            const receipt = flow?.completed?.find(
-              (c: any) => c.step === step.id,
-            );
-            return (
-              <li
-                key={step.id}
-                aria-current={
-                  !flowDone && flow?.current === step.id ? "step" : undefined
-                }
-              >
-                {receipt ? "✓ " : ""}
-                {step.label}
-                {receipt && (
-                  <details className="reading-receipt">
-                    <summary>核查依据</summary>
-                    <p>{receipt.evidence}</p>
-                    {flow.source_version === paper.source_version &&
-                      Number.isInteger(receipt.page_index) &&
-                      receipt.page_index >= 0 &&
-                      receipt.page_index < paper.page_count && (
-                        <button
-                          onClick={() =>
-                            onLocate(anchorFor(paper, receipt.page_index))
-                          }
-                        >
-                          查看 PDF 第 {receipt.page_index + 1} 页
-                        </button>
-                      )}
-                  </details>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      </details>
+      <ol>
+        {(flow?.steps || []).map((step: any) => {
+          const receipt = flow?.completed?.find((c: any) => c.step === step.id);
+          return (
+            <li
+              key={step.id}
+              aria-current={
+                flowStarted && flow?.current === step.id ? "step" : undefined
+              }
+            >
+              {receipt ? "✓ " : ""}
+              {step.label}
+              {receipt && (
+                <details className="reading-receipt">
+                  <summary>核查依据</summary>
+                  <p>{receipt.evidence}</p>
+                  {flow.source_version === paper.source_version &&
+                    Number.isInteger(receipt.page_index) &&
+                    receipt.page_index >= 0 &&
+                    receipt.page_index < paper.page_count && (
+                      <button
+                        onClick={() =>
+                          onLocate(anchorFor(paper, receipt.page_index))
+                        }
+                      >
+                        查看 PDF 第 {receipt.page_index + 1} 页
+                      </button>
+                    )}
+                </details>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      <p className="small muted">核查进度不是掌握度；独立理解要靠不看答案的回忆来检验。</p>
     </div>
   );
   const learningSummary = (
@@ -571,54 +521,6 @@ export default function CoachPanel({
           ))}
         </details>
       )}
-    </>
-  );
-  const turnControls = (
-    <>
-      <div className="coach-turn-controls">
-        <label>
-          本轮意图
-          <select
-            aria-label="本轮意图"
-            value={intentChoice}
-            onChange={(e) => setIntentChoice(e.target.value as IntentChoice)}
-          >
-            <option value="auto">
-              自动 · {effectiveIntent === "answer" ? "回答主线" : "插话讨论"}
-            </option>
-            <option value="answer">回答主线</option>
-            <option value="detour">插话讨论 · 保留返回点</option>
-          </select>
-        </label>
-        <label>
-          帮助方式
-          <select
-            aria-label="帮助方式"
-            value={helpMode}
-            onChange={(e) => setHelpMode(e.target.value as HelpMode)}
-          >
-            {Object.entries(helpLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {!canAttachImage && anchor && (
-        <p className="small muted">
-          选区不在当前可附图位置；文字仍使用选区页。点击选区标签返回后再附图。
-        </p>
-      )}
-      <label className="coach-image-check">
-        <input
-          type="checkbox"
-          checked={includeImage}
-          disabled={!canAttachImage}
-          onChange={(e) => setIncludeImage(e.target.checked)}
-        />
-        同时发送当前整页图像（不只是选区）
-      </label>
     </>
   );
   const coachSettings = (
@@ -753,7 +655,21 @@ export default function CoachPanel({
       <div className="coach-heading">
         <div>
           <MessageCircle size={17} />
-          <strong>一起读这篇论文</strong>
+          <button
+            className="coach-step"
+            aria-expanded={routeOpen}
+            title="查看八步路线与核查依据"
+            onClick={() => setRouteOpen(!routeOpen)}
+          >
+            <strong>
+              {flowDone
+                ? "本轮跟读已完成"
+                : flowStarted
+                  ? `第 ${stepNumber} 步 · ${flow.label}`
+                  : "一起读这篇论文"}
+            </strong>
+            <ChevronDown size={14} />
+          </button>
           <span
             className="coach-ready"
             title={
@@ -790,6 +706,41 @@ export default function CoachPanel({
           {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>
       </div>
+      <div className="coach-mainline" aria-label="论文跟读主线">
+        <button
+          className="coach-step-inline text-button"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={() => setRouteOpen(!routeOpen)}
+        >
+          {flowStarted ? `${stepNumber} ${flow.label}` : flowDone ? "已完成" : "主线"}
+        </button>
+        <ol className="coach-progress-track" aria-hidden="true">
+          {(flow?.steps || []).map((step: any) => (
+            <li
+              key={step.id}
+              title={step.label}
+              className={
+                flow?.completed?.some((c: any) => c.step === step.id)
+                  ? "done"
+                  : flowStarted && flow?.current === step.id
+                    ? "current"
+                    : ""
+              }
+            />
+          ))}
+        </ol>
+        <button
+          className={flowStarted || flowDone ? "coach-continue" : "primary"}
+          disabled={unavailable}
+          onClick={() =>
+            void send(text, false, text.trim() ? "answer" : "follow")
+          }
+        >
+          {mainlineLabel}
+        </button>
+      </div>
+      {routeOpen && route}
       {status?.state === "login_required" && (
         <div className="coach-login">
           <p>沿用 Codex 登录后，即可在这里带读。</p>
@@ -818,7 +769,6 @@ export default function CoachPanel({
           {sessionTools}
         </details>
       )}
-      {mainline}
       <div
         className="coach-messages"
         ref={scroll}
@@ -833,20 +783,18 @@ export default function CoachPanel({
       >
         {!snapshot.messages.length && (
           <div className="coach-welcome">
-            <span className="eyebrow">怎么用</span>
             <h3>一边读原文，一边一步步形成判断</h3>
             <ol className="coach-howto">
               <li>
-                点上方<b>开始跟读</b>：教练从“这次要判断什么”开始，每轮只推进一步、只问一个问题。
+                点上方<b>开始跟读</b>，教练每轮只推进一步、只问一个问题。
               </li>
               <li>
-                有问题时直接在下方输入你的回答，按 Enter 发送，主线随之前进；想先听讲解，就把“帮助方式”改为直接解释。
+                在下方直接回答或提问即可，系统会判断这是回答当前问题还是插话；想要提示、直接讲解或被反驳，直接说出来。
               </li>
               <li>
-                读到看不懂的地方，选中原文点<b>讨论这处</b>：这是插话，主线停在原步骤，问完点<b>继续主线</b>回来。
+                选中原文点<b>讨论这处</b>就能问那一处；主线停在原步骤，点<b>继续主线</b>回来。
               </li>
             </ol>
-            <p>也可以不走主线，直接提问。刷新页面后会接着这篇论文的同一段对话。</p>
           </div>
         )}
         {snapshot.messages.map((m, index) => (
@@ -900,19 +848,6 @@ export default function CoachPanel({
                 </button>
               )}
             <div className="coach-prose">
-              {m.context_scope && (
-                <details className="coach-source-scope">
-                  <summary>本轮发送范围</summary>
-                  <p className="small muted">
-                    {m.context_scope.page_index === null
-                      ? "无可用 PDF 正文"
-                      : `PDF 第 ${m.context_scope.page_index + 1} 页`}
-                    、阅读断点，以及 {m.context_scope.notes_included} /{" "}
-                    {m.context_scope.notes_total}{" "}
-                    条笔记的节选。教练可按需回查这篇论文的其他记录；本机原文保持完整。
-                  </p>
-                </details>
-              )}
               {m.connection_notice && (
                 <p className="small muted">{m.connection_notice}</p>
               )}
@@ -965,6 +900,19 @@ export default function CoachPanel({
                   )}
               </div>
             ) : null}
+            {m.context_scope && m.status !== "streaming" && (
+              <details className="coach-source-scope">
+                <summary>发送范围</summary>
+                <p className="small muted">
+                  {m.context_scope.page_index === null
+                    ? "无可用 PDF 正文"
+                    : `PDF 第 ${m.context_scope.page_index + 1} 页`}
+                  、阅读断点，以及 {m.context_scope.notes_included} /{" "}
+                  {m.context_scope.notes_total}{" "}
+                  条笔记的节选。教练可按需回查这篇论文的其他记录；本机原文保持完整。
+                </p>
+              </details>
+            )}
             {m.content && m.status !== "streaming" && m.intent !== "follow" && (
               <button
                 className="text-button small"
@@ -1007,9 +955,8 @@ export default function CoachPanel({
         )}
         {status?.state === "unavailable" && (
           <div className="coach-offline" role="status">
-            <p>
-              <b>AI 带读暂未连接。</b>
-              需要本机已安装并登录的 Codex CLI；阅读、标注和笔记照常可用。
+            <p title="需要本机已安装并登录的 Codex CLI">
+              AI 带读暂未连接，阅读与笔记照常可用。
             </p>
             <button disabled={snapshot.busy} onClick={() => void reconnect()}>
               <RefreshCw size={13} />
@@ -1045,6 +992,19 @@ export default function CoachPanel({
               <button aria-label="移除对话选区" onClick={onClearAnchor}>
                 <X size={12} />
               </button>
+              <button
+                className="coach-discuss"
+                disabled={snapshot.busy || status?.state !== "ready" || pending}
+                onClick={() =>
+                  void send(
+                    "请解释当前选区，先说明它在论文论证里解决什么问题，再帮我检验一个关键判断。",
+                    false,
+                    "detour",
+                  )
+                }
+              >
+                直接讲这处
+              </button>
             </div>
           )}
         </div>
@@ -1053,7 +1013,12 @@ export default function CoachPanel({
             {anchorQuote(anchor)}
           </blockquote>
         )}
-        {turnControls}
+        {flowStarted && flow?.pending_question && !anchor && (
+          <p className="coach-pending-question" title={flow.pending_question}>
+            <b>待答</b>
+            {flow.pending_question}
+          </p>
+        )}
         {snapshot.read_only && (
           <button
             onClick={() =>
@@ -1067,9 +1032,11 @@ export default function CoachPanel({
           disabled={!!snapshot.read_only}
           aria-label="发给论文教练的消息"
           placeholder={
-            effectiveIntent === "answer"
-              ? "写下你的判断、理由或仍不确定的地方…"
-              : "写下问题或反驳；这次讨论会保留主线返回点…"
+            anchor
+              ? "问问这处原文…"
+              : effectiveIntent === "answer"
+                ? "写下你的回答，或直接提问…"
+                : "提问，或写下你的想法…"
           }
           ref={composer}
           rows={2}
@@ -1090,7 +1057,13 @@ export default function CoachPanel({
           }}
         />
         <div className="coach-compose-footer">
-          <span>Enter 发送 · Shift + Enter 换行</span>
+          <span>
+            {effectiveIntent === "answer"
+              ? "Enter 发送，作为对待答问题的回答"
+              : flowStarted
+                ? `Enter 发送 · 插话，主线停在第 ${stepNumber.split("/")[0]} 步`
+                : "Enter 发送 · Shift + Enter 换行"}
+          </span>
           {snapshot.busy ? (
             <button
               className="coach-stop"
@@ -1144,21 +1117,6 @@ export default function CoachPanel({
             }
           >
             讨论待讨论笔记 · {context.pending_thoughts.length}
-          </button>
-        )}
-        {anchor && (
-          <button
-            className="coach-discuss"
-            disabled={snapshot.busy || status?.state !== "ready" || pending}
-            onClick={() =>
-              void send(
-                "请解释当前选区，先说明它在论文论证里解决什么问题，再帮我检验一个关键判断。",
-                false,
-                "detour",
-              )
-            }
-          >
-            讨论当前选区
           </button>
         )}
       </div>

@@ -1343,7 +1343,6 @@ blockquote {
 .coach-context-chips > div { display: flex; gap: 4px; align-items: center; }
 .coach-context-chips button { border: 0; padding: 0; background: transparent; }
 .coach-selection { margin: 4px 0 8px; padding: 4px 8px; border-left: 2px solid var(--line-heavy); color: var(--text-2); font-size: 12px; max-height: 65px; overflow-y: auto; line-height: 1.6; }
-.coach-image-check { display: flex; gap: 6px; align-items: center; margin: 4px 0 8px; font-size: 11px; color: var(--text-2); }
 .coach-compose > textarea { width: 100%; min-height: 82px; max-height: 160px; resize: vertical; padding: 11px 12px; border: 1px solid var(--line-heavy); border-radius: 7px; background: var(--surface); line-height: 1.6; font-size: 14px; }
 .coach-compose > textarea:focus { outline: 2px solid color-mix(in srgb, var(--green-soft) 40%, transparent); outline-offset: 1px; }
 .coach-compose-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
@@ -1391,8 +1390,6 @@ blockquote {
   .reading-open .coach-compose { max-height: 58%; overflow-y: auto; flex-shrink: 0; }
   .reading-open .research-pane .notes-panel { height: 100%; max-height: none; min-height: 0; }
 }
-.coach-image-check { flex-direction: row; }
-.coach-image-check input { width: auto; padding: 0; margin: 0; }
 .coach-options .check-label { flex-direction: row; }
 [hidden] { display: none !important; }
 .coach-compose > textarea { min-height: 64px; }
@@ -1409,14 +1406,6 @@ blockquote {
 .login [role="alert"] { color: var(--danger); line-height: 1.7; }
 .coach-session-label { margin: 6px 20px 7px; font-size: 12px; color: var(--text-2); }
 .coach-session-row > button { display: inline-flex; align-items: center; gap: 3px; }
-.coach-mainline { padding: 12px 16px; background: var(--tint); border-bottom: 1px solid var(--line); }
-.coach-mainline-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; }
-.coach-mainline-heading span { color: var(--muted); white-space: nowrap; }
-.coach-mainline p { font-size: 12px; line-height: 1.6; margin: 7px 0 10px; }
-.coach-mainline .primary { padding: 7px 12px; font-size: 12px; }
-.coach-mainline details { font-size: 11px; margin-top: 8px; color: var(--muted); }
-.coach-mainline ol { margin: 8px 0 0; padding-left: 20px; line-height: 1.7; }
-.coach-mainline li[aria-current="step"] { color: var(--green); font-weight: 600; }
 
 /* Keep the reading surface quiet; secondary controls open on demand. */
 .sidebar-hidden .main-shell { margin-left: 0; width: 100%; }
@@ -1442,10 +1431,6 @@ blockquote {
 .coach-options .coach-skill { padding: 6px 0; line-height: 1.6; }
 .coach-heading { padding-bottom: 10px; }
 .coach-session-row { margin-bottom: 10px; }
-.coach-mainline { position: relative; padding: 10px 16px; }
-.coach-mainline > p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
-.coach-mainline > details { display: inline-block; vertical-align: middle; margin: 0 0 0 12px; }
-.coach-mainline > details[open] { display: block; margin: 10px 0 0; }
 .coach-prose { line-height: 1.9; }
 .reading-open .paper-heading .eyebrow { display: none; }
 .reading-open .paper-heading p { font-size: 11px; color: var(--text-2); }

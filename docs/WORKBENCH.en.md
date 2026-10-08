@@ -16,10 +16,11 @@ Automatic initialization is capped at 3000 characters, and ordinary per-turn pos
 
 ### Mainline and detours
 
-- **Where you are**: the mainline card at the top of the coach panel is always visible — an eight-segment track, “step n/8 · name”, and the step’s goal or current question.
-- **Advance**: its button reads **开始跟读** (start), then **继续主线** (continue), or **回答并继续主线** (answer and continue) while you have typed something. With a pending question, typing an answer and pressing Enter also counts as answering.
-- **Detour**: select text or a region in the PDF and choose **讨论这处**, or just ask. A detour never advances or resets the mainline; press **继续主线** to return.
-- **Intent and help mode** sit above the message box and apply to this turn only.
+- **Where you are**: the coach title is the current step (“step n/8 · name”) above a thin progress line; click it to open the route and evidence receipts.
+- **Advance**: the small button beside the line reads **开始跟读** (start), then **继续主线** (continue), or **回答并继续主线** while you have typed something.
+- **Answer**: a pending question shows as one “待答” line above the message box; type the answer and press Enter.
+- **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline.
+- **Nothing to configure**: answer versus detour is inferred (a selection is a detour; a reply to a pending question without a selection is an answer) and a small line under the box says where Enter will go. Ask for a hint, a direct explanation or a challenge in your own words. Region selections attach the page image automatically, and the coach can view any page itself.
 - **Getting the most out of it**: answer each step in a sentence before reading the feedback; state the contribution and your own next step in your words; park unfamiliar terms that do not block the current judgment. See [The reading method](METHOD.en.md).
 
 Use secondary tools for the full route with evidence receipts, model connection, notes and evidence. Direct questions and explicit explanations do not require a complete reading route or translated PDF. Eight dimensions represent coverage, not measured mastery. Note consent and local performance-recording consent remain separate; AI explanations and Continue clicks do not demonstrate independent understanding.

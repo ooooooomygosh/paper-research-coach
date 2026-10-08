@@ -129,6 +129,9 @@ def turn_guide(flow, intent):
     if flow.get("pending_question"):
         lines.append("当前问题：" + flow["pending_question"][:250])
     if intent == "answer":
-        lines.append("这是用户对当前问题的回答：先引用其原话核对对错与依据，再决定是否完成本步。")
-    lines.append("一轮只推进一个动作、至多一个思考任务；判断有原文依据才完成本步。回复开头用一句话告诉用户现在在第几步、这一步要弄清什么。")
+        lines.append(
+            "系统判断这条是对当前问题的回答：先引用其原话核对对错与依据，再决定是否完成本步。"
+            "若它其实是另一个问题，就当插话处理：直接回答，不完成步骤，也不改动当前问题。"
+        )
+    lines.append("一轮只推进一个动作、至多一个思考任务；判断有原文依据才完成本步。界面已显示当前步骤，回复里不必复述步骤编号。")
     return "\n".join(lines)

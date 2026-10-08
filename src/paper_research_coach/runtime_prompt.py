@@ -38,7 +38,7 @@ def turn_input(body, *, source_changed=False, flow=None):
     else:
         prefix += "讨论这次问题，保留原来的阅读返回点。"
     prefix += {
-        "guided": "请按当前理解提供最少必要帮助。",
+        "guided": "按我的消息判断帮助方式：要求直接讲就直接解释，只要提示就只给一条线索，请你反驳就检验一个替代解释，否则给最少必要帮助；要了提示或解释的回合不记为独立完成。",
         "hint": "请只给一个提示。",
         "explain": "请直接解释。",
         "challenge": "请检验我的判断。",
