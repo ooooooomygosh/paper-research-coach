@@ -42,3 +42,13 @@ def test_cli_import_context_transaction_and_resume(tmp_path, pdf):
     assert call("text", p["id"], "0")["untrusted_source"] is True
     output = call("export", "paper", "--paper", p["id"])
     assert Path(output["path"]).is_file()
+
+
+def test_version_flag_reports_the_release(capsys):
+    import pytest
+    from paper_research_coach import __version__
+    from paper_research_coach.cli import parser
+
+    with pytest.raises(SystemExit):
+        parser().parse_args(["--version"])
+    assert __version__ in capsys.readouterr().out

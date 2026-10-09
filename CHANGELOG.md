@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.0.0rc10
+
+- Releases reach readers again: rc10 is the first package since rc9 and includes everything below. `scripts/bump_version.py` sets the version everywhere in one step; `scripts/release_check.py` warns on PRs and fails the main release job when shipped files change under an already-released version. `prc --version` prints the installed version; the READMEs point to the top Releases entry.
 - Quieter reading panel: the coach title is the current step with a thin progress line and a small 继续主线 button; the eight-step route opens only on demand; the pending question is one line above the message box; the offline notice is one line and the per-reply send scope moves below the reply.
 - Nothing to configure per turn: the intent, help-mode and page-image controls are gone. Answer versus detour is inferred and stated under the message box, help style is read from the message, region selections attach the page image, and a selection offers a one-click 直接讲这处.
 - Keep the reading mainline in view: the step track, “第 n/8 步”, the current question and the 开始跟读 / 继续主线 / 回答并继续主线 button move out of the tools drawer into the coach panel; turn intent and help mode sit above the message box; the empty conversation explains how to advance, answer and detour.

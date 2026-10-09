@@ -29,7 +29,7 @@
 <p align="center"><sub>真实界面，跟随系统深浅色 · 合成论文与明确标注的预设对话，非实时模型输出；截图时未连接模型 · <a href="docs/SHOWCASE.md">如何复现</a></sub></p>
 
 > [!NOTE]
-> **预览软件，不是已验证的教学产品。** 双指缩放和译文批注从 `2.0.0rc9` 起提供，`prc-demo` 从 rc6 起提供。若 Releases 中还没有对应安装包，请按[快速上手](docs/QUICKSTART.md)从源码运行。
+> **预览软件，不是已验证的教学产品。** 最新安装包在 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面**最上面**的版本（预发布版，所以 GitHub 的 “Latest” 标签不会指向它）。用 Claude Code 插件或 `npx skills add` 安装的 Skill 直接取自主分支，始终是最新的。
 
 ## 和“AI 总结论文”有什么不同
 

@@ -8,7 +8,7 @@ Skill ZIP：放进现有宿主，不运行本地服务。Wheel (`.whl`)：带完
 
 The Skill ZIP is for an existing agent host. The wheel includes the built UI. Source archives require a frontend build. This repository does not promise a published PyPI package or a signed desktop installer.
 
-**版本 / Version:** 双指缩放和译文批注需要 `2.0.0rc9` 或更新版本；安装包尚未生成时可使用下面的源码方式。rc5 不包含 `prc-demo`。预发布下载在 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases)，不要依赖 `/latest`。Check the version of the file you downloaded; main can be ahead of release packages.
+**版本 / Version:** 下载 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面最上面的版本；都是预发布版，`/latest` 链接不会指向它们。已安装过的用户升级：下载新 `.whl` 后运行 `python -m pip install --upgrade ./paper_research_coach-<版本>-py3-none-any.whl`，再重新 `prc open`；`prc --version` 显示当前版本。插件或 `npx skills add` 安装的 Skill 取自主分支。Download the top entry on Releases (all are pre-releases, so `/latest` does not point to them); upgrade with `pip install --upgrade` on the new wheel.
 
 ## Claude Code：两条命令安装 Skill / Install the Skill as a plugin
 
