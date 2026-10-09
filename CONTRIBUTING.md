@@ -20,6 +20,14 @@ python scripts/check_docs.py
 
 The PR workflow runs frontend tests/build, backend tests on Python 3.10 and 3.12, Skill validation, dependency auditing and packaging. Browser checks run separately with synthetic fixtures. Report what actually ran; distinguish mocked tests, browser checks, live model runs and human-learning evaluation.
 
+## Releasing
+
+Every merge to `main` publishes a GitHub pre-release named after the package version, with the wheel, source archive and Skill ZIP. A version is published once: if shipped files (`src`, `frontend/src`, `skills`, `pyproject.toml`) change under a version that is already released, PR checks warn and the release job on `main` fails, because readers would keep downloading the old build. Before merging such a change, bump the version and move the changelog entries in one step:
+
+```bash
+python scripts/bump_version.py 2.0.0rc11
+```
+
 ## Safe examples and screenshots
 
 Use `prc-demo`, never a personal library. The example paper and values are synthetic. Label any scripted AI exchange as scripted, not a model benchmark. Do not expose launch tokens, user paths, private PDFs, credentials or conversation history in a screenshot. Reproduction instructions live in [Showcase](docs/SHOWCASE.md).

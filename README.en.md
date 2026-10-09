@@ -29,7 +29,7 @@ It does not write you another summary. It checks the evidence with you, one pass
 <p align="center"><sub>Actual UI, following your light / dark theme · synthetic paper and a labelled scripted dialogue, not live-model output; no model was connected · <a href="docs/SHOWCASE.md">Reproduce</a></sub></p>
 
 > [!NOTE]
-> **Preview software, not a proven learning intervention.** Pinch zoom and translated-PDF annotations require `2.0.0rc9` or newer; `prc-demo` is available from rc6. If the packages for a version are not in Releases yet, follow the [source quick start](docs/QUICKSTART.md).
+> **Preview software, not a proven learning intervention.** The newest packages are the **top** entry on [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) (pre-releases, so GitHub’s “Latest” badge does not point to them). The Skill installed through the Claude Code plugin or `npx skills add` comes straight from the main branch and is always current.
 
 ## How it differs from “summarise this paper”
 

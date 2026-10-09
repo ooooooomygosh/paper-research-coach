@@ -9,6 +9,7 @@ from pathlib import Path
 
 from platformdirs import user_data_path
 
+from . import __version__
 from .exports import export, import_markdown
 from .store import Store
 
@@ -21,6 +22,7 @@ def parser():
     p = argparse.ArgumentParser(
         prog="prc", description="Paper Research Coach — 本地论文阅读与笔记"
     )
+    p.add_argument("--version", action="version", version=f"prc {__version__}")
     p.add_argument(
         "--data-dir",
         default=os.environ.get("PRC_DATA_DIR")

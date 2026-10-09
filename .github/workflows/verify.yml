@@ -14,9 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      # Shipped changes under an already-released version never reach Releases.
+      - run: python scripts/release_check.py
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -48,6 +52,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refuse to leave shipped changes unreleased
+        if: github.ref == 'refs/heads/main'
+        run: python scripts/release_check.py --strict
       - uses: actions/download-artifact@v4
         with:
           name: paper-research-coach-packages
