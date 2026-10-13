@@ -306,7 +306,7 @@ TOOLS = [
     ),
     tool(
         "prc_explain",
-        "Draw an explanation from a short Markdown draft (conclusion first); the workbench renders it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. place=panel opens a branch panel beside the reading for a reader's concrete question (3 to 6 panels; the default on question turns). place=chat embeds one small mainline figure (1 to 3 panels) in the mainline reply (the default on mainline turns; one per turn). Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
+        "Draw an explanation from a short Markdown draft (conclusion first); the workbench renders it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. place=panel opens a side quest: an explainer page shown as a card inside the conversation, for a reader's concrete question (3 to 6 lettered panels, `{span=2}` after a heading for a wide one; the default on question turns). place=chat embeds one small mainline figure (1 to 3 panels) in the mainline reply (the default on mainline turns; one per turn). Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
         {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT, "place": {"type": "string", "enum": ["panel", "chat"]}},
         ["draft"],
     ),
@@ -1314,7 +1314,8 @@ class Coach:
         elif place == "chat":
             result["next"] = "The figure is shown inside your reply. Refer to it in one sentence; do not repeat it in text."
         else:
-            result["next"] = "The panel is open. In chat, write one or two plain sentences with the key point; do not repeat the page."
+            result["next"] = ("The page is open in the conversation. In chat, write one or two plain sentences with the key point; "
+                              "do not repeat the page. The reader closes the side quest themselves.")
         return result
 
     def explain_external(self, paper_id, draft_text, branch_id="", replace_id="", question="", anchor=None):
