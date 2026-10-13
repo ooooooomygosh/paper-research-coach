@@ -8,12 +8,18 @@ export default function PdfNavigation({
   doc,
   sourceKey,
   page,
+  fromScroll = false,
   onNavigate,
+  onSearch,
 }: {
   doc: PDFDocumentProxy | null;
   sourceKey: string;
   page: number;
+  /** True when the page changed because the reader scrolled, not because of a jump. */
+  fromScroll?: boolean;
   onNavigate: (page: number) => void;
+  /** The term to mark on the drawn pages ("" clears it). */
+  onSearch?: (term: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineEntry[]>([]);
@@ -41,6 +47,8 @@ export default function PdfNavigation({
         target: null,
       };
     else if (t.target === page) t.target = null;
+    // Scrolling moves the current trail entry; only jumps add a place to come back to.
+    else if (fromScroll) t.pages[t.cursor] = page;
     else if (t.pages[t.cursor] !== page) {
       t.pages = [...t.pages.slice(0, t.cursor + 1), page].slice(-100);
       t.cursor = t.pages.length - 1;
@@ -119,6 +127,7 @@ export default function PdfNavigation({
   async function search() {
     const term = query.trim().replace(/\s+/g, " ").toLocaleLowerCase();
     if (!doc || !term) return;
+    onSearch?.(term);
     const run = ++generation.current,
       result: Hit[] = [];
     let emptyPages = 0,
@@ -205,7 +214,10 @@ export default function PdfNavigation({
               aria-label="搜索 PDF 正文"
               placeholder="在这篇论文中查找文字…"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (!e.target.value.trim()) onSearch?.("");
+              }}
             />
             <button disabled={!doc || !query.trim() || searching}>搜索</button>
             {searching && (

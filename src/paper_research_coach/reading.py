@@ -29,6 +29,36 @@ GUIDES = {
 }
 
 
+# What "done" means for each step, shown to the reader on the task card and sent to the coach.
+CHECKS = {
+    "orient": "说出这次要判断什么、读多深，并决定继续读还是停下（停下也写明理由）。",
+    "insight": "写出暂定贡献句：已有路线在 X 下受 Y 限制；本文改变 Z；证据 E 支持到 B。",
+    "model": "说出输入、输出、可用信息和一个关键假设，并说出朴素解法为什么不够。",
+    "method": "用自己的话讲清一个关键设计怎样克服困难（一个因果环节）。",
+    "evidence": "先预测，再对照真实图表：说出最强证据支持到哪、还缺什么。",
+    "synthesis": "用三句话说出：改变了什么、证据覆盖到哪、什么结果会改变判断。",
+    "transfer": "写出一个可证伪问题（含简单基线和最小检验），或写明不值得继续的理由。",
+    "recall": "不看原文完成一次回忆回答，并留下一道复习题。",
+}
+# Where each step usually looks in a paper (Carr/Keshav order: abstract, conclusion, figures first).
+LOOKS = {
+    "orient": "题目、摘要、结论和主图",
+    "insight": "引言里的问题陈述和贡献列表，以及最接近的一篇前作",
+    "model": "问题定义，或方法开头的符号与设定",
+    "method": "方法总图和核心模块的描述",
+    "evidence": "主结果表、关键图和消融实验",
+    "synthesis": "讨论、局限和结论",
+    "transfer": "局限与未来工作",
+    "recall": "先不看原文；回忆后再对照",
+}
+# Three levels of reading (沈向洋/华刚): how deep each step goes.
+DEPTHS = {
+    "skim": "速读：每步只抓一句结论，图表看大意；读者可以随时停。",
+    "understand": "精读：每步核对一处原文证据。",
+    "reconstruct": "研读：每步追问推导与实验细节，请读者试着自己推一步。",
+}
+
+
 def snapshot(session, paper):
     flow = session.get("reading_flow", {})
     changed = flow.get("source_version", "") != paper["source_version"]
@@ -47,6 +77,10 @@ def snapshot(session, paper):
         "needs_recheck": changed and flow.get("status", "not_started") != "not_started",
         "return_action": session.get("next_action", ""),
         "pending_question": session.get("pending_question", ""),
+        "choices": session.get("choices", []) if session.get("pending_question") else [],
+        "check": CHECKS[KEYS[index]],
+        "look": LOOKS[KEYS[index]],
+        "depth": session.get("depth", "understand"),
     }
 
 
@@ -75,7 +109,7 @@ def begin(store, paper, session, connection):
     )
 
 
-def complete(store, paper, session, step, evidence, page_index):
+def complete(store, paper, session, step, evidence, page_index, takeaway=""):
     flow = snapshot(session, paper)
     if flow["status"] != "active" or step != flow["current"]:
         raise ValueError("只能完成当前阅读步骤，不能跳过主线。")
@@ -93,9 +127,10 @@ def complete(store, paper, session, step, evidence, page_index):
         for a in r["attempts"]
     ):
         raise ValueError("先在复习队列保存一次真实回忆回答与帮助程度，再完成跟读。")
-    completed = flow["completed"] + [
-        {"step": step, "evidence": evidence, "page_index": page_index, "finished_at": now()}
-    ]
+    entry = {"step": step, "evidence": evidence, "page_index": page_index, "finished_at": now()}
+    if takeaway.strip():
+        entry["takeaway"] = " ".join(takeaway.split())[:400]
+    completed = flow["completed"] + [entry]
     finished = len(completed) == len(STEPS)
     return {
         **session,
@@ -109,6 +144,7 @@ def complete(store, paper, session, step, evidence, page_index):
         "next_action": "从复习队列按期回忆这篇论文，核对尚未解决的问题。"
         if finished else STEPS[len(completed)][2],
         "pending_question": "",
+        "choices": [],
     }
 
 
@@ -127,16 +163,31 @@ def turn_guide(flow, intent):
         return (
             f"【插话】主线停在{where}，本轮不推进也不完成步骤。读者在问一个具体问题。\n"
             "概念、机制、公式、图表、流程、对比或技术细节：调用 prc_explain，在讲解面板里讲（先读 branch 参考）；"
-            "聊天里只写一两句要点，不要重复整页。只是一个词的译法或一句话能答完的是非题：直接在聊天里答。\n"
+            "聊天里只写一两句要点，不要重复整页。只是一个词的译法或一句话能答完的是非题：直接在聊天里答。"
+            "要读者看某几句原文时，用 prc_show 标出来。\n"
             "卡点若妨碍当前判断，用最小例子讲清；不妨碍就简短回答，建议先记下。答完不必催促回主线，面板里有“回到主线”。" + PLAIN
         )
-    lines = [f"【本轮主线】{where}。本步目标：{flow['goal']}", "方法要点：" + GUIDES[flow["current"]]]
+    current = flow["current"]
+    lines = [
+        f"【本轮主线】{where}。本步目标：{flow['goal']}",
+        "方法要点：" + GUIDES[current],
+        "读法：" + DEPTHS.get(flow.get("depth", "understand"), DEPTHS["understand"]),
+        "完成标准：" + CHECKS[current],
+    ]
     if flow.get("pending_question"):
         lines.append("当前问题：" + flow["pending_question"][:250])
     if intent == "answer":
         lines.append(
             "系统判断这条是对当前问题的回答：先引用其原话核对对错与依据，再决定是否完成本步。"
-            "若它其实是另一个具体问题，就当插话处理：用 prc_explain 讲解，不完成步骤，也不改动当前问题。"
+            "读者要提示或要讲解时，按请求给，本步不算独立完成。"
+            "若它其实是另一个具体问题，就当插话处理：用 prc_explain 的面板讲解（place=panel），不完成步骤，也不改动当前问题。"
         )
-    lines.append("主线用普通对话，不开讲解面板。一轮只推进一个动作、至多一个思考任务；判断有原文依据才完成本步。界面已显示当前步骤，回复里不必复述步骤编号。" + PLAIN)
+    lines.append(
+        "像布置一个小任务那样带读：\n"
+        f"1. 先找原文，通常在「{LOOKS[current]}」。用 prc_find 或 prc_read_page 找到，再用 prc_show 标出 1–3 句（逐字复制）；回复里用 ①②③ 指代，不整段粘贴。\n"
+        "2. 给读者一件事做：一个问题或一个预测，用 prc_next_action 保存为待答问题；是选择或预测时，附 2–4 个短选项（choices）。\n"
+        "3. 机制、流程、对比或证据表适合画图：可调用一次 prc_explain，图解会嵌在主线对话里。要读者先预测或先回忆的步骤，等读者答完再给图。\n"
+        "4. 回答有原文依据就完成本步（prc_complete_reading_step，takeaway 写一句收获，尽量用读者原话），并在同一条回复里布置下一步的第一件事，不要以“还想了解什么”结尾。"
+    )
+    lines.append("一轮只推进一个动作、至多一个思考任务。界面已显示当前步骤，回复里不必复述步骤编号。" + PLAIN)
     return "\n".join(lines)

@@ -78,7 +78,7 @@ def capture(output: Path, executable: str | None = None) -> None:
                 page.wait_for_timeout(700)
                 page.screenshot(animations="disabled", path=str(output / "reading.png"))
                 # Verify the rendered fixture, not just the existence of a canvas.
-                assert page.locator(".textLayer").text_content().strip()
+                assert page.locator(".textLayer").first.text_content().strip()
                 from PIL import Image
                 with Image.open(output / "reading.png") as shot:
                     assert min(shot.convert("RGB").getpixel((30, 90))) > 230, "PDF paper is not visible"
@@ -110,8 +110,10 @@ def capture(output: Path, executable: str | None = None) -> None:
                 # Page input is a draft: typing does not navigate; Escape cancels.
                 cursor = page.get_by_label("阅读页码", exact=True)
                 before = cursor.input_value()
+                scrolled = page.locator(".pdf-scroll").evaluate("e => e.scrollTop")
                 cursor.fill("3")
-                assert page.locator(".pdf-page").get_attribute("data-page-index") == str(int(before) - 1)
+                page.wait_for_timeout(200)
+                assert page.locator(".pdf-scroll").evaluate("e => e.scrollTop") == scrolled
                 cursor.press("Escape")
                 assert cursor.input_value() == before
                 # Exercise real native dialog focus containment and restoration.
@@ -192,6 +194,7 @@ def capture(output: Path, executable: str | None = None) -> None:
                 touch.close()
                 from check_pdf_controls import check_pdf_controls
                 controls = check_pdf_controls(browser, store, paper, port, token, output)
+                mainline_scene(browser, store, coach, paper, conversation, port, token, output, errors)
                 browser.close()
                 if errors:
                     raise RuntimeError("Browser errors: " + "; ".join(errors))
@@ -204,6 +207,70 @@ def capture(output: Path, executable: str | None = None) -> None:
             thread.join(timeout=10)
             if thread.is_alive():
                 raise RuntimeError("The showcase server did not stop cleanly.")
+
+
+FIGURE = """---
+title: 预算相同后，差距还剩多少
+subtitle: 预设图解示例 · 非实时模型回复
+---
+先说结论：两组都观测 20 次，预算相同；差距只剩 2 个单位，而且没有误差范围。
+
+## 第 2 页的三组数字
+| 策略 | 观测次数 | 效用 | 能比吗 |
+|---|---|---|---|
+| 固定时钟 | 20 | 61 | ok |
+| 事件触发 | 20 | 63 | ok |
+| 信息上限 | 20 | 66 | warn 只是参照 |
+"""
+
+
+def mainline_scene(browser, store, coach, paper, conversation, port, token, output, errors):
+    """The mainline as a task: the PDF turns to a marked sentence and a small figure sits in the reply."""
+    from paper_research_coach import reading
+    from paper_research_coach.models import now
+
+    session = store.list("session", paper["id"])[0]
+    with store.connect() as db:
+        session = reading.begin(store, store.get("paper", paper["id"]), session, db)
+    takeaways = [("orient", "我要判断：提升来自观测时机，还是只来自更多观测。"),
+                 ("insight", "贡献句：在相同预算下，事件触发改变的是何时观测。"),
+                 ("model", "输入是估计的决策损失，输出是何时观测。"),
+                 ("method", "损失变大时才观测，把预算花在会改变决策的时刻。")]
+    done = [{"step": k, "evidence": "预设示例", "page_index": 0, "finished_at": now(), "takeaway": t} for k, t in takeaways]
+    store.put("session", {**session, "reading_flow": {**session["reading_flow"], "completed": done}, "stage": "evidence",
+                          "pending_question": "两组预算相同后，你预测效用差距还会在吗？",
+                          "choices": ["几乎消失", "仍然明显", "说不准，要看误差"]}, session["revision"])
+    figure = coach.save_explainer(paper["id"], conversation, FIGURE, message_id="showcase-main", origin="mainline")
+    focus, _ = coach.focus_action(paper["id"], 1, ["Both policies receive 20 observations per episode."], "预算是否相同")
+    focus["id"] = "focus:showcase-main"
+    coach.save_message({"id": "showcase-main", "conversation_id": conversation, "role": "assistant", "status": "completed",
+                        "intent": "follow", "created_at": now(), "actions": [focus, coach.explainer_action(figure)],
+                        "content": "**预设带读示例 · 非实时模型回复**\n\n现在看证据。① 说两组都观测 20 次，预算是对齐的。\n\n先别看结果：**预算相同后，你预测差距还会在吗？**"})
+    page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(f"http://127.0.0.1:{port}/#" + urlencode({"token": token, "paper": paper["id"]}))
+    task = page.get_by_role("region", name="本轮任务")
+    task.wait_for()
+    page.get_by_role("figure", name="图解：预算相同后，差距还剩多少").wait_for()
+    assert task.get_by_role("button", name="几乎消失").is_visible()
+    task.get_by_role("button", name="第 2 页 · 预算是否相同").click()
+    mark = page.locator(".coach-mark").first
+    mark.wait_for()
+    page.wait_for_timeout(700)
+    # The mark sits on the words it names (the server's PDF coordinates meet pdf.js's layout).
+    words = page.locator(".textLayer span").filter(has_text="Both policies receive 20 observations per episode.").first.bounding_box()
+    box = mark.bounding_box()
+    assert abs(box["x"] - words["x"]) < 4 and abs(box["y"] + box["height"] - words["y"] - words["height"]) < 5, (box, words)
+    assert page.get_by_label("阅读页码", exact=True).input_value() == "2"
+    page.screenshot(animations="disabled", path=str(output / "mainline.png"))
+    page.emulate_media(color_scheme="dark")
+    page.wait_for_timeout(300)
+    page.screenshot(animations="disabled", path=str(output / "mainline-dark.png"))
+    page.emulate_media(color_scheme="light")
+    # Scrolling moves the page number; the "back" chip returns to where the reader was.
+    page.locator(".pdf-scroll").evaluate("e => e.scrollTo(0, e.scrollHeight)")
+    page.wait_for_function("() => document.querySelector('[aria-label=\"阅读页码\"]').value === '3'")
+    page.close()
 
 
 def main():

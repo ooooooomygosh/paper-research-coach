@@ -62,34 +62,54 @@
 <tr>
 <td width="33%" valign="top">
 
-**💬 围绕原文对话**<br>
-选中一句话，点“讨论这处”，引用会跟着你的问题一起发出，也会留在对话里。Enter 发送，Shift + Enter 换行。
+**🎯 带你看到原文**<br>
+教练讲到哪，PDF 就翻到哪，并给要看的句子标上编号 ①②③。句子必须逐字出现在那一页，编不出来；一键回到原来的位置。
 
 </td>
 <td width="33%" valign="top">
 
-**🖍️ 标记与想法分开**<br>
-高亮是论文的话，笔记是你的话。“原文标记”不会被当成你的观点拿去讨论；随时在同一处“写下想法”。
+**✅ 一次一个小任务**<br>
+输入框上方的任务卡写着：看哪里、做什么、怎样算完成。预测题可以一键作答；做完一步，下一步的任务马上出现，读起来不用停。
 
 </td>
 <td width="33%" valign="top">
 
 **🧭 插话讲解，一键回到主线**<br>
-问一个具体问题，旁边弹出讲解面板：用图、表和短句讲清楚，还能接着追问。点“回到主线”，主线停在原处。
+问一个具体问题，旁边弹出讲解面板：用图、表和短句讲清楚，还能接着追问。主线讲解也会在回复里嵌一张小图。点“回到主线”，主线停在原处。
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-**🌗 让人专注的界面**<br>
-默认收起书库，只留原文和对话。支持沉浸模式、深色模式、双指缩放、适宽和阅读位置恢复。
+**📜 顺滑的 PDF**<br>
+上下连续滚动，不用一直点翻页；双指或按住 Ctrl 滚动缩放；点论文里的 [12]、Figure 3 直接跳过去。沉浸模式、深色模式、位置恢复。
+
+</td>
+<td valign="top">
+
+**🖍️ 标记与想法分开**<br>
+高亮是论文的话，笔记是你的话。“原文标记”不会被当成你的观点拿去讨论；每完成一步留一句你的收获，读完就是复盘。
 
 </td>
 <td valign="top">
 
 **🌐 照顾非母语阅读**<br>
 区分语言障碍和概念障碍；不必先翻译整篇。可选的双语 PDF 中，高亮与笔记按译本分别保存。
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**💬 围绕原文对话**<br>
+选中一句话，点“讨论这处”，引用会跟着你的问题一起发出。Enter 发送，空输入框按 Enter 继续主线。
+
+</td>
+<td valign="top">
+
+**🔄 自己保持最新**<br>
+新版本先校验，再在后台装好；没人阅读时自动切换，开着页面时只提示“重新载入”。Skill 副本跟着一起更新。
 
 </td>
 <td valign="top">
@@ -111,6 +131,13 @@
 <td align="center"><sub>双栏视图中按译本分别保存的高亮与框选（两栏均为合成英文，仅测试版式）</sub></td>
 </tr>
 </table>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/mainline-dark.webp">
+  <img src="docs/images/mainline.webp" alt="主线任务：左侧 PDF 已翻到证据页，要看的句子标着编号 1；右侧回复里嵌着一张对比表，输入框上方的任务卡写着看哪里、你的任务、怎样算完成，并有可一键作答的选项。">
+</picture>
+
+<p align="center"><sub>主线任务卡：合成论文与明确标注的预设回复，非实时模型输出 · PDF 已翻到要看的那一页，句子标着编号</sub></p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/branch-dark.webp">
@@ -150,11 +177,11 @@ irm https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/sc
 
 | 你用的是 | 怎么更新 |
 |---|---|
-| **工作台** | 有新版本时，书库页顶部出现一条提示，阅读页右上角的“⋯”上多一个小点（不会弹窗打断阅读）。点 **更新并重启**，约半分钟，页面自动刷新。也可以在终端运行 `prc update`。 |
+| **工作台** | **不用管。** 工作台开着时，每天最多检查一次；有新版本就先校验，再在后台装好。没人阅读时自动切换到新版本；你正开着页面时，只在书库页和“⋯”上提示“新版本已装好”，点 **重新载入**，约 5 秒，阅读位置保留。下次输入 `prc` 时，也会自动换成新版本。想手动更新：`prc update`。 |
 | **工作台里的 Skill** | 和工作台在同一个安装包里，一起更新。 |
-| **另外装的 Skill** | Claude Code 插件：在插件市场里开启自动更新，或运行 `/plugin marketplace update paper-research-coach`（菜单名称以你的 Claude Code 版本为准）。`npx skills add` 装的：再运行一次同样的命令。`prc install-skill` 复制的：`prc update` 会一起刷新。 |
+| **另外装的 Skill** | `prc install-skill` 复制的：工作台每次启动会自动让它跟上当前版本（手动：`prc install-skill --sync`）。Claude Code 插件：在插件市场里开启自动更新，或运行 `/plugin marketplace update paper-research-coach`（菜单名称以你的 Claude Code 版本为准）。`npx skills add` 装的：再运行一次同样的命令。 |
 
-工作台每天最多向 GitHub 的发布接口发**一次匿名请求**来检查新版本，不发送论文、笔记或任何身份信息；想关掉，设环境变量 `PRC_NO_UPDATE_CHECK=1`。更新只安装本项目发布的安装包，并且必须通过同一发布里的 `SHA256SUMS` 校验。
+工作台每天最多向 GitHub 的发布接口发**一次匿名请求**来检查新版本，不发送论文、笔记或任何身份信息。更新只安装本项目发布的安装包，并且必须通过同一发布里的 `SHA256SUMS` 校验。不想自动安装：在“设置 → 版本与更新”里关掉，或设环境变量 `PRC_NO_AUTO_UPDATE=1`；连检查也不要：`PRC_NO_UPDATE_CHECK=1`。
 
 ### 方式二：只装 Skill
 
@@ -205,7 +232,7 @@ npx skills add ooooooomygosh/paper-research-coach
 
 > **你：** 这个提升会不会只是测量次数更多？
 >
-> **教练：** 先核对图 1 中两组的测量预算。如果预算相同，这个解释还能成立吗？想直接听解释也可以。
+> **教练：**（PDF 已翻到第 2 页，标出 ①）先看 ①：两组都观测 20 次，预算相同。你预测差距还会在吗？（可一键选：几乎消失 / 仍然明显 / 说不准）想直接听解释也可以。
 
 <sub>写作示例，不是实时模型输出。读懂一个局部问题、决定跳过一篇论文，也都是有效结果。</sub>
 
@@ -220,7 +247,7 @@ npx skills add ooooooomygosh/paper-research-coach
 ## 数据与边界
 
 - PDF 与阅读记录存本机，服务只监听本机地址。**本地存储不等于离线 AI**：启用教练或翻译时，相关内容会发送到所配置的模型服务。
-- 更新检查每天最多一次匿名请求 GitHub 发布接口，不带论文、笔记或身份信息，可用 `PRC_NO_UPDATE_CHECK=1` 关闭；更新只安装本项目发布且通过 SHA-256 校验的安装包。
+- 更新检查每天最多一次匿名请求 GitHub 发布接口，不带论文、笔记或身份信息；默认在后台自动安装通过 SHA-256 校验的本项目安装包，可在设置里关闭，或用 `PRC_NO_AUTO_UPDATE=1` / `PRC_NO_UPDATE_CHECK=1` 关闭。
 - Zotero 写入需要你明确授权；启动链接包含访问凭证，不要分享。备份与权限说明见[安全指南](docs/SECURITY.md)。
 - 目前没有学习收益的真人试验结论；未宣称 Safari / iPad / Apple Pencil 完整认证；不保证自动识别所有扫描 PDF；多附件的 Zotero 条目目前选择首个 PDF，请核对原文版本。详见[验证记录](docs/TESTING.md)与[审视清单](docs/FINAL-REVIEW.md)。
 

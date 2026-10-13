@@ -35,7 +35,7 @@ import "./style.css";
 import "./quiet-reading.css";
 import "./workbench-polish.css";
 import BranchPanel from "./explainer/BranchPanel";
-import { UpdateRow, useUpdate } from "./UpdateNotice";
+import { UpdateRow, UpdateSettings, useUpdate } from "./UpdateNotice";
 import {
   TranslationTools,
   TranslationPopover,
@@ -104,6 +104,34 @@ export function App() {
   const translatedRead = useRef("");
   const [pdfView, setPdfView] = useState<PdfView>("original");
   const [selection, setSelection] = useState<any>(null);
+  // Sentences the coach pointed at, and where the reader was before the coach moved the PDF.
+  const [coachMarks, setCoachMarks] = useState<any>(null);
+  const [returnTo, setReturnTo] = useState<{ page: number; to: number; key: string } | null>(null);
+  const [followCoach, setFollowCoach] = useState(() => {
+    try { return localStorage.getItem("prc-follow-coach") !== "off"; } catch { return true; }
+  });
+  function changeFollowCoach(on: boolean) {
+    setFollowCoach(on);
+    try { localStorage.setItem("prc-follow-coach", on ? "on" : "off"); } catch { /* a convenience only */ }
+    if (!on) setReturnTo(null);
+  }
+  /** The coach marked sentences: show them; on a live turn (or a click) also take the reader there. */
+  function showCoachFocus(a: any, how: "auto" | "click" | "restore") {
+    const target = a?.anchor;
+    if (!paper || !target || target.paper_id !== paper.id || target.page_index == null) return;
+    if (target.source_version !== paper.source_version) {
+      if (how === "click") report("这处标注属于旧版本的 PDF，请让教练重新指出。");
+      return;
+    }
+    setCoachMarks({ id: a.id, page_index: target.page_index, marks: (a.marks || []).map((m: any) => ({ ...m })) });
+    if (how === "restore" || (how === "auto" && !followCoach)) return;
+    setTab("read");
+    if (pdfView !== "original") setPdfView("original");
+    if (target.page_index !== page) {
+      setReturnTo({ page, to: target.page_index, key: a.id });
+      movePage(target.page_index);
+    }
+  }
   const [markedSelection, setMarkedSelection] = useState("");
   const layout = useRef<HTMLDivElement>(null);
   const toolsTrigger = useRef<HTMLElement | null>(null);
@@ -343,11 +371,34 @@ export function App() {
     setTranslationPdfJob(null);
     setPdfView("original");
     setSelection(null);
+    setCoachMarks(null);
+    setReturnTo(null);
     if (!ready) return;
     void reloadTranslation();
     const poll = setInterval(() => void reloadTranslation(), 4000);
     return () => clearInterval(poll);
   }, [ready, paper?.id, paper?.source_version]);
+  // Small menus (<details data-menu>) close on Escape or a click outside, like other menus.
+  useEffect(() => {
+    const close = (keep?: EventTarget | null) =>
+      document.querySelectorAll<HTMLDetailsElement>("details[data-menu][open]").forEach((d) => {
+        if (!(keep instanceof Node && d.contains(keep))) d.open = false;
+      });
+    const onPointer = (e: PointerEvent) => close(e.target);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const open = document.querySelector<HTMLDetailsElement>("details[data-menu][open]");
+      if (!open) return;
+      open.open = false;
+      open.querySelector<HTMLElement>("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
   const sourceRef = useRef<any>(null);
   useEffect(() => {
     if (!paper) return;
@@ -372,15 +423,16 @@ export function App() {
     setSidebarHidden(true);
     setTaskEditor(null);
   }
-  function movePage(n: number) {
-    setSelection(null);
+  function movePage(n: number, how?: "scroll") {
+    // Scrolling onto the next page keeps the open selection and the highlighted spot.
+    if (how !== "scroll") setSelection(null);
     if (paper)
       localStorage.setItem(
         "prc-page-" + paper.id + ":" + paper.source_version + (pdfView === "original" ? "" : ":" + translationPdfJob?.id + ":" + pdfView),
         String(n),
       );
     setPage(n);
-    setFocusAnchor(null);
+    if (how !== "scroll") setFocusAnchor(null);
     clearTimeout(pageTimer.current);
     const pid = selectedRef.current;
     if (pdfView !== "original") return;
@@ -696,6 +748,7 @@ export function App() {
         )}
         {tab === "settings" ? (
           <Settings
+            updates={<UpdateSettings update={update} />}
             state={state}
             refresh={() => void refresh()}
             report={report}
@@ -707,6 +760,9 @@ export function App() {
               if (pid === paper?.id) void reloadTranslation();
             }}
           />
+        ) : !paper && selected && state.papers.some((p: Row) => p.id === selected) ? (
+          // Switching papers: say so instead of flashing the empty-library welcome.
+          <div className="empty paper-loading" role="status">正在打开论文…</div>
         ) : !paper ? (
           <Welcome onImport={() => setImporting(true)} onConnect={() => setTab("settings")} notice={<UpdateRow update={update} variant="banner" />} />
         ) : (
@@ -754,7 +810,7 @@ export function App() {
                   )}{" "}
                   {paper.status === "paused" ? "恢复阅读" : "暂停并保存"}
                 </button>
-                <details className="paper-tools">
+                <details className="paper-tools" data-menu>
                   <summary aria-label="更多论文操作" title="更多论文操作">
                     <MoreHorizontal size={19} />
                   </summary>
@@ -866,6 +922,11 @@ export function App() {
                       onExport={() => void exportCurrentPdf()}
                       exporting={exportingPdf}
                       focusAnchor={focusAnchor}
+                      coachMarks={coachMarks}
+                      returnTo={returnTo}
+                      onDismissReturn={() => setReturnTo(null)}
+                      followCoach={followCoach}
+                      onFollowCoach={changeFollowCoach}
                       notes={context.notes || []}
                       onLocateNote={locate}
                     />
@@ -942,10 +1003,12 @@ export function App() {
                           setSelection(null);
                         }}
                         onLocate={locate}
+                        onFocus={showCoachFocus}
                         onAction={(kind) => {
                           if (kind === "idea") setTab("ideas");
                           else if (kind === "review") setTab("review");
                           else if (kind === "note") openTools("notes");
+                          else if (kind === "export") setTab("export");
                         }}
                         refresh={() => void refresh()}
                         report={report}

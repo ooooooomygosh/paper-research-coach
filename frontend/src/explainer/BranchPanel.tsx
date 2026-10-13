@@ -63,7 +63,7 @@ export default function BranchPanel({ paper, branchId, firstPageId, standalone, 
     >
       <header className="branch-head">
         <div className="branch-title">
-          <span className="branch-kicker">插话讲解</span>
+          <span className="branch-kicker">{record?.origin === "mainline" ? "主线图解" : "插话讲解"}</span>
           <h2>{record?.title || "正在准备讲解…"}</h2>
         </div>
         <div className="branch-actions">
@@ -78,7 +78,7 @@ export default function BranchPanel({ paper, branchId, firstPageId, standalone, 
           </button>
         </div>
       </header>
-      {point && (
+      {point && record?.origin !== "mainline" && (
         <p className="branch-mainline">
           <span>{mainlineLine(point)}</span>
           {point.status === "active" && point.pending_question && (

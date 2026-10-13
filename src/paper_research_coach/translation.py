@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .codex_text import CodexText
 from .models import Anchor, now, uid
-from .store import Conflict, digest
+from .store import Conflict, digest, NotFound
 
 BABELDOC_VERSION = "0.6.4"
 ACTIVE = {"queued", "running"}
@@ -447,7 +447,7 @@ class Translation:
                 "SELECT data FROM translation_jobs WHERE id=?", (job_id,)
             ).fetchone()
         if not row:
-            raise KeyError("翻译任务不存在")
+            raise NotFound("翻译任务不存在")
         return json.loads(row[0])
 
     def jobs(self, paper_id=None):

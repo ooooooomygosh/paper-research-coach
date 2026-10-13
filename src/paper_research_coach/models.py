@@ -129,6 +129,7 @@ class ReadingStep(BaseModel):
     evidence: str = Field(min_length=1, max_length=6000)
     page_index: int = Field(ge=0)
     finished_at: str = Field(default_factory=now)
+    takeaway: str = Field(default="", max_length=400)
 
 
 class ReadingFlow(BaseModel):
@@ -178,6 +179,8 @@ class Session(Record):
     depth: Literal["skim", "understand", "reconstruct"] = "understand"
     cursor: Anchor | None = None
     pending_question: str = ""
+    # Short one-tap answers for the pending question (a prediction or a choice).
+    choices: list[str] = Field(default_factory=list, max_length=4)
     next_action: str = ""
     established: list[str] = Field(default_factory=list)
     support: dict[str, Literal["model", "guided", "prompt-only", "independent"]] = (

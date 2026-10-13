@@ -156,6 +156,48 @@ def install(wheel: Path) -> None:
         raise UpdateError("安装没有成功：" + " ".join(tail)[:300])
 
 
+def auto_enabled(store) -> bool:
+    """Install verified new versions in the background (default on; one switch turns it off)."""
+    if os.environ.get("PRC_NO_UPDATE_CHECK") or os.environ.get("PRC_NO_AUTO_UPDATE"):
+        return False
+    return store.setting("auto-update", True) is not False
+
+
+STAMP = ".prc-version"
+
+
+def sync_skills(version: str = __version__) -> list[str]:
+    """Bring copies made by `prc install-skill` up to this package's Skill. Runs when the workbench starts.
+
+    The running process is the new version, so it copies its own packaged Skill. A copy is
+    recognised by its SKILL.md naming this skill; nothing else in those folders is touched.
+    """
+    import shutil
+
+    source = Path(__file__).parent / "skill"
+    if not source.exists():  # a source checkout rather than an installed wheel
+        source = Path(__file__).resolve().parents[2] / "skills" / "paper-research-coach"
+    if not (source / "SKILL.md").is_file():
+        return []
+    done = []
+    for host, base in SKILL_HOSTS.items():
+        dest = Path.home() / base / "paper-research-coach"
+        try:
+            if not (dest / "SKILL.md").is_file() or (dest / STAMP).read_text(encoding="utf-8").strip() == version:
+                continue
+        except OSError:
+            pass  # no stamp yet: an older copy, refresh it
+        try:
+            if "name: paper-research-coach" not in (dest / "SKILL.md").read_text(encoding="utf-8")[:400]:
+                continue
+            shutil.copytree(source, dest, dirs_exist_ok=True)
+            (dest / STAMP).write_text(version + "\n", encoding="utf-8")
+            done.append(host)
+        except OSError:
+            continue
+    return done
+
+
 def installed_skill_hosts() -> list[str]:
     return [h for h, base in SKILL_HOSTS.items() if (Path.home() / base / "paper-research-coach" / "SKILL.md").is_file()]
 

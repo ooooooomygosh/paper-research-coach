@@ -662,12 +662,14 @@ export function Settings({
   report,
   onTranslationUpdate,
   onReadTranslated,
+  updates,
 }: {
   state: any;
   refresh: () => void;
   report: (s: string) => void;
   onTranslationUpdate?: () => void;
   onReadTranslated?: (paperId: string) => void;
+  updates?: React.ReactNode;
 }) {
   const [collections, setCollections] = useState<any>(null),
     [selected, setSelected] = useState(state.sync.collection || ""),
@@ -687,6 +689,15 @@ export function Settings({
   }
   return (
     <div className="workspace-view settings">
+      {updates && (
+        <>
+          <div className="view-heading">
+            <span className="eyebrow">工作台与 Skill</span>
+            <h2>版本与更新</h2>
+          </div>
+          <div className="surface">{updates}</div>
+        </>
+      )}
       <TranslationLibrary
         papers={state.papers || []}
         onUpdate={onTranslationUpdate}

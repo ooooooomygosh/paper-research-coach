@@ -12,6 +12,7 @@ const mock = vi.hoisted(() => ({
   count: 3,
   fail: -1,
   calls: [] as number[][],
+  annotations: {} as Record<number, any[]>,
 }));
 vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
   GlobalWorkerOptions: {},
@@ -28,6 +29,8 @@ vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
       promise: Promise.resolve({
         numPages: count,
         getPageLabels: async () => null,
+        getDestination: async (name: string) => (name === "fig3" ? [{ num: 30 }, { name: "XYZ" }, 0, 700, null] : null),
+        getPageIndex: async (ref: { num: number }) => ref.num / 10 - 1,
         getPage: async (page: number) => {
           mock.calls.push([count, page]);
           if (page > count || page === mock.fail)
@@ -48,6 +51,7 @@ vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
             }),
             render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
             getTextContent: async () => ({ items: [1] }),
+            getAnnotations: async () => mock.annotations[page] || [],
           };
         },
       }),
@@ -75,8 +79,17 @@ beforeEach(() => {
   mock.count = 3;
   mock.fail = -1;
   mock.calls = [];
+  mock.annotations = {};
   HTMLElement.prototype.scrollIntoView = vi.fn();
+  window.requestAnimationFrame = ((cb: FrameRequestCallback) => setTimeout(() => cb(0), 0)) as any;
+  window.cancelAnimationFrame = ((id: number) => clearTimeout(id)) as any;
 });
+/** jsdom has no layout: give the scroller a visible height. */
+function sized(height = 400) {
+  const box = document.querySelector<HTMLElement>(".pdf-scroll")!;
+  Object.defineProperty(box, "clientHeight", { configurable: true, value: height });
+  return box;
+}
 afterEach(cleanup);
 it("bounds the page when replacing a PDF with a shorter version", async () => {
   const view = render(<Reader version="old" />);
@@ -85,16 +98,16 @@ it("bounds the page when replacing a PDF with a shorter version", async () => {
   view.rerender(<Reader version="new" />);
   await waitFor(() => expect(mock.calls).toContainEqual([1, 1]));
   expect(mock.calls).not.toContainEqual([1, 3]);
-  expect(document.querySelector("canvas")).toBeTruthy();
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"] canvas')).toBeTruthy());
+  expect(document.querySelectorAll(".pdf-page")).toHaveLength(1);
 });
-it("can render another page after a page-rendering failure", async () => {
+it("keeps the other pages readable when one page fails to draw", async () => {
   mock.fail = 3;
   render(<Reader version="old" />);
-  expect(await screen.findByRole("alert")).toBeTruthy();
-  fireEvent.click(screen.getByLabelText("PDF 上一页"));
-  await waitFor(() => expect(mock.calls).toContainEqual([3, 2]));
-  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-  expect(document.querySelector("canvas")).toBeTruthy();
+  const alert = await screen.findByRole("alert");
+  expect(alert.closest(".pdf-page")?.getAttribute("data-slot")).toBe("2");
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="1"]')).toBeTruthy());
+  expect(document.querySelectorAll("canvas").length).toBeGreaterThan(0);
 });
 it("locates a region using the current PDF.js point API and follows zoom", async () => {
   const props = {
@@ -244,12 +257,9 @@ it("ignores focused geometry from another paper even when the PDF version matche
   expect(document.querySelector(".anchor-highlight")).toBeNull();
 });
 
-it("restores the saved page's scroll after the parent loads its page asynchronously", async () => {
+it("restores the saved spot inside a page after the parent loads its page asynchronously", async () => {
   const key = "prc-viewport-delayed:v";
-  localStorage.setItem(
-    key,
-    JSON.stringify({ page: 2, top: 0.5, left: 0, zoom: 1, fit: true }),
-  );
+  localStorage.setItem(key, JSON.stringify({ page: 2, frac: 0.5, left: 0, zoom: 1, fit: false }));
   const props = {
     paper: { id: "delayed", source_version: "v", revision: 1, page_count: 3 },
     setPage: vi.fn(),
@@ -257,18 +267,61 @@ it("restores the saved page's scroll after the parent loads its page asynchronou
     focusAnchor: null,
   };
   const view = render(<PdfReader {...props} page={0} />);
+  await waitFor(() => expect(document.querySelector(".pdf-stack")).toBeTruthy());
   const box = document.querySelector<HTMLElement>(".pdf-scroll")!;
-  Object.defineProperty(box, "scrollHeight", { value: 1000 });
-  Object.defineProperty(box, "clientHeight", { value: 400 });
-  await waitFor(() => expect(box.scrollTop).toBe(300));
+  expect(box.scrollTop).toBe(0);
   view.rerender(<PdfReader {...props} page={2} />);
-  await waitFor(() =>
-    expect(
-      document.querySelector('.pdf-page[data-page-index="2"]'),
-    ).toBeTruthy(),
-  );
-  await waitFor(() => expect(box.scrollTop).toBe(300));
+  // Page tops at zoom 1: 0, 814, 1628 (800px pages, 14px gaps); half of page 3 is above the edge.
+  await waitFor(() => expect(box.scrollTop).toBe(2028));
   localStorage.removeItem(key);
+});
+
+it("reports the page under the reading line while scrolling, and scrolls to jumps", async () => {
+  const key = "prc-viewport-scroll:v";
+  localStorage.setItem(key, JSON.stringify({ zoom: 1, fit: false }));
+  const setPage = vi.fn();
+  const props = { paper: { id: "scroll", source_version: "v", revision: 1, page_count: 3 }, setPage, onAnchor: vi.fn(), focusAnchor: null };
+  const view = render(<PdfReader {...props} page={0} />);
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
+  const box = sized(400);
+  box.scrollTop = 1500; // the reading line at 1700 is on the third page
+  fireEvent.scroll(box);
+  await waitFor(() => expect(setPage).toHaveBeenCalledWith(2, "scroll"));
+  setPage.mockClear();
+  view.rerender(<PdfReader {...props} page={1} />);
+  await waitFor(() => expect(box.scrollTop).toBe(814));
+  // Our own scroll is not mistaken for the reader's.
+  fireEvent.scroll(box);
+  await new Promise((r) => setTimeout(r, 5));
+  expect(setPage).not.toHaveBeenCalled();
+  fireEvent.keyDown(screen.getByLabelText("PDF 阅读器"), { key: "ArrowRight" });
+  expect(setPage).toHaveBeenCalledWith(2);
+  localStorage.removeItem(key);
+});
+
+it("draws only the pages near the reading position", async () => {
+  mock.count = 40;
+  render(<PdfReader paper={{ id: "long", source_version: "v", revision: 1, page_count: 40 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()} focusAnchor={null} />);
+  await waitFor(() => expect(document.querySelectorAll(".pdf-page")).toHaveLength(40));
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="1"]')).toBeTruthy());
+  const drawn = new Set(mock.calls.map(([, p]) => p));
+  expect(drawn.has(30)).toBe(false);
+  expect(document.querySelectorAll("canvas").length).toBeLessThan(8);
+});
+
+it("follows links inside the PDF to the target page and keeps only safe external links", async () => {
+  mock.annotations[1] = [
+    { subtype: "Link", rect: [10, 10, 40, 30], dest: "fig3" },
+    { subtype: "Link", rect: [50, 10, 90, 30], url: "https://example.org/paper" },
+    { subtype: "Link", rect: [50, 40, 90, 60], url: "javascript:alert(1)" },
+  ];
+  const setPage = vi.fn();
+  render(<PdfReader paper={{ id: "links", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={setPage} onAnchor={vi.fn()} focusAnchor={null} />);
+  fireEvent.click(await screen.findByRole("button", { name: "跳到第 3 页" }));
+  expect(setPage).toHaveBeenCalledWith(2);
+  const external = screen.getByRole("link", { name: /example.org/ });
+  expect(external.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(document.querySelectorAll(".pdf-link")).toHaveLength(2);
 });
 
 it("restores only the matching translated rendition, never another layout or regenerated file", async () => {
@@ -305,5 +358,42 @@ it("zooms with trackpad pinch events but leaves ordinary wheel scrolling native"
   expect(parseInt(screen.getByLabelText("PDF 缩放比例").textContent!)).toBeGreaterThan(110);
   expect(mock.calls).toHaveLength(calls); // Gesture preview reuses the existing canvas.
   await waitFor(() => expect(mock.calls.length).toBeGreaterThan(calls));
-  expect(document.querySelector<HTMLElement>(".pdf-page")!.style.transform).toBe("");
+  expect(document.querySelector<HTMLElement>(".pdf-stack")!.style.transform).toBe("");
+});
+
+it("draws numbered coach marks and offers one click back to the earlier page", async () => {
+  const setPage = vi.fn(), dismiss = vi.fn(), stop = vi.fn();
+  render(<PdfReader paper={{ id: "marks", source_version: "v", revision: 1, page_count: 3 }} page={1} setPage={setPage} onAnchor={vi.fn()} focusAnchor={null}
+    coachMarks={{ page_index: 1, marks: [{ n: 1, rects: [[100, 200, 160, 260]] }, { n: 2, rects: [[100, 300, 160, 320]] }] }}
+    returnTo={{ page: 0, to: 1, key: "f1" }} onDismissReturn={dismiss} onFollowCoach={stop} />);
+  await waitFor(() => expect(document.querySelectorAll('.pdf-page[data-slot="1"] .coach-mark')).toHaveLength(2));
+  expect(document.querySelector(".coach-mark-n")!.textContent).toBe("1");
+  expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "回到第 1 页" }));
+  expect(setPage).toHaveBeenCalledWith(0);
+  expect(dismiss).toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "不要自动翻页" }));
+  expect(stop).toHaveBeenCalledWith(false);
+});
+
+it("never draws coach marks on a translated layout", async () => {
+  const rendition = { job_id: "job", view: "mono" as const, document_version: "a".repeat(64) };
+  render(<PdfReader paper={{ id: "p", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()} focusAnchor={null}
+    derived documentKey="job:mono" rendition={rendition} coachMarks={{ page_index: 0, marks: [{ n: 1, rects: [[1, 2, 30, 40]] }] }} />);
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
+  expect(document.querySelector(".coach-mark")).toBeNull();
+});
+
+it("keeps the reader on the same page after switching to another rendition", async () => {
+  localStorage.setItem("prc-viewport-switch:v", JSON.stringify({ zoom: 1, fit: false }));
+  localStorage.setItem("prc-viewport-switch:v:job:mono", JSON.stringify({ zoom: 1, fit: false }));
+  const props = { paper: { id: "switch", source_version: "v", revision: 1, page_count: 3 }, page: 1, setPage: vi.fn(), onAnchor: vi.fn(), focusAnchor: null };
+  const view = render(<PdfReader {...props} />);
+  const box = document.querySelector<HTMLElement>(".pdf-scroll")!;
+  await waitFor(() => expect(box.scrollTop).toBe(814));
+  view.rerender(<PdfReader {...props} derived documentKey="job:mono" fileUrl="/mono.pdf"
+    rendition={{ job_id: "job", view: "mono", document_version: "a".repeat(64) }} />);
+  box.scrollTop = 0; // a browser resets the scroll while the old document is removed
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-derived="job:mono"]')).toBeTruthy());
+  await waitFor(() => expect(box.scrollTop).toBe(814));
 });

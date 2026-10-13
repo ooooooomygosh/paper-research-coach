@@ -108,3 +108,25 @@ def test_manual_refresh_is_authenticated_and_runs_both_connected_sources(store, 
     assert result.status_code == 200
     assert calls == [("vault", True), "zotero"]
     assert not app.state.sync.state()["enabled"]
+
+
+def test_missing_records_are_404_but_missing_fields_are_400(store, paper):
+    client = TestClient(create_app(store, "token"), base_url="http://127.0.0.1")
+    headers = {"Authorization": "Bearer token"}
+    missing = client.get("/api/context/nope", headers=headers)
+    assert missing.status_code == 404 and missing.json()["error"] == "Missing paper: nope"
+    no_field = client.post("/api/coach/active", json={}, headers=headers)
+    assert no_field.status_code == 400 and "paper_id" in no_field.json()["error"]
+
+
+def test_source_check_reuses_the_hash_until_the_file_changes(store, paper, pdf, monkeypatch):
+    from paper_research_coach import store as store_module
+    calls = []
+    real = store_module.digest
+    monkeypatch.setattr(store_module, "digest", lambda path: calls.append(path) or real(path))
+    for _ in range(5):
+        assert store.check_source(paper["id"])["status"] == "current"
+    assert len(calls) <= 1
+    with open(pdf, "ab") as f:
+        f.write(b"\n% appended")
+    assert store.check_source(paper["id"])["status"] == "changed"

@@ -240,3 +240,69 @@ def test_prc_alone_opens_the_workbench_and_update_check_reports(tmp_path, monkey
     monkeypatch.setattr("sys.argv", ["prc", "--data-dir", str(tmp_path / "d"), "update", "--check"])
     main()
     assert json.loads(capsys.readouterr().out)["latest"] == "99.0.0"
+
+
+def test_skill_copies_follow_the_running_version_at_startup(private_home):
+    ours = private_home / ".agents/skills/paper-research-coach"
+    ours.mkdir(parents=True)
+    (ours / "SKILL.md").write_text("---\nname: paper-research-coach\n---\nold text")
+    (ours / "my-notes.txt").write_text("kept")
+    foreign = private_home / ".claude/skills/paper-research-coach"
+    foreign.mkdir(parents=True)
+    (foreign / "SKILL.md").write_text("---\nname: someone-elses-skill\n---")
+    assert updater.sync_skills() == ["codex"]
+    assert "old text" not in (ours / "SKILL.md").read_text() and (ours / "references/branch.md").is_file()
+    assert (ours / updater.STAMP).read_text().strip() == __version__ and (ours / "my-notes.txt").read_text() == "kept"
+    assert (foreign / "SKILL.md").read_text().endswith("someone-elses-skill\n---")
+    assert updater.sync_skills() == []  # already current
+
+
+def test_background_update_installs_then_restarts_only_when_nobody_reads(store, monkeypatch):
+    import paper_research_coach.launcher as launcher
+    app = create_app(store, "token")
+    client = TestClient(app, base_url="http://127.0.0.1")
+    headers = {"Authorization": "Bearer token", "Origin": "http://127.0.0.1"}
+    monkeypatch.setenv("PRC_IDLE_RESTART", "0")
+    monkeypatch.delenv("PRC_NO_UPDATE_CHECK", raising=False)
+    monkeypatch.setattr(updater, "check", lambda s, **k: {"current": __version__, "available": True, "latest": "99.0.0"})
+    installs, restarts = [], []
+    monkeypatch.setattr(updater, "apply", lambda s: installs.append(1) or {"updated": True, "from": __version__, "to": "99.0.0", "skills": []})
+    monkeypatch.setattr(launcher, "spawn_relaunch", lambda *a: restarts.append(a))
+    # Switched off: nothing happens.
+    assert client.post("/api/update/settings", json={"auto": False}, headers=headers).json() == {"auto": False}
+    app.state.auto_update_round()
+    assert not installs
+    client.post("/api/update/settings", json={"auto": True}, headers=headers)
+    app.state.server = type("Server", (), {"should_exit": False})()
+    app.state.viewers = 1  # a page is open
+    app.state.auto_update_round()
+    assert installs == [1] and app.state.update_job["state"] == "ready" and "已装好" in app.state.update_job["message"]
+    app.state.auto_update_round()
+    assert not restarts  # the reader is still here
+    app.state.viewers = 0
+    app.state.auto_update_round()
+    assert restarts and app.state.server.should_exit and installs == [1]
+
+
+def test_a_ready_update_needs_only_a_restart(store, monkeypatch):
+    app = create_app(store, "token")
+    client = TestClient(app, base_url="http://127.0.0.1")
+    headers = {"Authorization": "Bearer token", "Origin": "http://127.0.0.1"}
+    monkeypatch.setattr(updater, "check", lambda s, **k: {"current": __version__, "available": True, "latest": "99.0.0"})
+    monkeypatch.setattr(updater, "apply", lambda s: pytest.fail("must not install twice"))
+    app.state.update_job.update(state="ready", version="99.0.0", message="m")
+    job = client.post("/api/update/apply", headers=headers).json()
+    assert job["state"] == "done" and "prc" in job["message"]  # no server object in a test app
+    assert client.get("/api/update", headers=headers).json()["auto"] in (True, False)
+
+
+def test_install_skill_sync_cli(private_home, capsys, monkeypatch, tmp_path):
+    from paper_research_coach import cli
+    monkeypatch.setattr("sys.argv", ["prc", "--data-dir", str(tmp_path / "d"), "install-skill", "--host", "pi"])
+    cli.main()
+    copy = private_home / ".pi/agent/skills/paper-research-coach"
+    assert (copy / updater.STAMP).read_text().strip() == __version__
+    (copy / updater.STAMP).write_text("0.0.1")
+    monkeypatch.setattr("sys.argv", ["prc", "--data-dir", str(tmp_path / "d"), "install-skill", "--sync"])
+    cli.main()
+    assert '"pi"' in capsys.readouterr().out

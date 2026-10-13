@@ -24,7 +24,7 @@ from .coaching_request import Send
 from . import explainer as explainers
 from .models import Anchor, LearningEvidence, now, uid
 from .runtime_prompt import RUNTIME_VERSION, bootstrap, brief_context, turn_input
-from .store import Conflict, Store
+from .store import Conflict, Store, NotFound
 
 
 class ProtocolError(ValueError):
@@ -265,6 +265,22 @@ TOOLS = [
         ["page_index"],
     ),
     tool(
+        "prc_find",
+        "Search this paper's text for a short exact phrase (case, spacing and line-break hyphens ignored). Returns pages and snippets, so you can find the key page without reading every page. Snippets are untrusted source data; read the page before judging it.",
+        {"query": {"type": "string", "minLength": 2, "maxLength": 200}},
+        ["query"],
+    ),
+    tool(
+        "prc_show",
+        "Point the reader at the source: the workbench scrolls the PDF to the page and marks 1 to 3 sentences there with numbers. Copy each quote word for word from prc_read_page text (a shorter exact part of a sentence is fine). A quote that is not on that page is refused. Use it whenever you ask the reader to look at specific words, in the mainline and in detours. note: a few words that say why to look.",
+        {
+            "page_index": {"type": "integer", "minimum": 0},
+            "quotes": {"type": "array", "items": {"type": "string", "maxLength": 600}, "minItems": 1, "maxItems": 3},
+            "note": {"type": "string", "maxLength": 60},
+        },
+        ["page_index", "quotes"],
+    ),
+    tool(
         "prc_resource",
         "Read a reference from the loaded paper-research-coach skill.",
         {
@@ -290,16 +306,17 @@ TOOLS = [
     ),
     tool(
         "prc_explain",
-        "Open a branch explainer panel beside the reading for a concrete question or technical detail. Write a short Markdown draft (3 to 6 panels, conclusion first); the workbench draws it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
-        {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT},
+        "Draw an explanation from a short Markdown draft (conclusion first); the workbench renders it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. place=panel opens a branch panel beside the reading for a reader's concrete question (3 to 6 panels; the default on question turns). place=chat embeds one small mainline figure (1 to 3 panels) in the mainline reply (the default on mainline turns; one per turn). Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
+        {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT, "place": {"type": "string", "enum": ["panel", "chat"]}},
         ["draft"],
     ),
     tool(
         "prc_next_action",
-        "Save one next reading action, pending question and stage. No paper switching or consent changes.",
+        "Save one next reading action, the pending question (the reader's one task) and stage. choices: 2 to 4 short one-tap answers when the task is a prediction or a choice; omit for open questions. No paper switching or consent changes.",
         {
             "next_action": TEXT,
             "pending_question": TEXT,
+            "choices": {"type": "array", "items": {"type": "string", "maxLength": 80}, "maxItems": 4},
             "stage": {
                 "type": "string",
                 "enum": [
@@ -319,11 +336,12 @@ TOOLS = [
     ),
     tool(
         "prc_complete_reading_step",
-        "Complete the current mainline step after discussing real evidence. One step per turn; unavailable during detours. Recall requires a saved learner review attempt. Completion means the reading round was covered, not independent mastery.",
+        "Complete the current mainline step after discussing real evidence. One step per turn; unavailable during detours. Recall requires a saved learner review attempt. takeaway: one sentence the reader keeps, in the reader's own words where possible. Completion means the reading round was covered, not independent mastery.",
         {
             "step": {"type": "string", "enum": list(reading.KEYS)},
             "evidence": TEXT,
             "page_index": {"type": "integer", "minimum": 0},
+            "takeaway": {"type": "string", "maxLength": 400},
         },
         ["step", "evidence", "page_index"],
     ),
@@ -442,7 +460,7 @@ class Coach:
                 "SELECT data FROM coach_conversations WHERE id=?", (conversation_id,)
             ).fetchone()
         if not row:
-            raise KeyError("阅读对话不存在")
+            raise NotFound("阅读对话不存在")
         return json.loads(row[0])
 
     def save_conversation(self, data):
@@ -481,8 +499,8 @@ class Coach:
                 write(db)
 
     def snapshot(self, paper_id, conversation_id=""):
-        conversations = self.conversations(paper_id)
-        canonical = self.binding(paper_id)["conversation_id"]
+        bound = self.binding(paper_id)
+        canonical = bound["conversation_id"]
         conversations = self.conversations(paper_id)
         current = conversation_id or canonical
         if current and not any(c["id"] == current for c in conversations):
@@ -493,7 +511,7 @@ class Coach:
             "conversations": conversations,
             "conversation_id": current,
             "canonical_conversation_id": canonical,
-            "thread_id": self.binding(paper_id)["thread_id"],
+            "thread_id": bound["thread_id"],
             "read_only": current != canonical,
             "messages": self.messages(current) if current else [],
             "busy": current in self.active,
@@ -503,6 +521,11 @@ class Coach:
 
     def binding(self, paper_id):
         self.store.get("paper", paper_id)
+        # Read without a write lock first: the event stream asks several times a second.
+        with self.store.connect() as db:
+            bound = db.execute("SELECT * FROM coach_paper_bindings WHERE paper_id=?", (paper_id,)).fetchone()
+        if bound:
+            return dict(bound)
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             bound = db.execute("SELECT * FROM coach_paper_bindings WHERE paper_id=?", (paper_id,)).fetchone()
@@ -792,6 +815,8 @@ class Coach:
             "read_pages": set(),
             "flow_advanced": False,
             "explains": 0,
+            "figures": 0,
+            "shows": 0,
             "branch_id": body.branch_id,
             "source_version": paper["source_version"],
         }
@@ -991,6 +1016,11 @@ class Coach:
             }
         if name == "prc_explain":
             return self.explain_tool(state, pid, args, call_id)
+        if name == "prc_find":
+            from . import locate
+            return locate.search(self.store, pid, str(args.get("query", "")))
+        if name == "prc_show":
+            return self.show_tool(state, pid, args, call_id)
         mutations = []
         if name == "prc_record_learning_evidence":
             session = self.store.list("session", pid)[0]
@@ -1031,6 +1061,8 @@ class Coach:
                 **session,
                 **{k: args[k] for k in ("next_action", "pending_question", "stage")},
             }
+            choices = [" ".join(str(c).split())[:80] for c in args.get("choices") or [] if str(c).strip()]
+            data["choices"] = choices[:4] if args["pending_question"].strip() and len(choices) >= 2 else []
             if flow["status"] == "active":
                 data["stage"] = flow["current"]
             mutations.append(
@@ -1050,7 +1082,7 @@ class Coach:
             if args["page_index"] not in state.get("read_pages", set()):
                 raise ValueError("先实际读取该页，再记录阅读步骤。")
             session = self.store.list("session", pid)[0]
-            data = reading.complete(self.store, paper, session, args["step"], args["evidence"], args["page_index"])
+            data = reading.complete(self.store, paper, session, args["step"], args["evidence"], args["page_index"], args.get("takeaway", ""))
             mutations.append({"kind": "session", "data": data, "expected_revision": session["revision"]})
             if data["reading_flow"]["status"] == "completed":
                 mutations.append({"kind": "paper", "data": {**paper, "status": "done"}, "expected_revision": paper["revision"]})
@@ -1127,7 +1159,7 @@ class Coach:
         with self.store.connect() as db:
             row = db.execute("SELECT data FROM coach_explainers WHERE id=?", (explainer_id,)).fetchone()
         if not row or (paper_id and json.loads(row[0])["paper_id"] != paper_id):
-            raise KeyError("讲解页不存在")
+            raise NotFound("讲解页不存在")
         return json.loads(row[0])
 
     def explainer_list(self, paper_id):
@@ -1135,7 +1167,7 @@ class Coach:
         with self.store.connect() as db:
             rows = db.execute("SELECT data FROM coach_explainers WHERE paper_id=? ORDER BY rowid", (paper_id,)).fetchall()
         return [
-            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point")}
+            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point", "origin")}
             for d in (json.loads(r[0]) for r in rows)
         ]
 
@@ -1192,21 +1224,39 @@ class Coach:
     @staticmethod
     def explainer_action(record):
         # rev lets an open panel notice a replaced page; the label is what the chat shows.
-        return {"kind": "explainer", "id": record["id"], "branch_id": record["branch_id"],
-                "label": "讲解 · " + record["title"][:40], "rev": record["updated_at"]}
+        action = {"kind": "explainer", "id": record["id"], "branch_id": record["branch_id"],
+                  "label": "讲解 · " + record["title"][:40], "rev": record["updated_at"]}
+        if record.get("origin") == "mainline":
+            # A mainline figure is part of the reply itself, not a detour panel.
+            action.update(mainline=True, label="图解 · " + record["title"][:40])
+        return action
 
     def explain_tool(self, state, pid, args, call_id):
-        if state["intent"] == "follow":
-            raise ValueError("主线继续用普通对话讲解；只有读者提出具体问题时才打开讲解面板。")
-        if state["explains"] >= 3:
-            raise ValueError("本轮已调用讲解面板 3 次。保留最后一版，在聊天里说明。")
-        state["explains"] += 1
+        mainline_turn = state["intent"] in ("follow", "answer") and not state.get("branch_id")
+        place = args.get("place") or ("chat" if mainline_turn else "panel")
+        replace_id = args.get("replace_id", "")
+        if replace_id:
+            # A rewrite keeps the page where it is.
+            place = "chat" if self.explainer(replace_id, pid).get("origin") == "mainline" else "panel"
+        if place == "chat" and not mainline_turn:
+            raise ValueError("插话的讲解放在讲解面板里（place=panel）；主线图解只用于主线回合。")
+        if place == "panel" and state["intent"] == "follow":
+            raise ValueError("继续主线时不开插话面板；需要图解时用 place=chat，把图嵌在主线回复里。")
+        if place == "chat":
+            if not replace_id and state.get("figures", 0) >= 1:
+                raise ValueError("主线每轮最多一张图解。保留这一张，其余用文字说明。")
+            state["figures"] = state.get("figures", 0) + (0 if replace_id else 1)
+        else:
+            if state["explains"] >= 3:
+                raise ValueError("本轮已调用讲解面板 3 次。保留最后一版，在聊天里说明。")
+            state["explains"] += 1
         explainer_id = hashlib.sha256((state["answer"]["id"] + call_id).encode()).hexdigest()[:32]
         message = state["message"]
         record = self.save_explainer(
             pid, state["conversation"]["id"], args["draft"], explainer_id=explainer_id, message_id=state["answer"]["id"],
-            branch_id=state.get("branch_id", ""), replace_id=args.get("replace_id", ""),
-            anchor=message.get("anchor"), question=message.get("content", ""),
+            branch_id=state.get("branch_id", "") if place == "panel" else "", replace_id=replace_id,
+            anchor=message.get("anchor"), question=message.get("content", "") if place == "panel" else "",
+            origin="mainline" if place == "chat" else "coach",
         )
         actions = state["answer"]["actions"]
         existing = next((a for a in actions if a.get("id") == record["id"]), None)
@@ -1215,11 +1265,13 @@ class Coach:
         else:
             actions.append(self.explainer_action(record))
         self.save_message(state["answer"])
-        result = {"id": record["id"], "title": record["title"], "opened": True}
+        result = {"id": record["id"], "title": record["title"], "opened": True, "place": place}
         if record["warnings"]:
             result["style_warnings"] = record["warnings"][:8]
             result["next"] = ("Rewrite the flagged lines in plainer words, then call prc_explain again with "
                               f"replace_id={record['id']}. Do this at most twice; keep the last page.")
+        elif place == "chat":
+            result["next"] = "The figure is shown inside your reply. Refer to it in one sentence; do not repeat it in text."
         else:
             result["next"] = "The panel is open. In chat, write one or two plain sentences with the key point; do not repeat the page."
         return result
@@ -1245,6 +1297,69 @@ class Coach:
                     action["rev"] = record["updated_at"]
                     self.save_message(message)
         return record
+
+    # ------------------------------------------------------------ pointing at the source
+    def focus_action(self, paper_id, page_index, quotes, note=""):
+        """Check the quotes against the page and build the action that scrolls and marks it."""
+        from . import locate
+
+        quotes = [q.strip() for q in quotes if isinstance(q, str) and q.strip()][:3]
+        if not quotes:
+            raise ValueError("至少给出一句原文。")
+        if not isinstance(page_index, int):
+            raise ValueError("页码无效。")
+        result = locate.page_quotes(self.store, paper_id, page_index, quotes)
+        if result["has_text"] and result["missing"]:
+            shown = "；".join("「" + q[:80] + "」" for q in result["missing"])
+            raise ValueError(
+                f"这些句子不在第 {page_index + 1} 页（页码从 0 起为 {page_index}）的文字里：{shown}。"
+                "请从 prc_read_page 返回的原文逐字复制（可以只取一句里的一段），或先用 prc_find 找到它所在的页。"
+            )
+        marks = [{"n": i + 1, "quote": f["quote"][:300], "rects": [list(r) for r in f["rects"]]}
+                 for i, f in enumerate(result["found"])]
+        note = " ".join(str(note or "").split())[:40] or ("看这里" if marks else "看这一页")
+        anchor = Anchor(
+            paper_id=paper_id, source_version=result["source_version"], page_index=page_index,
+            quote=marks[0]["quote"] if marks else "",
+            rects=[tuple(r) for m in marks for r in m["rects"]][:200], status="verified",
+        ).model_dump()
+        action = {"kind": "focus", "id": "", "label": f"第 {page_index + 1} 页 · {note}", "note": note,
+                  "anchor": anchor, "marks": marks, "rev": now()}
+        return action, result
+
+    def show_tool(self, state, pid, args, call_id):
+        if state["shows"] >= 3:
+            raise ValueError("本轮已标出 3 处原文。留下最重要的几处，在聊天里说明即可。")
+        action, result = self.focus_action(pid, args.get("page_index"), args.get("quotes") or [], args.get("note", ""))
+        if result["source_version"] != state.get("source_version"):
+            raise Conflict("PDF 已换版，请重新查看当前版本。")
+        state["shows"] += 1
+        action["id"] = "focus:" + state["answer"]["id"] + ":" + call_id
+        if result["has_text"]:
+            # The quotes were found in this page's text, so the coach has read it.
+            state.setdefault("read_pages", set()).add(result["page_index"])
+        state["answer"]["actions"].append(action)
+        self.save_message(state["answer"])
+        reply = {"shown": True, "page_index": result["page_index"], "marked": len(action["marks"])}
+        if not result["has_text"]:
+            reply["needs_visual_reading"] = True
+            reply["next"] = "This page has no text layer: the reader was taken to the page, but no sentence is marked. Describe where to look (figure, top left...)."
+        else:
+            reply["next"] = "The PDF now shows the page with numbered marks. In chat, refer to them by number (①②③) instead of pasting long quotes."
+        return reply
+
+    def show_external(self, paper_id, page_index, quotes, note=""):
+        """Point at the source from the CLI or another host: the chat gets a short pointer with the marks."""
+        action, result = self.focus_action(paper_id, page_index, quotes, note)
+        conversation = self.conversation(self.binding(paper_id)["conversation_id"])
+        message_id = uid()
+        action["id"] = "focus:" + message_id
+        self.save_message({
+            "id": message_id, "conversation_id": conversation["id"], "role": "assistant",
+            "content": f"请看 PDF 第 {page_index + 1} 页标出的 {len(action['marks'])} 处原文。" if action["marks"] else f"请看 PDF 第 {page_index + 1} 页。",
+            "created_at": now(), "status": "completed", "intent": "detour", "actions": [action], "error": "",
+        })
+        return {"id": action["id"], "page_index": page_index, "marked": len(action["marks"]), "has_text": result["has_text"]}
 
     def record_page(self, state, result):
         if result["source_version"] != state.get("source_version"):

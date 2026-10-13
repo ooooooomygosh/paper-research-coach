@@ -116,6 +116,8 @@ esac
 [ -x "$PRC" ] || { have prc && PRC="$(command -v prc)"; }
 [ -x "$PRC" ] || fail "安装完成，但找不到 prc 程序。/ Installed, but the prc command was not found."
 say "  已安装 / Installed: $("$PRC" --version)"
+# Skill copies made earlier by `prc install-skill` follow this version too.
+"$PRC" install-skill --sync >/dev/null 2>&1 || true
 
 if [ "$SHORTCUT" = 1 ]; then "$PRC" shortcut || true; fi
 
@@ -124,8 +126,9 @@ cat <<EOF
 完成。/ Done.
 
   打开工作台 / Open the workbench:   prc
-  更新 / Update later:                prc update     （界面里有新版本时也会提示 / the app also tells you）
   桌面图标 / Desktop launcher:        prc shortcut
+  更新 / Updates:                     自动。工作台会在后台校验并安装新版本，Skill 副本随之更新；
+                                      也可以随时运行 prc update。/ Automatic; or run prc update.
 
 如果终端提示找不到 prc，请重新打开终端（安装器已把 prc 放进 PATH）。
 If the terminal cannot find prc, open a new terminal window.

@@ -24,12 +24,39 @@ class Conflict(ValueError):
     pass
 
 
+class NotFound(KeyError):
+    """A record that does not exist (HTTP 404). Other KeyErrors are malformed requests."""
+
+    def __str__(self):
+        return str(self.args[0]) if self.args else "记录不存在"
+
+
 def digest(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+_digests: dict[tuple, str] = {}
+
+
+def cached_digest(path: Path) -> str:
+    """digest(), reused while the file's identity, size and times are unchanged.
+
+    Reading a page asks "is this still the same PDF?" many times; hashing a large file each
+    time made scrolling and the coach slow. Any replacement changes ctime/mtime/inode.
+    """
+    st = path.stat()
+    key = (str(path), st.st_size, st.st_mtime_ns, st.st_ctime_ns, st.st_ino)
+    value = _digests.get(key)
+    if value is None:
+        value = digest(path)
+        if len(_digests) > 256:
+            _digests.clear()
+        _digests[key] = value
+    return value
 
 
 class Store:
@@ -89,7 +116,7 @@ class Store:
                 "SELECT data FROM records WHERE kind=? AND id=?", (kind, record_id)
             ).fetchone()
         if not row:
-            raise KeyError(f"Missing {kind}: {record_id}")
+            raise NotFound(f"Missing {kind}: {record_id}")
         return json.loads(row[0])
 
     def setting(self, key: str, default=None):
@@ -311,7 +338,7 @@ class Store:
         path = Path(p["source_path"])
         if not path.is_file():
             return {"status": "missing"}
-        changed = digest(path) != p["source_version"]
+        changed = cached_digest(path) != p["source_version"]
         return {"status": "changed" if changed else "current"}
 
     def replace_source(self, paper_id: str, path: str):

@@ -546,3 +546,15 @@
   padding: 6px 12px;
   font-size: 13px;
 }
+
+/* A mainline figure inside a reply: compact until opened, same drawing as the panel. */
+.xp-inline { margin: 10px 0 2px; border: 1px solid var(--line-strong, #dfe5dc); border-radius: 12px; background: var(--surface, #fff); overflow: hidden; }
+.xp-inline figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line, #eef1ec); font-size: 12px; }
+.xp-inline figcaption b { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xp-inline figcaption span { display: flex; gap: 4px; flex: none; }
+.xp-inline figcaption button { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; font-size: 12px; }
+.xp-inline-body { position: relative; max-height: 340px; overflow: hidden; padding: 4px 12px 10px; }
+.xp-inline:not(.open) .xp-inline-body::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: linear-gradient(transparent, var(--surface, #fff)); pointer-events: none; }
+.xp-inline.open .xp-inline-body { max-height: none; }
+.xp-inline .xp-doc { font-size: 13px; }
+.xp-inline-error { font-size: 12px; color: var(--danger, #b3261e); }

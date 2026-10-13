@@ -83,10 +83,12 @@ export type ExplainerRecord = {
   warnings: string[];
   anchor: any;
   return_point: ReturnPoint;
+  /** "mainline" for a figure inside a mainline reply; otherwise a branch page. */
+  origin?: string;
   created_at: string;
   updated_at: string;
 };
 export type ExplainerSummary = Pick<
   ExplainerRecord,
-  "id" | "branch_id" | "seq" | "title" | "question" | "created_at" | "updated_at" | "return_point"
+  "id" | "branch_id" | "seq" | "title" | "question" | "created_at" | "updated_at" | "return_point" | "origin"
 >;

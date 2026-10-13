@@ -1,6 +1,6 @@
 .pdf-stage { position: relative; display: flex; flex: 1; min-height: 0; overflow: hidden; }
-.pdf-stage > .pdf-scroll { flex: 1; min-width: 0; min-height: 0; height: auto; touch-action: pan-x pan-y; }
-.pdf-gesturing .pdf-page { will-change: transform; pointer-events: none; }
+.pdf-stage > .pdf-scroll { position: relative; flex: 1; min-width: 0; min-height: 0; height: auto; touch-action: pan-x pan-y; }
+.pdf-gesturing .pdf-stack { will-change: transform; pointer-events: none; }
 .pdf-gesturing, .pdf-gesturing * { user-select: none !important; }
 .pdf-floating-tools {
   position: absolute; z-index: 8; right: 12px; top: 50%; transform: translateY(-50%);
@@ -46,3 +46,32 @@
 
 .pdf-floating-tools .pdf-view-select { width: 46px; min-width: 0; padding: 5px 0; border: 0; border-radius: 7px; background: transparent; color: inherit; font-size: 11px; cursor: pointer; }
 .pdf-floating-tools .pdf-view-select:hover { background: color-mix(in srgb, var(--tint-strong) 79%, transparent); }
+
+/* Continuous reading: every page sits in one scrolling stack; far pages are empty placeholders. */
+.pdf-stack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 0 auto; }
+.pdf-stack > .pdf-page { flex: none; margin: 0; }
+.pdf-page-raster, .pdf-page-raster > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pdf-page-raster > canvas { display: block; }
+.pdf-page-error { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 5; }
+/* Links inside the PDF ([12], Figure 3, URLs): invisible until hovered. */
+.pdf-page .pdf-link { position: absolute; z-index: 3; display: block; padding: 0; border: 0; border-radius: 2px; background: transparent; cursor: pointer; }
+.pdf-page .pdf-link:hover, .pdf-page .pdf-link:focus-visible { background: color-mix(in srgb, var(--tint-strong) 35%, transparent); outline: 1px solid var(--green-soft); }
+/* Search hits in the text layer. */
+.pdf-page .textLayer span.search-hit { background: #f2c94c80; border-radius: 2px; }
+/* Sentences the coach points at: a soft band plus a number, different from the reader's own marks. */
+.pdf-page .coach-mark { position: absolute; z-index: 3; pointer-events: none; background: color-mix(in srgb, #4f8cc9 18%, transparent); border-bottom: 2px solid color-mix(in srgb, #4f8cc9 70%, transparent); border-radius: 2px; }
+.pdf-page .coach-mark.current { background: color-mix(in srgb, #4f8cc9 28%, transparent); }
+.pdf-page .coach-mark-n { position: absolute; left: -20px; top: 50%; transform: translateY(-50%); min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #4f8cc9; color: #fff; font: 600 10px/16px system-ui, sans-serif; text-align: center; }
+@media (prefers-color-scheme: dark) {
+  .pdf-page .coach-mark { background: color-mix(in srgb, #7fb2e5 22%, transparent); border-bottom-color: #7fb2e5; }
+  .pdf-page .coach-mark-n { background: #7fb2e5; color: #10202e; }
+}
+/* After the coach moves the PDF: a quiet chip with one click back. */
+.pdf-return-chip { position: absolute; z-index: 9; top: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; max-width: calc(100% - 24px); padding: 5px 6px 5px 12px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: 0 3px 16px #263d2526; font-size: 12px; color: var(--text-2); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: chip-in .18s ease-out; }
+.pdf-return-chip span { white-space: nowrap; }
+.pdf-return-chip button { padding: 3px 9px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+.pdf-return-chip button.quiet { border: 0; background: transparent; color: var(--muted); }
+@keyframes chip-in { from { opacity: 0; transform: translate(-50%, -4px); } }
+@media (prefers-reduced-motion: reduce) { .pdf-return-chip { animation: none; } }
+.follow-coach { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); margin: 6px 0; }
+.coach-actions .coach-focus-link::before { content: "◎ "; color: #4f8cc9; }

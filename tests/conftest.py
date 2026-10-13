@@ -3,6 +3,17 @@ from reportlab.pdfgen import canvas
 from paper_research_coach.store import Store
 
 
+@pytest.fixture(autouse=True)
+def private_home(tmp_path, monkeypatch):
+    """No test reads or writes the real home folder (Skill copies, launchers) or waits on updates."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setenv("PRC_AUTO_UPDATE_DELAY", "3600")
+    return home
+
+
 @pytest.fixture
 def pdf(tmp_path):
     path = tmp_path / "source.pdf"

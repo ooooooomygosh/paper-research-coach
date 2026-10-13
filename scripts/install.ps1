@@ -101,12 +101,14 @@ try {
     }
     if (-not (Test-Path $prc)) { Fail "安装完成，但找不到 prc 程序。/ Installed, but the prc command was not found." }
     Write-Host "  已安装 / Installed: $(& $prc --version)"
+    # Skill copies made earlier by `prc install-skill` follow this version too.
+    try { & $prc install-skill --sync *> $null } catch { }
     Write-Host ""
     Write-Host "完成。/ Done."
     Write-Host ""
     Write-Host "  打开工作台 / Open the workbench:   prc"
-    Write-Host "  更新 / Update later:                prc update"
     Write-Host "  桌面图标 / Desktop launcher:        prc shortcut"
+    Write-Host "  更新 / Updates:                     自动（后台校验并安装）；也可以运行 prc update / automatic, or prc update"
     Write-Host ""
     Write-Host "如果提示找不到 prc，请重新打开 PowerShell。/ If prc is not found, open a new PowerShell window."
     Write-Host "Claude Code 用户：在 Claude Code 里运行 /plugin marketplace add $Repo 安装 Skill。"

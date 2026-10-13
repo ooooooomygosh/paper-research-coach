@@ -585,8 +585,10 @@ it("keeps the mainline step, its button and the pending question in the panel wh
   const { container } = view({ toolsContainer: drawer, onOpenTools: vi.fn() });
   await screen.findByText("第 3/8 步 · 问题设定");
   const panel = container.querySelector(".coach-panel")!;
-  expect(panel.contains(screen.getByRole("button", { name: "继续主线", exact: true }))).toBe(true);
-  expect(panel.contains(screen.getByText("决策时真正可用的信息是什么？"))).toBe(true);
+  const task = screen.getByRole("region", { name: "本轮任务" });
+  expect(panel.contains(task)).toBe(true);
+  expect(within(task).getByText("决策时真正可用的信息是什么？")).toBeTruthy();
+  expect(within(task).getByRole("button", { name: "回答" })).toBeTruthy();
   expect(drawer.querySelector(".coach-mainline")).toBeNull();
   expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
   expect(screen.queryByText("问题设定", { selector: ".coach-route li" })).toBeNull();
@@ -653,4 +655,81 @@ it("opens a branch panel when the coach finishes a new explanation, and one clic
   fireEvent.click(within(dialog).getByRole("button", { name: "回到主线" }));
   expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
   await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("发给论文教练的消息")));
+});
+
+// ---- the coach points at sentences in the PDF ----
+const focus = (id: string, page = 2) => ({
+  kind: "focus", id, label: `第 ${page + 1} 页 · 作者的主张`, rev: "t",
+  anchor: { paper_id: "p", source_version: "version", page_index: page, status: "verified", quote: "We show", rects: [[1, 2, 3, 4]] },
+  marks: [{ n: 1, quote: "We show", rects: [[1, 2, 3, 4]] }],
+});
+const pointing = (mid: string, actions: any[]) => ({ id: mid, role: "assistant", content: "看①。", status: "completed", intent: "follow", actions });
+
+it("shows old marks on load without moving the PDF, then jumps once per new coach reply", async () => {
+  const { stream } = explainerMocks([pointing("m0", [focus("f0", 1)])]);
+  const onFocus = vi.fn();
+  view({ onFocus });
+  await waitFor(() => expect(onFocus).toHaveBeenCalledWith(expect.objectContaining({ id: "f0" }), "restore"));
+  await waitFor(() => expect(stream.emit).toBeTruthy());
+  await act(async () => {
+    stream.emit!({ ...snapshot, messages: [pointing("m0", [focus("f0", 1)]), pointing("m1", [focus("f1")])] });
+  });
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "auto");
+  // A second place in the same reply waits for a click.
+  await act(async () => {
+    stream.emit!({ ...snapshot, messages: [pointing("m0", [focus("f0", 1)]), pointing("m1", [focus("f1"), focus("f2", 0)])] });
+  });
+  expect(onFocus.mock.calls.filter(([, how]) => how === "auto")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "第 1 页 · 作者的主张" }));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f2" }), "click");
+});
+
+it("turns the pending question into a task with one-tap answers, a hint, and an inline mainline figure", async () => {
+  const steps = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"].map((id) => ({ id, label: id }));
+  const flow = {
+    status: "active", current: "evidence", label: "证据核查", goal: "g", steps, completed: [],
+    pending_question: "预算相同后，你预测差距会怎样？", choices: ["几乎消失", "仍然明显"], check: "先预测，再对照真实图表。",
+  };
+  const figure = { id: "fig", branch_id: "fig", kind: "explainer", mainline: true, label: "图解 · 预算对比", rev: "t" };
+  const messages = [{ id: "m1", role: "assistant", content: "先预测。", status: "completed", intent: "follow",
+    actions: [figure, focus("f1", 1)] }];
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, messages, reading_flow: flow };
+    if (path === "coach/explainer/fig") return {
+      id: "fig", branch_id: "fig", seq: 1, title: "预算对比", question: "", origin: "mainline", warnings: [], anchor: null,
+      created_at: "t", updated_at: "t", return_point: null,
+      doc: { title: "预算对比", subtitle: "", lang: "zh", lead: [{ type: "md", text: "两组都是 20 次观测。", line: 1 }], panels: [] },
+    };
+    if (path.startsWith("coach/send/")) return { conversation_id: "c" };
+    return {};
+  });
+  const onFocus = vi.fn();
+  view({ onFocus });
+  const task = await screen.findByRole("region", { name: "本轮任务" });
+  expect(within(task).getByText("先预测，再对照真实图表。")).toBeTruthy();
+  // The figure is part of the reply, not a button that opens a detour panel.
+  expect(await screen.findByRole("figure", { name: "图解：预算对比" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "图解 · 预算对比" })).toBeNull();
+  fireEvent.click(within(task).getByRole("button", { name: "第 2 页 · 作者的主张" }));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "click");
+  fireEvent.click(within(task).getByRole("button", { name: "几乎消失" }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "几乎消失", intent: "answer" })));
+});
+
+it("an empty Enter continues the mainline only when nothing waits for an answer", async () => {
+  const steps = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"].map((id) => ({ id, label: id }));
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/"))
+      return { ...snapshot, reading_flow: { status: "active", current: "model", label: "问题设定", goal: "g", steps, completed: [], pending_question: "", return_action: "核对输入输出" } };
+    if (path.startsWith("coach/send/")) return { conversation_id: "c" };
+    return {};
+  });
+  view();
+  const task = await screen.findByRole("region", { name: "本轮任务" });
+  expect(within(task).getByText("核对输入输出")).toBeTruthy();
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.keyDown(screen.getByLabelText("发给论文教练的消息"), { key: "Enter" });
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ intent: "follow" })));
 });
