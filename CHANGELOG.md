@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.0rc13
+
 - **Explainer pages live in the conversation.** A concrete question opens a side-quest card in the chat that unfolds in place (older pages of the same question fold up). Pages follow the *Answer me with HTML* layout idea: a conclusion card, then lettered panel cards in a two-column grid; `## Title {span=2 meta="…"}` spans both columns and adds a note in the title bar. Each panel has “追问这一块” and “没看懂” buttons that ask about that panel only, in the same branch. Cards enlarge beside the paper, pop out, or download as one offline HTML file (scripts and controls removed). Wide flow charts turn vertical in narrow columns.
 - **Mainline quest cards.** Each mainline reply is a card: chapter n/8, the marked quotes (click to turn the PDF), the coach's words with clickable ①②③, the inline figure, the task with one-tap answers, and a “chapter done · takeaway” banner. The task card above the message box becomes a one-line strip. Messages now record their chapter (`step`), the task a reply set and the chapter it completed.
 - **Side quests.** Each explainer branch is a side quest. Only the reader ends it: “我弄懂了” with one sentence in their own words (kept verbatim) or “先放一放”; `POST /api/coach/branch/{id}/quest` is reader-only and the model has no tool for it. A rewrite of a page keeps the state.
