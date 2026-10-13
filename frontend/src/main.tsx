@@ -123,7 +123,7 @@ export function App() {
       if (how === "click") report("这处标注属于旧版本的 PDF，请让教练重新指出。");
       return;
     }
-    setCoachMarks({ id: a.id, page_index: target.page_index, marks: (a.marks || []).map((m: any) => ({ ...m })) });
+    setCoachMarks({ id: a.id, page_index: target.page_index, marks: (a.marks || []).map((m: any) => ({ ...m })), reveal: how !== "restore" });
     if (how === "restore" || (how === "auto" && !followCoach)) return;
     setTab("read");
     if (pdfView !== "original") setPdfView("original");

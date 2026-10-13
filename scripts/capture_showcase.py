@@ -224,6 +224,37 @@ subtitle: 预设图解示例 · 非实时模型回复
 """
 
 
+def demo_frame(page, caption):
+    """One frame of the README demo: the real page plus a caption drawn by the browser."""
+    page.evaluate("""text => {
+        let tag = document.getElementById('demo-caption');
+        if (!tag) {
+            tag = document.createElement('div');
+            tag.id = 'demo-caption';
+            tag.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9999;padding:10px 20px;' +
+                'border-radius:999px;background:#203229e6;color:#fbfbf7;font:600 20px/1.3 system-ui,sans-serif;box-shadow:0 6px 24px #0004;pointer-events:none';
+            document.body.append(tag);
+        }
+        tag.textContent = text;
+    }""", caption)
+    shot = page.screenshot(animations="disabled")
+    page.evaluate("document.getElementById('demo-caption')?.remove()")
+    return shot
+
+
+def save_demo(frames, path, width=960):
+    """An animated WebP small enough for a README (each frame held long enough to read)."""
+    import io
+
+    from PIL import Image
+
+    images = []
+    for data in frames:
+        image = Image.open(io.BytesIO(data)).convert("RGB")
+        images.append(image.resize((width, round(image.height * width / image.width)), Image.LANCZOS))
+    images[0].save(path, save_all=True, append_images=images[1:], duration=[2600, 2800, 2800, 2400], loop=0, quality=72, method=6)
+
+
 def mainline_scene(browser, store, coach, paper, conversation, port, token, output, errors):
     """The mainline as a task: the PDF turns to a marked sentence and a small figure sits in the reply."""
     from paper_research_coach import reading
@@ -237,7 +268,9 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
                  ("model", "输入是估计的决策损失，输出是何时观测。"),
                  ("method", "损失变大时才观测，把预算花在会改变决策的时刻。")]
     done = [{"step": k, "evidence": "预设示例", "page_index": 0, "finished_at": now(), "takeaway": t} for k, t in takeaways]
-    store.put("session", {**session, "reading_flow": {**session["reading_flow"], "completed": done}, "stage": "evidence",
+    # Start on page 1, so the coach visibly takes the reader to page 2.
+    cursor = {**session["cursor"], "page_index": 0, "page_label": "1"} if session.get("cursor") else None
+    store.put("session", {**session, "cursor": cursor, "reading_flow": {**session["reading_flow"], "completed": done}, "stage": "evidence",
                           "pending_question": "两组预算相同后，你预测效用差距还会在吗？",
                           "choices": ["几乎消失", "仍然明显", "说不准，要看误差"]}, session["revision"])
     figure = coach.save_explainer(paper["id"], conversation, FIGURE, message_id="showcase-main", origin="mainline")
@@ -253,6 +286,9 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
     task.wait_for()
     page.get_by_role("figure", name="图解：预算相同后，差距还剩多少").wait_for()
     assert task.get_by_role("button", name="几乎消失").is_visible()
+    page.locator(".pdf-page[data-page-index='0'] canvas").wait_for()
+    page.wait_for_timeout(500)
+    frames = [demo_frame(page, "预设演示 · 任务卡写着：看哪里、做什么、怎样算完成")]
     task.get_by_role("button", name="第 2 页 · 预算是否相同").click()
     mark = page.locator(".coach-mark").first
     mark.wait_for()
@@ -267,6 +303,16 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
     page.wait_for_timeout(300)
     page.screenshot(animations="disabled", path=str(output / "mainline-dark.png"))
     page.emulate_media(color_scheme="light")
+    page.wait_for_timeout(300)
+    frames.append(demo_frame(page, "PDF 翻到第 2 页，要看的句子标上 ①"))
+    page.get_by_role("figure").get_by_role("button", name="展开全部").click()
+    page.locator(".xp-inline table").scroll_into_view_if_needed()
+    page.wait_for_timeout(300)
+    frames.append(demo_frame(page, "回复里嵌着一张小图；预测题可以一键作答"))
+    page.get_by_role("button", name="回到第 1 页").click()
+    page.wait_for_timeout(700)
+    frames.append(demo_frame(page, "一键回到你原来读的地方"))
+    save_demo(frames, output / "demo.webp")
     # Scrolling moves the page number; the "back" chip returns to where the reader was.
     page.locator(".pdf-scroll").evaluate("e => e.scrollTo(0, e.scrollHeight)")
     page.wait_for_function("() => document.querySelector('[aria-label=\"阅读页码\"]').value === '3'")

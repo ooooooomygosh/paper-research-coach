@@ -36,4 +36,4 @@ testpaths = ["tests"]
 "src/paper_research_coach/licenses" = "paper_research_coach/licenses"
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "skills", "frontend/src", "frontend/index.html", "frontend/package.json", "frontend/package-lock.json", "frontend/tsconfig.json", "frontend/vite.config.ts", "frontend/vitest.config.ts", "frontend/tests", "scripts", "tests", "evals", "examples", "docs", "README.md", "README.en.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "LICENSE", "pyproject.toml"]
+include = ["src", "skills", "frontend/src", "frontend/index.html", "frontend/package.json", "frontend/package-lock.json", "frontend/tsconfig.json", "frontend/vite.config.ts", "frontend/vitest.config.ts", "frontend/tests", "scripts", "tests", "evals", "examples", "docs", "README.md", "README.en.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "CITATION.cff", "LICENSE", "pyproject.toml"]

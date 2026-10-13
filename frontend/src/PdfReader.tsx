@@ -26,7 +26,8 @@ export const PAGE_GAP = 14;
 const READING_LINE = 0.5;
 const NONE: never[] = [];
 
-export type CoachMarks = { id?: string; page_index: number; marks: Mark[] } | null;
+/** `reveal`: scroll the marks into view (a live reply or a click); restored marks just stay drawn. */
+export type CoachMarks = { id?: string; page_index: number; marks: Mark[]; reveal?: boolean } | null;
 
 export default function PdfReader({
   paper,
@@ -151,8 +152,10 @@ export default function PdfReader({
     }
   }, [positionKey]);
 
-  function save() {
-    const box = scroller.current, { layout: l, page: p, sizes: s } = latest.current;
+  /** Save "page + fraction". The page comes from this scroll position, never from a render that is still pending. */
+  function save(at?: number) {
+    const box = scroller.current, { layout: l, sizes: s } = latest.current;
+    const p = at ?? reported.current;
     if (!box || !stack.current || !s.length) return;
     const origin = stackOrigin();
     const h = Math.max(1, (l.tops[p + 1] ?? l.height + PAGE_GAP) - l.tops[p] - PAGE_GAP);
@@ -294,7 +297,7 @@ export default function PdfReader({
         setFromScroll(true);
         setPage(current, "scroll");
       }
-      save();
+      save(current);
     });
   }
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
@@ -556,6 +559,7 @@ export default function PdfReader({
                   focusRects={focus?.page === i ? focus.rects : NONE}
                   draftRects={draft?.page === i ? draft.rects : NONE}
                   marks={!derived && coachMarks?.page_index === i ? coachMarks.marks : NONE}
+                  revealMarks={!!coachMarks?.reveal}
                   region={region}
                   searchTerm={searchTerm}
                   onBaseSize={onBaseSize}

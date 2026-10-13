@@ -31,6 +31,7 @@ versions = {
     "SKILL.md": front["metadata"]["version"],
     "marketplace.json": market["metadata"]["version"],
     "package.json": re.sub(r"-rc\.(\d+)$", r"rc\1", npm),
+    "CITATION.cff": re.search(r'^version: "([^"]+)"', (root / "CITATION.cff").read_text(), re.M)[1],
 }
 assert len(set(versions.values())) == 1, versions
 assert [p["skills"] for p in market["plugins"]] == [["./skills/" + front["name"]]], market
