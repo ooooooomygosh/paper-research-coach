@@ -157,6 +157,22 @@ def capture(output: Path, executable: str | None = None) -> None:
                 panel.get_by_role("button", name="回到主线").click()
                 assert not branch.get_by_role("dialog", name="讲解面板").count()
                 assert branch.get_by_label("发给论文教练的消息", exact=True).evaluate("e => e === document.activeElement")
+                # Side quest: the reader closes it in their own words; the quest log files it under its chapter.
+                quest = branch.get_by_role("group", name="支线任务").first
+                quest.get_by_role("button", name="我弄懂了").click()
+                quest.get_by_label("用一句话写下你弄懂了什么（可以不写）").fill("观测次数不同，比较就不公平；先把预算对齐再看差距。")
+                quest.get_by_role("button", name="记下，支线完成").click()
+                branch.get_by_text("支线完成：已弄懂").first.wait_for()
+                quest.scroll_into_view_if_needed()
+                branch.wait_for_timeout(300)
+                branch.screenshot(animations="disabled", path=str(output / "side-quest-done.png"))
+                branch.get_by_role("button", name="任务日志").first.click()
+                log = branch.get_by_role("dialog", name="任务日志")
+                log.get_by_text("我的收获：观测次数不同").wait_for()
+                branch.wait_for_timeout(300)
+                branch.screenshot(animations="disabled", path=str(output / "quest-log.png"))
+                branch.keyboard.press("Escape")
+                assert not log.count()
                 branch.close()
                 # Narrow viewport checks are not a claim about iPad/Pencil hardware.
                 page.set_viewport_size({"width": 390, "height": 844})

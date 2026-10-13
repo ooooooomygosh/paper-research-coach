@@ -3,10 +3,10 @@ import { ArrowUp, ChevronDown, ChevronUp, Download, ExternalLink, Maximize2, Spa
 import { api } from "../api";
 import { ExplainerView, type PanelAsk } from "./ExplainerDoc";
 import { downloadHtml, explainerHtml } from "./exportHtml";
-import type { ExplainerRecord } from "./types";
+import type { ExplainerRecord, Quest } from "./types";
 import "./explainer.css";
 
-export type Quest = { status?: "open" | "done" | "parked"; takeaway?: string };
+export type { Quest };
 
 /** The first sentence of the conclusion, as plain text for the collapsed card. */
 function gist(record: ExplainerRecord) {
@@ -33,6 +33,7 @@ export default function ExplainerCard({
   paperTitle = "",
   quest,
   questSlot,
+  disabledHint = "教练正在回复…",
 }: {
   id: string;
   rev?: string;
@@ -48,6 +49,8 @@ export default function ExplainerCard({
   quest?: Quest;
   /** The side-quest controls ("I get it now"), drawn under the page. */
   questSlot?: React.ReactNode;
+  /** Why the follow-up box is off, shown as its placeholder. */
+  disabledHint?: string;
 }) {
   const [record, setRecord] = useState<ExplainerRecord | null>(null);
   const [error, setError] = useState("");
@@ -122,7 +125,7 @@ export default function ExplainerCard({
               value={draft}
               disabled={disabled}
               aria-label="接着问这一页"
-              placeholder={disabled ? "教练正在回复…" : "接着问这一页，或点某一块右上角的按钮追问那一块"}
+              placeholder={disabled ? disabledHint : "接着问这一页，或点某一块右上角的按钮追问那一块"}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {

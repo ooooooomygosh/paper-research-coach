@@ -665,6 +665,63 @@ it("opens a new explainer page inside the conversation, and a follow-up stays in
   );
 });
 
+it("closes a side quest with the reader's own sentence, and the quest log files it under its chapter", async () => {
+  explainerMocks([withExplainer()]);
+  const base = vi.mocked(api).getMockImplementation()!;
+  let quest: any = undefined;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) => {
+    if (path === "coach/branch/x1/quest") {
+      quest = { status: body.status, takeaway: body.takeaway.trim(), closed_at: "t2" };
+      return { branch_id: "x1", quest };
+    }
+    if (path === "coach/explainers/p") {
+      const [first] = (await base(path)).data;
+      return { data: [{ ...first, gist: "先说结论。", quest }] };
+    }
+    if (path.startsWith("coach/conversation/"))
+      return { ...(await base(path)), reading_flow: {
+        status: "active", current: "model", label: "问题设定",
+        steps: [{ id: "orient", label: "定位" }, { id: "model", label: "问题设定" }],
+        completed: [{ step: "orient", page_index: 0, takeaway: "这篇在比两种观测策略。" }],
+        pending_question: "", choices: [],
+      } };
+    return base(path, body);
+  });
+  view();
+  fireEvent.click(await screen.findByRole("button", { name: /支线.*预算为什么要相同/ }));
+  const box = await screen.findByRole("group", { name: "支线任务" });
+  fireEvent.click(within(box).getByRole("button", { name: /我弄懂了/ }));
+  const mine = "  预算不同，所以不能直接比  ";
+  fireEvent.change(within(box).getByLabelText(/用一句话写下/), { target: { value: mine } });
+  fireEvent.click(within(box).getByRole("button", { name: /记下，支线完成/ }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/branch/x1/quest", { status: "done", takeaway: mine }));
+  expect(await screen.findByText(/支线完成：已弄懂/)).toBeTruthy();
+  expect(screen.getByText("已弄懂", { selector: ".xp-card-status" })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: /任务日志/ }));
+  const log = await screen.findByRole("dialog", { name: "任务日志" });
+  expect(within(log).getByText(/主线 1\/2 章 · 支线 1 条（弄懂 1）/)).toBeTruthy();
+  const chapter = within(log).getByRole("list", { name: "第 2 章的支线" });
+  expect(within(chapter).getByText("我的收获：" + mine.trim())).toBeTruthy();
+  expect(within(log).getByText("收获：这篇在比两种观测策略。")).toBeTruthy();
+  expect(within(log).queryByText(/分|XP|掌握度/)).toBeNull();
+  // A side quest in the log opens its page in the conversation.
+  fireEvent.click(within(chapter).getByRole("button", { name: /预算为什么要相同/ }));
+  expect(screen.queryByRole("dialog", { name: "任务日志" })).toBeNull();
+});
+
+it("parks a side quest without calling it a failure", async () => {
+  explainerMocks([withExplainer()]);
+  const base = vi.mocked(api).getMockImplementation()!;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) =>
+    path === "coach/branch/x1/quest" ? { branch_id: "x1", quest: { status: body.status, takeaway: "", closed_at: "t" } } : base(path, body));
+  view();
+  fireEvent.click(await screen.findByRole("button", { name: /支线.*预算为什么要相同/ }));
+  fireEvent.click(within(await screen.findByRole("group", { name: "支线任务" })).getByRole("button", { name: /先放一放/ }));
+  expect(await screen.findByText("这条支线先放一放")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "继续这条支线" })).toBeTruthy();
+});
+
 // ---- the coach points at sentences in the PDF ----
 const focus = (id: string, page = 2) => ({
   kind: "focus", id, label: `第 ${page + 1} 页 · 作者的主张`, rev: "t",

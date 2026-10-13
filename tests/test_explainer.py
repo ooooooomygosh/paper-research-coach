@@ -268,3 +268,34 @@ def test_parsed_fixtures_are_current():
     for path in sorted(FIXTURES.glob("*.md")):
         committed = json.loads(path.with_suffix(".doc.json").read_text(encoding="utf-8"))
         assert committed == parse_draft(path.read_text(encoding="utf-8")).doc, f"stale: run scripts/build_explainer_fixtures.py ({path.name})"
+
+
+def test_side_quest_state_is_set_by_the_reader_and_kept_verbatim(store, paper):
+    app = create_app(store, "token")
+    client = TestClient(app, base_url="http://127.0.0.1")
+    headers = {"Authorization": "Bearer token"}
+    first = client.post(f"/api/coach/explain/{paper['id']}", json={"draft": DRAFT, "question": "q"}, headers=headers).json()
+    follow = client.post(f"/api/coach/explain/{paper['id']}", json={"draft": DRAFT, "branch_id": first["id"]}, headers=headers).json()
+    mine = "  预算不同，所以 61 和 70 不能直接比 —— 我自己的话  "
+    done = client.post(f"/api/coach/branch/{first['id']}/quest", json={"status": "done", "takeaway": mine}, headers=headers)
+    assert done.status_code == 200, done.text
+    assert done.json()["quest"]["takeaway"] == mine.strip() and done.json()["quest"]["closed_at"]
+    listing = {x["id"]: x for x in client.get(f"/api/coach/explainers/{paper['id']}", headers=headers).json()["data"]}
+    assert listing[first["id"]]["quest"]["status"] == "done" and listing[follow["id"]].get("quest") is None
+    assert listing[first["id"]]["gist"] == "the two policies use different budgets."
+    # Only the first page holds the state, and only the three statuses exist.
+    assert client.post(f"/api/coach/branch/{follow['id']}/quest", json={"status": "done"}, headers=headers).status_code == 400
+    assert client.post(f"/api/coach/branch/{first['id']}/quest", json={"status": "mastered"}, headers=headers).status_code == 400
+    # Parking keeps the earlier takeaway; a rewrite of the page keeps the quest.
+    parked = client.post(f"/api/coach/branch/{first['id']}/quest", json={"status": "parked"}, headers=headers).json()
+    assert parked["quest"]["takeaway"] == mine.strip()
+    coach = Coach(store, FakeRPC)
+    coach.explain_external(paper["id"], DRAFT.replace("Short answer", "Short reply"), replace_id=first["id"])
+    assert coach.explainer(first["id"])["quest"]["status"] == "parked"
+
+
+def test_the_model_has_no_tool_to_close_a_side_quest():
+    from paper_research_coach import coach as module
+
+    names = [t["name"] for t in module.TOOLS]
+    assert names and not [n for n in names if "quest" in n]

@@ -12,11 +12,15 @@ import {
   Minimize2,
   ChevronDown,
   ChevronUp,
+  ScrollText,
 } from "lucide-react";
 import BranchPanel from "./explainer/BranchPanel";
 import MainlineFigure from "./explainer/MainlineFigure";
 import ExplainerCard from "./explainer/ExplainerCard";
 import QuestCard, { linkMarks, marksOf } from "./QuestCard";
+import QuestLog, { sideQuestsOf, type SideQuest } from "./QuestLog";
+import QuestControls from "./explainer/QuestControls";
+import type { ExplainerSummary, Quest } from "./explainer/types";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
@@ -143,6 +147,9 @@ export default function CoachPanel({
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
   // The task above the message box is one line; it opens into the full task card.
   const [taskOpen, setTaskOpen] = useState(false);
+  // Every explainer page of this paper (summaries): side-quest state and the quest log.
+  const [explainerList, setExplainerList] = useState<ExplainerSummary[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
   const latestFocus = useRef(onFocus);
@@ -277,6 +284,40 @@ export default function CoachPanel({
       );
     }
   }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
+  const explainerSignature = snapshot.messages
+    .flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer").map((a) => a.id + ":" + (a.rev || "")))
+    .join(",");
+  useEffect(() => {
+    let live = true;
+    if (!explainerSignature && !logOpen) {
+      setExplainerList([]);
+      return;
+    }
+    api("coach/explainers/" + paper.id)
+      .then((r) => live && setExplainerList(r.data || []))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [paper.id, explainerSignature, logOpen]);
+  const questByBranch: Record<string, Quest | undefined> = Object.fromEntries(
+    explainerList.filter((p) => p.id === p.branch_id).map((p) => [p.id, p.quest]),
+  );
+  const latestPage: Record<string, string> = {};
+  for (const p of explainerList) if (p.origin !== "mainline") latestPage[p.branch_id] = p.id;
+  const saveQuest = (branchId: string, quest: Quest) =>
+    setExplainerList((list) => list.map((p) => (p.id === branchId ? { ...p, quest } : p)));
+  const openQuest = (q: SideQuest) => {
+    const target = latestPage[q.id] || q.id;
+    setLogOpen(false);
+    if (!document.getElementById("xp-card-" + target)) {
+      // A page from another conversation or the CLI: open it beside the reading instead.
+      setBranch({ branchId: q.id, pageId: target });
+      return;
+    }
+    setOpenCards((open) => ({ ...open, [target]: true }));
+    requestAnimationFrame(() => document.getElementById("xp-card-" + target)?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+  };
   useEffect(() => {
     setIncludeImage(
       !!anchor?.rects?.length &&
@@ -523,7 +564,13 @@ export default function CoachPanel({
       </Markdown>
     );
   };
-  const questLogButton = null as React.ReactNode;
+  const sideQuests = sideQuestsOf(explainerList);
+  const questLogButton = (
+    <button type="button" className="quest-log-open" aria-expanded={logOpen} title="主线章节和所有支线" onClick={() => setLogOpen(!logOpen)}>
+      <ScrollText size={14} />
+      任务日志{sideQuests.length ? ` · 支线 ${sideQuests.length}` : ""}
+    </button>
+  );
   const sessionTools = (
     <>
       <div className="coach-session-row">
@@ -828,6 +875,11 @@ export default function CoachPanel({
             />
             {statusLabel}
           </span>
+          {!(flowStarted && !anchor && !snapshot.read_only) && (sideQuests.length > 0 || flowDone) && (
+            <button type="button" className="coach-log-icon" aria-label="任务日志" title="任务日志：主线章节和所有支线" onClick={() => setLogOpen(!logOpen)}>
+              <ScrollText size={15} />
+            </button>
+          )}
         </div>
         <button
           aria-label={
@@ -1071,9 +1123,20 @@ export default function CoachPanel({
                     expanded={!!openCards[a.id]}
                     onToggle={(open) => setOpenCards((all) => ({ ...all, [a.id]: open }))}
                     disabled={unavailable || !!snapshot.read_only}
+                    disabledHint={snapshot.read_only ? "历史对话为只读" : status?.state !== "ready" ? "教练未连接，连上后可以接着问" : "教练正在回复…"}
                     onAsk={(question, branchId) => void send(question, false, "detour", branchId)}
                     onEnlarge={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
                     onPopout={() => openWindow(a.branch_id, a.id)}
+                    quest={questByBranch[a.branch_id]}
+                    questSlot={
+                      !snapshot.read_only && latestPage[a.branch_id] === a.id ? (
+                        <QuestControls
+                          branchId={a.branch_id}
+                          quest={questByBranch[a.branch_id]}
+                          onSaved={(quest) => saveQuest(a.branch_id, quest)}
+                        />
+                      ) : null
+                    }
                   />
                 </div>
               ))}
@@ -1377,6 +1440,15 @@ export default function CoachPanel({
           </button>
         )}
       </div>
+      {logOpen && (
+        <QuestLog
+          flow={flow}
+          quests={sideQuests}
+          onClose={() => setLogOpen(false)}
+          onOpenQuest={openQuest}
+          onPage={(i) => onLocate(anchorFor(paper, i))}
+        />
+      )}
       {branch && (
         <BranchPanel
           key={branch.branchId}

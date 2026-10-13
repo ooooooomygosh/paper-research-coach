@@ -594,3 +594,15 @@ def _check_unit(text: str, line: int, kind: str, out: list[dict], family: str) -
             if c in text:
                 out.append({"line": line, "rule": "cliche", "message": f"cliché “{c}”", "suggestion": "delete it or state a concrete fact"})
     return len(sentences)
+
+
+LEAD_PREFIX = re.compile(r"^\s*(先说结论|结论|简单说|一句话|short answer|in short|answer|tl;dr|bottom line)\s*[:：]\s*", re.I)
+
+
+def gist(doc: dict, limit: int = 120) -> str:
+    """The conclusion as one line of plain text: for collapsed cards, the quest log and the journey tree."""
+    lead = next((b.get("text", "") for b in doc.get("lead", []) if b.get("type") == "md"), "") or doc.get("subtitle", "")
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", lead)
+    text = re.sub(r"[*_`#>]+|\$", "", text)
+    text = LEAD_PREFIX.sub("", " ".join(text.split()))
+    return text if len(text) <= limit else text[: limit - 1] + "…"
