@@ -28,5 +28,11 @@
  {"id":"linear-grind","prompt":"我从第一页开始逐字读这篇论文的引言，已经读了两个小时还没读完，感觉很崩溃。应该怎么读？","checks":["建议非线性顺序：摘要、结论、图表先于引言细节，方法最后","说明可以随时停止或放弃这篇","只给一个当下可做的动作，不输出整套课程"]},
  {"id":"park-unknown-term","prompt":"合成摘录（第2页）：‘We adopt a Lyapunov drift-plus-penalty formulation to bound the queue backlog.’ 我不懂 Lyapunov，但我现在只想知道这篇的方法比固定调度好在哪。","checks":["判断该术语是否阻断当前判断，不阻断时记为待查而不展开长教程","回到用户真正的问题","不编造论文未给出的结论"]},
  {"id":"ten-questions-close","prompt":"这篇我读得差不多了，帮我用那十个问题收个尾吧，你直接把答案都写好给我。","checks":["可以列出覆盖情况或直接解释，但请用户先用自己的话回答贡献和下一步","不把 AI 写好的总结当成用户已经掌握","不为凑满十题编造未读到的数据集或实验细节"]},
- {"id":"critical-to-creative","prompt":"我已经能讲清楚这篇论文的方法和实验了，下一步该怎么读才能想出自己的研究点？","checks":["推动到批判或创造性阅读的一个具体问题","落到可证伪的问题、强简单基线或最小检验之一","不堆一串 idea 名单"]}
+ {"id":"critical-to-creative","prompt":"我已经能讲清楚这篇论文的方法和实验了，下一步该怎么读才能想出自己的研究点？","checks":["推动到批判或创造性阅读的一个具体问题","落到可证伪的问题、强简单基线或最小检验之一","不堆一串 idea 名单"]},
+ {"id":"branch-concept","prompt":"工作台，插话。我选中了‘Information oracle: 66 utility units’。oracle 到底是什么？它为什么能当上限？（合成材料第 2 页）","checks":["判断这是需要讲解面板的具体问题，调用 prc_explain，不在聊天里写长文","草稿结论放最前，3 到 6 个小节，用 flow 或表格这类组件，不手写 HTML","聊天只留一两句要点","不完成主线步骤，不改当前问题"]},
+ {"id":"branch-trivial","prompt":"插话：这里的 episode 一般怎么翻译？","checks":["只是一个词的译法：聊天里一两句答完，不开面板","保留英文原词和限定条件"]},
+ {"id":"branch-followup","prompt":"（已打开讲解页「预算为什么要相同」）我还是不懂：预算相同了，为什么还要看误差条？","checks":["留在同一分支，写新的一页，不重复上一页内容","只回答新问题","不催读者回主线"]},
+ {"id":"branch-mainline-untouched","prompt":"主线待答问题是‘决策时能用到哪些信息？’。读者没有回答，却问：‘Lyapunov drift 是怎么推出来的？’","checks":["当作插话：开面板讲解","不完成步骤，不覆盖待答问题","可以用一句话说明这对待答问题有什么用，但不替读者回答"]},
+ {"id":"branch-fix-draft","prompt":"（prc_explain 返回：L6 [flow] unclosed shape bracket, missing ) 以及 Correct example）请继续。","checks":["只改报错那一处，再调用一次","不编造新的内容，不改走手写 HTML"]},
+ {"id":"plain-language","prompt":"请解释一下：为什么 equal-budget 对照能排除‘只是观测更多’这个解释？读者是母语非英语的研究生，已经很累。","checks":["先说结论；句子短、主动语态、一词一义","术语第一次出现时用一句话解释，保留英文关键词","不使用赋能、闭环、至关重要这类空话，不用‘进行优化’这类轻动词","不丢掉 may、under、compared with 这类限定词"]}
 ]

@@ -112,6 +112,9 @@ def complete(store, paper, session, step, evidence, page_index):
     }
 
 
+PLAIN = "写法：短句、主动语态、一个词一个意思、先说结论，像同事当面讲；术语第一次出现时用一句话解释，不用空话。"
+
+
 def turn_guide(flow, intent):
     """One compact, step-specific coaching card for this turn."""
     if not flow or flow.get("status") not in ("active", "completed"):
@@ -119,11 +122,13 @@ def turn_guide(flow, intent):
     index = KEYS.index(flow["current"]) + 1
     where = f"第 {index}/{len(KEYS)} 步「{flow['label']}」"
     if flow["status"] == "completed":
-        return "【主线】八步已完成。可回顾总结、安排复习，或讨论新问题；不要重新开始一轮。"
+        return "【主线】八步已完成。可回顾总结、安排复习，或讨论新问题；不要重新开始一轮。" + PLAIN
     if intent == "detour":
         return (
-            f"【插话】主线停在{where}，本轮不推进也不完成步骤。"
-            "先判断卡点是否阻断当前判断：阻断就用最小例子讲清；不阻断就简短回答，建议先记下读完这段再查。答完不必催促回主线。"
+            f"【插话】主线停在{where}，本轮不推进也不完成步骤。读者在问一个具体问题。\n"
+            "概念、机制、公式、图表、流程、对比或技术细节：调用 prc_explain，在讲解面板里讲（先读 branch 参考）；"
+            "聊天里只写一两句要点，不要重复整页。只是一个词的译法或一句话能答完的是非题：直接在聊天里答。\n"
+            "卡点若妨碍当前判断，用最小例子讲清；不妨碍就简短回答，建议先记下。答完不必催促回主线，面板里有“回到主线”。" + PLAIN
         )
     lines = [f"【本轮主线】{where}。本步目标：{flow['goal']}", "方法要点：" + GUIDES[flow["current"]]]
     if flow.get("pending_question"):
@@ -131,7 +136,7 @@ def turn_guide(flow, intent):
     if intent == "answer":
         lines.append(
             "系统判断这条是对当前问题的回答：先引用其原话核对对错与依据，再决定是否完成本步。"
-            "若它其实是另一个问题，就当插话处理：直接回答，不完成步骤，也不改动当前问题。"
+            "若它其实是另一个具体问题，就当插话处理：用 prc_explain 讲解，不完成步骤，也不改动当前问题。"
         )
-    lines.append("一轮只推进一个动作、至多一个思考任务；判断有原文依据才完成本步。界面已显示当前步骤，回复里不必复述步骤编号。")
+    lines.append("主线用普通对话，不开讲解面板。一轮只推进一个动作、至多一个思考任务；判断有原文依据才完成本步。界面已显示当前步骤，回复里不必复述步骤编号。" + PLAIN)
     return "\n".join(lines)

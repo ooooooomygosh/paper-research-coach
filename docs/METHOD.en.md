@@ -145,6 +145,21 @@ Carr sets a high bar for notes: **later, the notes alone should be enough — no
 
 **In the tool.** Step 8 needs a real answer from this round; research-question cards hold the observation, hypothesis, alternative, strong simple baseline, minimal test and refutation condition. The default 1/3/7/14-day review spacing is an adjustable starting point, **not** a schedule proven optimal.
 
+### Two supporting designs: the explainer panel and the way it speaks
+
+**A concrete question opens a panel beside the paper, and the mainline waits.** Stuck on a technical detail (say, “why can an oracle serve as an upper bound?”), two bad things tend to happen: the mainline is interrupted and never resumed, or a wall of chat text arrives and you forget it as you read. So such questions are answered in an **explainer panel**: the conclusion first, then flow charts, sequence diagrams and tables that draw the relations. You can ask follow-ups inside it; each becomes a new page. One click on **回到主线** (back to the mainline) leaves the mainline on the step and pending question where it was.
+
+- Why: cognitive load theory (Sweller) says working memory is limited, and extra material crowds out thinking while you are stuck on a detail; Mayer’s multimedia-learning work proposes segmenting and removing extraneous material. One question per page, with words and pictures together, applies those ideas directly.
+- What it is not: not every word gets a panel — a one-word gloss or a one-sentence answer stays in chat, and mainline turns stay ordinary conversation.
+- Honest limit: this is design motivation; its effect on PhD students reading papers has not been tested.
+
+**Short, simple, human wording.** Every reply follows a plain-writing discipline: one idea per sentence, the answer first, active voice, one word for one meaning, common words, concrete numbers, and a one-sentence explanation of each term at first use. It also sounds like a colleague at your side: “you”, a small example before a definition, “the paper does not say” when it does not, and never dropping qualifiers such as *may*, *under* or *on average*.
+
+- The rules adapt ASD-STE100 controlled writing (made so that non-native readers can follow aircraft maintenance manuals) and use the checks from [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html); see [Sources](SOURCES.md) and [attribution and license](THIRD_PARTY_ANSWER_ME_WITH_HTML.md).
+- Why it helps with papers: reading in a second language already spends attention on the language; a convoluted answer takes more of it. Mayer’s personalization principle also suggests conversational wording supports learning better than formal wording.
+- Explainer drafts are checked automatically (sentence length, passive voice, discouraged words and more); the check only warns. Chat text is not checked but follows the same rules.
+- Honest limits: this is not an implementation or certification of ASD-STE100, and its effect on paper reading has not been tested. Simpler sentences are not simpler conclusions; a requested full derivation is still written in full.
+
 ## 5. What it distils into
 
 ### The eight-step route: an evidence map, not a syllabus
@@ -198,6 +213,7 @@ Questions 9 and 10 are answered by you first and checked by the coach; an AI-wri
 | Can’t say what the paper did | Each paper leaves a testable contribution sentence, not an evenly weighted summary |
 | Stumped in group meeting | You already asked “what is the alternative explanation, is the baseline fair?” while reading |
 | Many papers read, no ideas | Enter through a failure, contradiction, mechanism, missing information or cost, and land on a falsifiable question and minimal test |
+| Stuck on a technical detail mid-read | A panel beside the paper explains it with figures and tables; the mainline waits; one click returns |
 | Thoughts vanish | Your words are saved with an anchor; you resume at the same passage |
 | A week per paper | Minutes to decide whether a paper deserves more; a recorded stop is an outcome |
 | Language and concepts tangled | Language and concept gaps are separated; no whole-paper translation needed |

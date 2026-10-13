@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Coach from "../src/Coach";
@@ -592,4 +593,64 @@ it("keeps the mainline step, its button and the pending question in the panel wh
   fireEvent.click(screen.getByTitle("查看八步路线与核查依据"));
   expect(screen.getByLabelText("八步阅读路线")).toBeTruthy();
   drawer.remove();
+});
+
+// ---- branch explainer inside the coach ----
+function explainerMocks(initialMessages: any[]) {
+  const stream: { emit?: (s: any) => void } = {};
+  vi.stubGlobal(
+    "EventSource",
+    class {
+      onmessage: any;
+      onopen: any;
+      constructor(url: string) {
+        // The coach's own stream is the first one opened; the panel opens its own later.
+        if (!stream.emit) stream.emit = (s) => this.onmessage?.({ data: JSON.stringify(s) });
+      }
+      close() {}
+    },
+  );
+  const record = {
+    id: "x1", paper_id: "p", branch_id: "x1", seq: 1, title: "预算为什么要相同", question: "为什么要匹配预算？",
+    doc: { title: "预算为什么要相同", subtitle: "", lang: "zh", lead: [{ type: "md", text: "先说结论。", line: 1 }], panels: [] },
+    warnings: [], anchor: null, created_at: "t", updated_at: "t",
+    return_point: { status: "active", step: "model", label: "问题设定", pending_question: "", next_action: "" },
+  };
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, messages: initialMessages };
+    if (path === "coach/explainers/p") return { data: [{ ...record, doc: undefined }] };
+    if (path === "coach/explainer/x1") return record;
+    return {};
+  });
+  return { stream };
+}
+const withExplainer = (id = "x1") => ({
+  id: "m" + id, role: "assistant", content: "我在讲解面板里画了图。", status: "completed", intent: "detour",
+  actions: [{ kind: "explainer", id, branch_id: id, label: "讲解 · 预算为什么要相同", rev: "t" }],
+});
+
+it("does not pop old branches open on reload, but offers them in the chat", async () => {
+  explainerMocks([withExplainer()]);
+  view();
+  await screen.findByRole("button", { name: "讲解 · 预算为什么要相同" });
+  expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "讲解 · 预算为什么要相同" }));
+  const dialog = await screen.findByRole("dialog", { name: "讲解面板" });
+  expect(await within(dialog).findByText("预算为什么要相同")).toBeTruthy();
+});
+
+it("opens a branch panel when the coach finishes a new explanation, and one click returns to the mainline composer", async () => {
+  const { stream } = explainerMocks([]);
+  view();
+  await screen.findByText("已连接本机 CLI");
+  await waitFor(() => expect(stream.emit).toBeTruthy());
+  await act(async () => {
+    stream.emit!({ ...snapshot, messages: [withExplainer()] });
+  });
+  const dialog = await screen.findByRole("dialog", { name: "讲解面板" });
+  expect(dialog.textContent).toContain("主线停在「问题设定」");
+  fireEvent.click(within(dialog).getByRole("button", { name: "回到主线" }));
+  expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("发给论文教练的消息")));
 });

@@ -62,6 +62,9 @@ jobs:
         with:
           name: paper-research-coach-packages
           path: dist
+      # prc update and the install scripts refuse a wheel that does not match this file.
+      - name: Write SHA256SUMS
+        run: cd dist && sha256sum paper_research_coach-* paper-research-coach-skill-* > SHA256SUMS && cat SHA256SUMS
       - name: Publish tagged packages
         env:
           GH_TOKEN: ${{ github.token }}

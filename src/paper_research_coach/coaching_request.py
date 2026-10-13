@@ -28,6 +28,8 @@ class Send(BaseModel):
     effort: str = Field(default="", max_length=30)
     page_image: str = Field(default="", max_length=4000000)
     source_version: str = Field(default="", max_length=120)
+    # A follow-up question inside an open branch explainer (its first page's id).
+    branch_id: str = Field(default="", pattern=r"^[a-zA-Z0-9_-]{0,80}$")
 
     @model_validator(mode="after")
     def image_matches_selection(self):
@@ -39,7 +41,8 @@ class Send(BaseModel):
     def fingerprint_data(self):
         # Default requests retain pre-help-mode fingerprints across upgrades,
         # so a durable retry cannot accidentally become a second model turn.
-        return self.model_dump(exclude={"help_mode"} if self.help_mode == "guided" else set())
+        skip = {k for k, v in (("help_mode", self.help_mode == "guided"), ("branch_id", not self.branch_id)) if v}
+        return self.model_dump(exclude=skip)
 
     def context_page_index(self):
         # Old durable requests can carry the viewport page after the reader

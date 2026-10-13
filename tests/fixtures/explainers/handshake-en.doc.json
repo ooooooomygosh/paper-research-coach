@@ -1,0 +1,221 @@
+{
+ "title": "The TCP three-way handshake",
+ "subtitle": "",
+ "lang": "en",
+ "lead": [
+  {
+   "type": "md",
+   "text": "Short answer: both sides confirm they can send and receive before they send data.",
+   "line": 4
+  }
+ ],
+ "panels": [
+  {
+   "title": "Messages",
+   "blocks": [
+    {
+     "participants": [
+      "Client",
+      "Server"
+     ],
+     "steps": [
+      {
+       "kind": "msg",
+       "from": "Client",
+       "to": "Server",
+       "dashed": false,
+       "label": "SYN, seq=x"
+      },
+      {
+       "kind": "msg",
+       "from": "Server",
+       "to": "Client",
+       "dashed": false,
+       "label": "SYN+ACK, seq=y, ack=x+1"
+      },
+      {
+       "kind": "msg",
+       "from": "Client",
+       "to": "Server",
+       "dashed": false,
+       "label": "ACK, ack=y+1"
+      },
+      {
+       "kind": "note",
+       "over": [
+        "Client",
+        "Server"
+       ],
+       "text": "ESTABLISHED"
+      },
+      {
+       "kind": "divider",
+       "text": "data starts"
+      },
+      {
+       "kind": "msg",
+       "from": "Client",
+       "to": "Server",
+       "dashed": true,
+       "label": "first request"
+      }
+     ],
+     "numbered": true,
+     "type": "sequence",
+     "line": 7
+    }
+   ]
+  },
+  {
+   "title": "States",
+   "blocks": [
+    {
+     "dir": "LR",
+     "nodes": [
+      {
+       "id": "CLOSED",
+       "label": "CLOSED",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "LISTEN",
+       "label": "LISTEN",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "SYN_RCVD",
+       "label": "SYN_RCVD",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "ESTABLISHED",
+       "label": "ESTABLISHED",
+       "shape": "rect",
+       "hi": true
+      }
+     ],
+     "edges": [
+      {
+       "from": "CLOSED",
+       "to": "LISTEN",
+       "dashed": false,
+       "label": "passive open"
+      },
+      {
+       "from": "LISTEN",
+       "to": "SYN_RCVD",
+       "dashed": false,
+       "label": "get SYN"
+      },
+      {
+       "from": "SYN_RCVD",
+       "to": "ESTABLISHED",
+       "dashed": false,
+       "label": "get ACK"
+      }
+     ],
+     "groups": [],
+     "type": "flow",
+     "line": 17
+    }
+   ]
+  },
+  {
+   "title": "Parts",
+   "blocks": [
+    {
+     "roots": [
+      {
+       "label": "Handshake",
+       "note": "three messages",
+       "hi": false,
+       "children": [
+        {
+         "label": "SYN",
+         "note": "client asks to connect",
+         "hi": false,
+         "children": []
+        },
+        {
+         "label": "SYN+ACK",
+         "note": "server agrees and asks back",
+         "hi": true,
+         "children": []
+        },
+        {
+         "label": "ACK",
+         "note": "client confirms",
+         "hi": false,
+         "children": []
+        }
+       ]
+      }
+     ],
+     "list": false,
+     "type": "tree",
+     "line": 24
+    }
+   ]
+  },
+  {
+   "title": "History",
+   "blocks": [
+    {
+     "items": [
+      {
+       "when": "1974",
+       "title": "TCP is first described",
+       "detail": "Cerf and Kahn",
+       "hi": false
+      },
+      {
+       "when": "1981",
+       "title": "RFC 793",
+       "detail": "the base standard",
+       "hi": true
+      },
+      {
+       "when": "2022",
+       "title": "RFC 9293",
+       "detail": "the current standard",
+       "hi": false
+      }
+     ],
+     "vertical": false,
+     "type": "timeline",
+     "line": 32
+    }
+   ]
+  },
+  {
+   "title": "Facts",
+   "blocks": [
+    {
+     "cols": 2,
+     "cells": [
+      {
+       "key": "Layer",
+       "value": "transport",
+       "wide": true
+      },
+      {
+       "key": "Reliable",
+       "value": "yes",
+       "wide": false
+      },
+      {
+       "key": "Port",
+       "value": "any",
+       "wide": false
+      }
+     ],
+     "type": "kv",
+     "line": 39
+    }
+   ]
+  }
+ ]
+}

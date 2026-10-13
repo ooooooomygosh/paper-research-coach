@@ -1,6 +1,6 @@
 # 与本地工作台连接
 
-工作台通过本机 Codex CLI 提供教练对话，沿用 CLI 的模型、服务和登录配置，无须另建 AI key。工作台每轮通过 Codex 的 skill 输入显式加载本项目 SKILL.md，同时提供当前论文、页码、选区与阅读断点。`prc --help` 是当前命令契约。若 prc 不在 PATH，检查 README 约定的 `~/.venvs/paper-research-coach/bin/prc`，存在时使用其绝对路径；二者均不存在再走 Markdown 路径，不宣称已安装。
+工作台通过本机 Codex CLI 提供教练对话，沿用 CLI 的模型、服务和登录配置，无须另建 AI key。工作台不在每轮重发整份 SKILL.md：开发者指令放简短的教练与记录规则，主线回合另附由代码生成的“本步方法卡”，完整参考（含 questions.md、branch.md、style.md）通过受限工具按需读取；同时提供当前论文、页码、选区与阅读断点。`prc --help` 是当前命令契约。若 prc 不在 PATH，检查 README 约定的 `~/.venvs/paper-research-coach/bin/prc`，存在时使用其绝对路径；二者均不存在再走 Markdown 路径，不宣称已安装。
 
 ## 从宿主建立连接
 
@@ -46,6 +46,19 @@ prc commit /absolute/path/to/transaction.json
 保存用户原话与AI评论为两条 Note，可在同一事务内提交。assistant 的 provenance 不可用 USER，links 指向用户笔记。对话自动捕获为 Note 前检查 Session.note_consent。讨论完成后修改对应笔记 discussed=true，同时保存一个 next_action。不要将尚未回应的笔记一并标记。
 
 Session.stage 与 depth 是独立字段；cursor 使用 Anchor。learning_consent 控制能力反馈记录；开启后 prc_record_learning_evidence 以真实回答、具体标准、帮助程度和当前证据页保存最近的 support_evidence，不把 Session.support 的无依据旧值当掌握证明。UI通过事件流看到已提交状态。“讨论待讨论笔记”会启动一轮真实教练对话；已保存且 discussed=false 表示尚未讨论。工作台对话独立持久保存，note_consent 控制是否额外保存原话 Note；AI 评论保持独立作者身份与 links。
+
+## 开讲解面板（分支）
+
+读者问具体问题或技术细节时，在工作台旁边开一个讲解面板，而不是在聊天里写长文。先读 [branch.md](branch.md) 与 [style.md](style.md)。
+
+```text
+prc explain --paper PAPER_ID --file draft.md             # 打开讲解面板（工作台须在运行）
+prc explain --paper PAPER_ID --file draft.md --check     # 只检查草稿
+prc explain --paper PAPER_ID --file next.md --branch FIRST_PAGE_ID   # 同一问题的下一页
+prc explain --paper PAPER_ID --file fixed.md --replace PAGE_ID       # 改写风格警告后替换
+```
+
+命令输出 `id`、`branch_id` 和 `style_warnings`。工作台里的教练用 `prc_explain` 工具，效果相同。工作台没有运行时命令会说明原因：这时在聊天里用同样的结构回答，不要假装面板已打开。面板不改变主线；读者点“回到主线”即回到原处。
 
 ## 其他操作
 

@@ -33,9 +33,11 @@ def test_default_help_keeps_existing_retry_fingerprints():
     body = Send(operation_id="legacy", content="old request")
     old = body.model_dump()
     old.pop("help_mode")
+    old.pop("branch_id")  # added later; empty means the request is the same as before
     assert body.fingerprint_data() == old
     assert Send(operation_id="legacy", content="old request", help_mode="guided").fingerprint_data() == old
     assert Send(operation_id="legacy", content="old request", help_mode="hint").fingerprint_data() != old
+    assert Send(operation_id="legacy", content="old request", branch_id="abc").fingerprint_data() != old
 
 
 def test_help_mode_validation_and_cross_page_images(anchor):

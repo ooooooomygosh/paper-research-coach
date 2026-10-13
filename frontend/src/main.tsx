@@ -34,6 +34,8 @@ import { Lineage, Ideas, Reviews, Settings, Exports } from "./Panels";
 import "./style.css";
 import "./quiet-reading.css";
 import "./workbench-polish.css";
+import BranchPanel from "./explainer/BranchPanel";
+import { UpdateRow, useUpdate } from "./UpdateNotice";
 import {
   TranslationTools,
   TranslationPopover,
@@ -81,6 +83,7 @@ export function App() {
   );
   const [immersive, setImmersive] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const update = useUpdate(ready);
   const [toolsTab, setToolsTab] = useState("translate");
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncError, setSyncError] = useState("");
@@ -627,6 +630,7 @@ export function App() {
             }
           />
         </button>
+        <UpdateRow update={update} />
         <div className="local-label">所有笔记 · 本机保存</div>
       </aside>
       <main
@@ -668,8 +672,14 @@ export function App() {
               >
                 {immersive ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
               </button>
-              <button aria-label="更多阅读工具" onClick={() => openTools()}>
+              <button
+                aria-label="更多阅读工具"
+                title={update.available ? "更多阅读工具 · 有新版本" : undefined}
+                className="more-tools"
+                onClick={() => openTools()}
+              >
                 <MoreHorizontal size={20} />
+                {update.available && <span className="update-dot" aria-hidden="true" />}
               </button>
             </div>
           ) : tab !== "read" ? (
@@ -698,7 +708,7 @@ export function App() {
             }}
           />
         ) : !paper ? (
-          <Welcome onImport={() => setImporting(true)} onConnect={() => setTab("settings")} />
+          <Welcome onImport={() => setImporting(true)} onConnect={() => setTab("settings")} notice={<UpdateRow update={update} variant="banner" />} />
         ) : (
           <>
             <div className="paper-heading">
@@ -1044,6 +1054,7 @@ export function App() {
                       </button>
                       <h3>PDF 工具</h3>
                       <div ref={setPdfTools} />
+                      <UpdateRow update={update} />
                       <h3>研究与设置</h3>
                       {nav
                         .filter(([id]) => id !== "read")
@@ -1256,4 +1267,38 @@ export function App() {
     </div>
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+function BranchWindow({ paperId, branchId, pageId }: { paperId: string; branchId: string; pageId: string }) {
+  const [paper, setPaper] = useState<any>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    api("state")
+      .then((s) => setPaper(s.papers.find((p: any) => p.id === paperId) || null))
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  }, [paperId]);
+  if (!paper)
+    return (
+      <main className="login">
+        <p role="status">{error || "正在打开讲解…"}</p>
+      </main>
+    );
+  return (
+    <BranchPanel
+      standalone
+      paper={paper}
+      branchId={branchId}
+      firstPageId={pageId}
+      onReturn={() => {
+        // Back to the reading window: it keeps the mainline exactly where it was.
+        window.opener?.focus();
+        window.close();
+      }}
+    />
+  );
+}
+function Root() {
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const branch = hash.get("branch");
+  const paper = hash.get("paper");
+  return branch && paper ? <BranchWindow paperId={paper} branchId={branch} pageId={hash.get("page") || ""} /> : <App />;
+}
+createRoot(document.getElementById("root")!).render(<Root />);

@@ -74,8 +74,8 @@
 </td>
 <td width="33%" valign="top">
 
-**🧭 可以跑题，也能回来**<br>
-八步阅读路线是证据地图，不是课程表。局部问题解决后，主线返回点仍在原处。
+**🧭 插话讲解，一键回到主线**<br>
+问一个具体问题，旁边弹出讲解面板：用图、表和短句讲清楚，还能接着追问。点“回到主线”，主线停在原处。
 
 </td>
 </tr>
@@ -112,9 +112,53 @@
 </tr>
 </table>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/branch-dark.webp">
+  <img src="docs/images/branch.webp" alt="讲解面板：左侧是 PDF 原文，右侧弹出的面板用流程图、表格和提醒回答一个具体问题；右上角有“回到主线”按钮。">
+</picture>
+
+<p align="center"><sub>插话讲解面板：合成论文与明确标注的预设讲解，非实时模型输出 · 点“回到主线”，主线停在原处</sub></p>
+
 ## 快速开始
 
-### 方式一：在 Claude Code 中使用（推荐）
+| 你想要 | 用这个 |
+|---|---|
+| **边看原文边讨论**（推荐） | [方式一：工作台](#方式一工作台一行安装三步开始) |
+| 只在 Claude Code、Codex 里用 AI 带读 | [方式二：只装 Skill](#方式二只装-skill) |
+
+### 方式一：工作台，一行安装，三步开始
+
+**① 安装**：在终端粘贴一行。
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows PowerShell（脚本尚未在 Windows 真机上验证；失败时按快速上手里的手动步骤）
+irm https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/scripts/install.ps1 | iex
+```
+
+脚本会找到最新发布版，**校验 SHA-256**，再装进一个独立的环境：有 [uv](https://docs.astral.sh/uv/) 就用 uv（它连 Python 也能自动准备），否则用 pipx，再否则用 `python -m venv`。不需要管理员权限，不改你的书库，不改你的 shell 配置。想先看脚本：[install.sh](scripts/install.sh)。
+
+**② 打开**：终端输入 `prc`。浏览器会打开工作台；没有论文时显示欢迎页。想以后双击打开，运行 `prc shortcut`，桌面上会多一个图标。
+
+**③ 开始读**：导入一篇 PDF → 点“开始跟读”（或选中一处原文点“讨论这处”）。AI 带读使用本机的 Codex CLI，登录一次即可；没有它，阅读、标注和笔记照常可用。想先试一试：`prc-demo`（三页合成论文，不读取你的文献）。
+
+### 一直用最新版
+
+| 你用的是 | 怎么更新 |
+|---|---|
+| **工作台** | 有新版本时，书库页顶部出现一条提示，阅读页右上角的“⋯”上多一个小点（不会弹窗打断阅读）。点 **更新并重启**，约半分钟，页面自动刷新。也可以在终端运行 `prc update`。 |
+| **工作台里的 Skill** | 和工作台在同一个安装包里，一起更新。 |
+| **另外装的 Skill** | Claude Code 插件：在插件市场里开启自动更新，或运行 `/plugin marketplace update paper-research-coach`（菜单名称以你的 Claude Code 版本为准）。`npx skills add` 装的：再运行一次同样的命令。`prc install-skill` 复制的：`prc update` 会一起刷新。 |
+
+工作台每天最多向 GitHub 的发布接口发**一次匿名请求**来检查新版本，不发送论文、笔记或任何身份信息；想关掉，设环境变量 `PRC_NO_UPDATE_CHECK=1`。更新只安装本项目发布的安装包，并且必须通过同一发布里的 `SHA256SUMS` 校验。
+
+### 方式二：只装 Skill
+
+**Claude Code（推荐）**
 
 ```text
 /plugin marketplace add ooooooomygosh/paper-research-coach
@@ -123,7 +167,7 @@
 
 然后附上论文，说：**“带我读这篇论文，先从作者最关键的发现开始。”** 使用宿主原有的模型配置，不需要本项目的 Python、Node.js、Zotero 或单独的模型密钥。
 
-### 方式二：Codex、Pi 等其他宿主
+**Codex、Pi 等其他宿主**
 
 ```bash
 npx skills add ooooooomygosh/paper-research-coach
@@ -132,7 +176,7 @@ npx skills add ooooooomygosh/paper-research-coach
 <details>
 <summary>不用 npx：手动安装 Skill</summary>
 
-从 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 下载 `paper-research-coach-skill-*.zip`，把**完整文件夹**解压到宿主的技能目录：
+从 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面最上面的版本下载 `paper-research-coach-skill-*.zip`，把**完整文件夹**解压到宿主的技能目录：
 
 | 宿主 | 用户级技能目录 |
 |---|---|
@@ -144,18 +188,18 @@ npx skills add ooooooomygosh/paper-research-coach
 
 </details>
 
-### 方式三：本地工作台（边看原文边讨论）
+装了工作台的话，Skill 在 Claude Code 里可以通过 `prc` 接上同一篇论文的阅读进度，并在工作台里打开讲解面板。
 
-需要 **Python 3.10+**。从 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 下载 `.whl`，在下载目录运行：
+<details>
+<summary>卸载、手动安装、故障排查</summary>
 
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-python -m pip install "./paper_research_coach-<版本>-py3-none-any.whl"   # 替换为实际文件名
-prc open        # 打开你的书库
-prc-demo        # 或者：先用三页合成论文试一试，不读取个人文献
-```
+- **卸载**：`uv tool uninstall paper-research-coach`（pipx：`pipx uninstall paper-research-coach`；venv：删除 `~/.paper-research-coach` 与 `~/.local/bin/prc`）。你的书库不会被删除，位置见 `prc doctor`。
+- **手动安装、源码运行、Windows 细节**：见[快速上手](docs/QUICKSTART.md)。
+- **`prc` 找不到**：重新打开终端；仍然不行，运行安装脚本最后打印的完整路径。
+- **浏览器没有自动打开**：`prc` 会打印地址；也可以再运行一次 `prc`。
+- **AI 没有连接**：登录本机 Codex CLI，再点对话区的“重新连接”。
 
-打开后只做三件事：**导入一篇 PDF → 选中一处原文 → 提出当前问题。** 发布的 wheel 已包含界面，不需要 Node.js。工作台内的 AI 对话使用本机已登录的 Codex CLI；没有它也能正常阅读、标注和记笔记。Windows、源码运行和故障排查见[快速上手](docs/QUICKSTART.md)。
+</details>
 
 ## 一个典型回合
 
@@ -176,6 +220,7 @@ prc-demo        # 或者：先用三页合成论文试一试，不读取个人�
 ## 数据与边界
 
 - PDF 与阅读记录存本机，服务只监听本机地址。**本地存储不等于离线 AI**：启用教练或翻译时，相关内容会发送到所配置的模型服务。
+- 更新检查每天最多一次匿名请求 GitHub 发布接口，不带论文、笔记或身份信息，可用 `PRC_NO_UPDATE_CHECK=1` 关闭；更新只安装本项目发布且通过 SHA-256 校验的安装包。
 - Zotero 写入需要你明确授权；启动链接包含访问凭证，不要分享。备份与权限说明见[安全指南](docs/SECURITY.md)。
 - 目前没有学习收益的真人试验结论；未宣称 Safari / iPad / Apple Pencil 完整认证；不保证自动识别所有扫描 PDF；多附件的 Zotero 条目目前选择首个 PDF，请核对原文版本。详见[验证记录](docs/TESTING.md)与[审视清单](docs/FINAL-REVIEW.md)。
 

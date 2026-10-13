@@ -1,0 +1,133 @@
+{
+ "title": "为什么这个比较不公平",
+ "subtitle": "先对齐预算，再比较效果",
+ "lang": "zh",
+ "lead": [
+  {
+   "type": "md",
+   "text": "先说结论：两种策略的观测次数不同，所以现在还不能说触发时机更好。",
+   "line": 5
+  }
+ ],
+ "panels": [
+  {
+   "title": "预算对比",
+   "blocks": [
+    {
+     "dir": "LR",
+     "nodes": [
+      {
+       "id": "固定间隔",
+       "label": "固定间隔",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "观测 20 次",
+       "label": "观测 20 次",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "事件触发",
+       "label": "事件触发",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "观测 40 次",
+       "label": "观测 40 次",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "效用 61",
+       "label": "效用 61",
+       "shape": "rect",
+       "hi": true
+      },
+      {
+       "id": "效用 70",
+       "label": "效用 70",
+       "shape": "rect",
+       "hi": true
+      }
+     ],
+     "edges": [
+      {
+       "from": "固定间隔",
+       "to": "观测 20 次",
+       "dashed": false,
+       "label": "每回合"
+      },
+      {
+       "from": "事件触发",
+       "to": "观测 40 次",
+       "dashed": false,
+       "label": "每回合"
+      },
+      {
+       "from": "观测 20 次",
+       "to": "效用 61",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "观测 40 次",
+       "to": "效用 70",
+       "dashed": false,
+       "label": ""
+      }
+     ],
+     "groups": [
+      {
+       "name": "对照",
+       "members": [
+        "观测 20 次",
+        "观测 40 次"
+       ]
+      }
+     ],
+     "type": "flow",
+     "line": 8
+    },
+    {
+     "type": "md",
+     "text": "| 策略 | 观测次数 | 公平 |\n|---|---|---|\n| 固定间隔 | 20 | ok |\n| 事件触发 | 40 | no 多了一倍 |",
+     "line": 15
+    }
+   ]
+  },
+  {
+   "title": "先查什么",
+   "blocks": [
+    {
+     "kind": "warn",
+     "title": "小心",
+     "text": "效用高 9 分，可能只是因为多看了 20 次。",
+     "bodyLine": 22,
+     "type": "callout",
+     "line": 21
+    },
+    {
+     "question": "下一步先查哪个？",
+     "options": [
+      {
+       "label": "预算相同的对照",
+       "note": "最直接",
+       "suggested": true
+      },
+      {
+       "label": "误差条",
+       "note": "需要重复实验",
+       "suggested": false
+      }
+     ],
+     "multi": false,
+     "type": "ask",
+     "line": 24
+    }
+   ]
+  }
+ ]
+}

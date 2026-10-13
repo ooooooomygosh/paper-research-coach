@@ -12,6 +12,7 @@ import {
   Minimize2,
   ChevronDown,
 } from "lucide-react";
+import BranchPanel from "./explainer/BranchPanel";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
@@ -124,6 +125,9 @@ export default function CoachPanel({
   const [connecting, setConnecting] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
   const [routeOpen, setRouteOpen] = useState(false);
+  // An open branch explainer: a reader's question answered beside the paper.
+  const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
+  const seenExplainers = useRef<Set<string> | null>(null);
   const currentAnchor = useRef(anchor);
   currentAnchor.current = anchor;
   // Intent and help style are inferred, never configured: a selection is a
@@ -208,6 +212,25 @@ export default function CoachPanel({
     if (atBottom.current && scroll.current)
       scroll.current.scrollTop = scroll.current.scrollHeight;
   }, [snapshot.messages]);
+  useEffect(() => {
+    seenExplainers.current = null;
+    setBranch(null);
+  }, [paper.id]);
+  useEffect(() => {
+    if (snapshot.read_only || !snapshot.conversation_id) return;
+    const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer"));
+    if (seenExplainers.current === null) {
+      // The first look at a paper only learns what exists; old branches never pop open on reload.
+      seenExplainers.current = new Set(found.map((a) => a.id));
+      return;
+    }
+    const fresh = found.filter((a) => !seenExplainers.current!.has(a.id));
+    fresh.forEach((a) => seenExplainers.current!.add(a.id));
+    if (fresh.length) {
+      const last = fresh[fresh.length - 1];
+      setBranch({ branchId: last.branch_id, pageId: last.id });
+    }
+  }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
   useEffect(() => {
     setIncludeImage(
       !!anchor?.rects?.length &&
@@ -382,6 +405,19 @@ export default function CoachPanel({
         : status?.state === "unavailable"
           ? "未连接"
           : "连接中";
+  const returnToMainline = () => {
+    setBranch(null);
+    requestAnimationFrame(() => composer.current?.focus());
+  };
+  const popoutBranch = () => {
+    if (!branch) return;
+    window.open(
+      `/#branch=${encodeURIComponent(branch.branchId)}&page=${encodeURIComponent(branch.pageId)}&paper=${encodeURIComponent(paper.id)}`,
+      "prc-branch-" + branch.branchId,
+      "popup=yes,width=900,height=900",
+    );
+    setBranch(null);
+  };
   const reconnect = async () => {
     try {
       setStatus(await api("coach/reconnect", {}));
@@ -881,7 +917,15 @@ export default function CoachPanel({
                       ) === i,
                   )
                   .map((a) =>
-                    a.kind === "session" ? (
+                    a.kind === "explainer" ? (
+                      <button
+                        key={a.id + a.label}
+                        className="coach-branch-link"
+                        onClick={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
+                      >
+                        {a.label}
+                      </button>
+                    ) : a.kind === "session" ? (
                       <span className="coach-saved-action" key={a.id + a.label}>
                         {a.label}
                       </span>
@@ -1120,6 +1164,18 @@ export default function CoachPanel({
           </button>
         )}
       </div>
+      {branch && (
+        <BranchPanel
+          key={branch.branchId}
+          paper={paper}
+          branchId={branch.branchId}
+          firstPageId={branch.pageId}
+          page={page}
+          onReturn={returnToMainline}
+          onPopout={popoutBranch}
+          onLocate={onLocate}
+        />
+      )}
     </section>
   );
 }
