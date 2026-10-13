@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import secrets
 import subprocess
@@ -17,7 +18,7 @@ from . import __version__
 from .coach import Coach, Send
 from .exports import export
 from .models import Commit, uid
-from .store import Conflict, Store
+from .store import Conflict, Store, NotFound
 from .translation import (
     SelectionRequest,
     Translation,
@@ -30,11 +31,11 @@ from .vault import VaultSync
 from .zotero import ZoteroSync
 
 
+log = logging.getLogger("paper_research_coach")
+
 def session_token(store: Store):
     path = store.root / "session-token"
     if not path.exists():
-        import os
-
         try:
             fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, "w") as f:
@@ -59,7 +60,11 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             while True:
                 state = sync.state()
                 if state["enabled"]:
-                    await asyncio.to_thread(sync.run)
+                    try:
+                        await asyncio.to_thread(sync.run)
+                    except Exception:
+                        # One failed round must not stop later syncs.
+                        log.exception("Zotero sync round failed; retrying next round")
                 await asyncio.sleep(state["poll_seconds"])
 
         async def folder_loop():
@@ -69,6 +74,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                         await asyncio.to_thread(vault.run)
                     except Exception:
                         # A transient folder/API failure must not stop future scans.
+                        log.exception("Folder sync round failed; retrying next round")
                         store.set_setting(
                             "vault",
                             vault.state()
@@ -145,9 +151,14 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def conflict_handler(request, exc):
         return JSONResponse({"error": str(exc)}, 409)
 
-    @app.exception_handler(KeyError)
+    @app.exception_handler(NotFound)
     async def missing_handler(request, exc):
         return JSONResponse({"error": str(exc)}, 404)
+
+    @app.exception_handler(KeyError)
+    async def field_handler(request, exc):
+        # A KeyError that is not a missing record comes from a request without a needed field.
+        return JSONResponse({"error": f"请求缺少字段：{exc.args[0] if exc.args else ''}"}, 400)
 
     @app.exception_handler(ValueError)
     async def value_handler(request, exc):
@@ -155,6 +166,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
 
     @app.exception_handler(OSError)
     async def file_handler(request, exc):
+        log.warning("File error on %s: %s", request.url.path, exc)
         return JSONResponse({"error": "文件无法读取或写入，请检查路径和权限。"}, 400)
 
     @app.post("/api/login")
@@ -387,8 +399,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     @app.post("/api/coach/explain/{paper_id}")
     async def coach_explain(paper_id: str, request: Request):
         data = await request.json()
-        return coach.explain_external(
-            paper_id, str(data.get("draft", "")), branch_id=str(data.get("branch_id", "")),
+        return await asyncio.to_thread(
+            coach.explain_external, paper_id, str(data.get("draft", "")), branch_id=str(data.get("branch_id", "")),
             replace_id=str(data.get("replace_id", "")), question=str(data.get("question", "")),
         )
 
@@ -483,7 +495,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         async def stream():
             previous = ""
             while not await request.is_disconnected():
-                data = json.dumps(coach.snapshot(paper_id, conversation_id), ensure_ascii=False)
+                # SQLite work runs off the event loop so other requests stay responsive.
+                data = json.dumps(await asyncio.to_thread(coach.snapshot, paper_id, conversation_id), ensure_ascii=False)
                 if data != previous:
                     yield "data: " + data + "\n\n"
                     previous = data
@@ -508,7 +521,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     def download(filename: str):
         path = (store.root / "exports" / filename).resolve()
         if path.parent != (store.root / "exports").resolve() or not path.is_file():
-            raise KeyError("Export not found")
+            raise NotFound("Export not found")
         return FileResponse(path, filename=path.name)
 
     @app.get("/api/events")
@@ -539,8 +552,9 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     def collections():
         try:
             return sync.collections()
-        except Exception:
-            raise ValueError("无法连接 Zotero，请启动应用并允许本地应用通信。")
+        except Exception as exc:
+            log.info("Zotero collections unavailable: %s", exc)
+            raise ValueError("无法连接 Zotero，请启动应用并允许本地应用通信。") from None
 
     @app.post("/api/zotero/configure")
     async def configure(request: Request):
@@ -557,8 +571,9 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         data = await request.json()
         try:
             return await asyncio.to_thread(sync.authorize, data["server_id"])
-        except Exception:
-            raise ValueError("授权尚未完成，请在 Zotero 中确认，或重新发起授权。")
+        except Exception as exc:
+            log.info("Zotero authorization not finished: %s", exc)
+            raise ValueError("授权尚未完成，请在 Zotero 中确认，或重新发起授权。") from None
 
     @app.post("/api/zotero/sync")
     async def synchronize():

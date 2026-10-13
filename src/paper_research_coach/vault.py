@@ -16,7 +16,7 @@ import yaml
 from filelock import FileLock, Timeout
 
 from .models import uid, now
-from .store import Store
+from .store import Store, NotFound
 
 MANAGED = "06_PRC阅读记录"
 
@@ -155,7 +155,7 @@ class VaultSync:
         with self.lock.acquire(timeout=10):
             c = next((c for c in self.conflicts() if c["id"] == conflict_id), None)
             if not c:
-                raise KeyError("Conflict no longer exists")
+                raise NotFound("Conflict no longer exists")
             path = (Path(c["root"]) / c["path"]).resolve()
             if not path.is_relative_to(Path(c["root"])):
                 raise ValueError("Path outside literature folder")

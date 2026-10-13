@@ -24,7 +24,7 @@ from .coaching_request import Send
 from . import explainer as explainers
 from .models import Anchor, LearningEvidence, now, uid
 from .runtime_prompt import RUNTIME_VERSION, bootstrap, brief_context, turn_input
-from .store import Conflict, Store
+from .store import Conflict, Store, NotFound
 
 
 class ProtocolError(ValueError):
@@ -460,7 +460,7 @@ class Coach:
                 "SELECT data FROM coach_conversations WHERE id=?", (conversation_id,)
             ).fetchone()
         if not row:
-            raise KeyError("阅读对话不存在")
+            raise NotFound("阅读对话不存在")
         return json.loads(row[0])
 
     def save_conversation(self, data):
@@ -499,8 +499,8 @@ class Coach:
                 write(db)
 
     def snapshot(self, paper_id, conversation_id=""):
-        conversations = self.conversations(paper_id)
-        canonical = self.binding(paper_id)["conversation_id"]
+        bound = self.binding(paper_id)
+        canonical = bound["conversation_id"]
         conversations = self.conversations(paper_id)
         current = conversation_id or canonical
         if current and not any(c["id"] == current for c in conversations):
@@ -511,7 +511,7 @@ class Coach:
             "conversations": conversations,
             "conversation_id": current,
             "canonical_conversation_id": canonical,
-            "thread_id": self.binding(paper_id)["thread_id"],
+            "thread_id": bound["thread_id"],
             "read_only": current != canonical,
             "messages": self.messages(current) if current else [],
             "busy": current in self.active,
@@ -521,6 +521,11 @@ class Coach:
 
     def binding(self, paper_id):
         self.store.get("paper", paper_id)
+        # Read without a write lock first: the event stream asks several times a second.
+        with self.store.connect() as db:
+            bound = db.execute("SELECT * FROM coach_paper_bindings WHERE paper_id=?", (paper_id,)).fetchone()
+        if bound:
+            return dict(bound)
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             bound = db.execute("SELECT * FROM coach_paper_bindings WHERE paper_id=?", (paper_id,)).fetchone()
@@ -1154,7 +1159,7 @@ class Coach:
         with self.store.connect() as db:
             row = db.execute("SELECT data FROM coach_explainers WHERE id=?", (explainer_id,)).fetchone()
         if not row or (paper_id and json.loads(row[0])["paper_id"] != paper_id):
-            raise KeyError("讲解页不存在")
+            raise NotFound("讲解页不存在")
         return json.loads(row[0])
 
     def explainer_list(self, paper_id):

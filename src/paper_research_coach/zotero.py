@@ -14,7 +14,7 @@ from urllib.parse import unquote, urlparse
 import httpx
 
 from .models import Note, SyncState, now, uid
-from .store import Store, digest
+from .store import Store, digest, NotFound
 
 
 class SyncError(ValueError):
@@ -1162,7 +1162,7 @@ class ZoteroSync:
         with guard:
             c = next((x for x in self.conflicts() if x["id"] == conflict_id), None)
             if not c:
-                raise KeyError("Conflict no longer exists")
+                raise NotFound("Conflict no longer exists")
             if self.probe() != c["server"]:
                 raise SyncError("请连接产生此冲突的 Zotero 文献库。")
             if c["reason"] == "paper-remote-delete":

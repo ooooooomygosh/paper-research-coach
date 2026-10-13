@@ -378,6 +378,27 @@ export function App() {
     const poll = setInterval(() => void reloadTranslation(), 4000);
     return () => clearInterval(poll);
   }, [ready, paper?.id, paper?.source_version]);
+  // Small menus (<details data-menu>) close on Escape or a click outside, like other menus.
+  useEffect(() => {
+    const close = (keep?: EventTarget | null) =>
+      document.querySelectorAll<HTMLDetailsElement>("details[data-menu][open]").forEach((d) => {
+        if (!(keep instanceof Node && d.contains(keep))) d.open = false;
+      });
+    const onPointer = (e: PointerEvent) => close(e.target);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const open = document.querySelector<HTMLDetailsElement>("details[data-menu][open]");
+      if (!open) return;
+      open.open = false;
+      open.querySelector<HTMLElement>("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
   const sourceRef = useRef<any>(null);
   useEffect(() => {
     if (!paper) return;
@@ -738,6 +759,9 @@ export function App() {
               if (pid === paper?.id) void reloadTranslation();
             }}
           />
+        ) : !paper && selected && state.papers.some((p: Row) => p.id === selected) ? (
+          // Switching papers: say so instead of flashing the empty-library welcome.
+          <div className="empty paper-loading" role="status">正在打开论文…</div>
         ) : !paper ? (
           <Welcome onImport={() => setImporting(true)} onConnect={() => setTab("settings")} notice={<UpdateRow update={update} variant="banner" />} />
         ) : (
@@ -785,7 +809,7 @@ export function App() {
                   )}{" "}
                   {paper.status === "paused" ? "恢复阅读" : "暂停并保存"}
                 </button>
-                <details className="paper-tools">
+                <details className="paper-tools" data-menu>
                   <summary aria-label="更多论文操作" title="更多论文操作">
                     <MoreHorizontal size={19} />
                   </summary>
