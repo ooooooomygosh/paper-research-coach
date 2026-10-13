@@ -360,3 +360,26 @@ it("zooms with trackpad pinch events but leaves ordinary wheel scrolling native"
   await waitFor(() => expect(mock.calls.length).toBeGreaterThan(calls));
   expect(document.querySelector<HTMLElement>(".pdf-stack")!.style.transform).toBe("");
 });
+
+it("draws numbered coach marks and offers one click back to the earlier page", async () => {
+  const setPage = vi.fn(), dismiss = vi.fn(), stop = vi.fn();
+  render(<PdfReader paper={{ id: "marks", source_version: "v", revision: 1, page_count: 3 }} page={1} setPage={setPage} onAnchor={vi.fn()} focusAnchor={null}
+    coachMarks={{ page_index: 1, marks: [{ n: 1, rects: [[100, 200, 160, 260]] }, { n: 2, rects: [[100, 300, 160, 320]] }] }}
+    returnTo={{ page: 0, to: 1, key: "f1" }} onDismissReturn={dismiss} onFollowCoach={stop} />);
+  await waitFor(() => expect(document.querySelectorAll('.pdf-page[data-slot="1"] .coach-mark')).toHaveLength(2));
+  expect(document.querySelector(".coach-mark-n")!.textContent).toBe("1");
+  expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "回到第 1 页" }));
+  expect(setPage).toHaveBeenCalledWith(0);
+  expect(dismiss).toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "不要自动翻页" }));
+  expect(stop).toHaveBeenCalledWith(false);
+});
+
+it("never draws coach marks on a translated layout", async () => {
+  const rendition = { job_id: "job", view: "mono" as const, document_version: "a".repeat(64) };
+  render(<PdfReader paper={{ id: "p", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()} focusAnchor={null}
+    derived documentKey="job:mono" rendition={rendition} coachMarks={{ page_index: 0, marks: [{ n: 1, rects: [[1, 2, 30, 40]] }] }} />);
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
+  expect(document.querySelector(".coach-mark")).toBeNull();
+});

@@ -392,6 +392,19 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             replace_id=str(data.get("replace_id", "")), question=str(data.get("question", "")),
         )
 
+    @app.post("/api/coach/show/{paper_id}")
+    async def coach_show(paper_id: str, request: Request):
+        data = await request.json()
+        quotes = data.get("quotes")
+        if not isinstance(quotes, list) or not isinstance(data.get("page_index"), int):
+            raise ValueError("需要 page_index（整数）和 quotes（列表）。")
+        return await asyncio.to_thread(coach.show_external, paper_id, data["page_index"], [str(q) for q in quotes], str(data.get("note", "")))
+
+    @app.get("/api/find/{paper_id}")
+    async def find_text(paper_id: str, q: str):
+        from . import locate
+        return await asyncio.to_thread(locate.search, store, paper_id, q)
+
     def restart_self():
         """Start a new service after this one exits, so a new version takes over on the same port."""
         from .launcher import spawn_relaunch

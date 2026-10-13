@@ -87,6 +87,7 @@ export default function CoachPanel({
   initialConversation = "",
   toolsContainer,
   onOpenTools,
+  onFocus,
 }: {
   paper: Row;
   context: any;
@@ -100,6 +101,8 @@ export default function CoachPanel({
   initialConversation?: string;
   toolsContainer?: HTMLElement | null;
   onOpenTools?: () => void;
+  /** The coach pointed at sentences in the PDF ("auto" while a turn runs, "restore" on load). */
+  onFocus?: (action: any, how: "auto" | "click" | "restore") => void;
 }) {
   const key = "prc-chat-draft-" + paper.id;
   const jobKey = "prc-chat-send-" + paper.id;
@@ -128,6 +131,9 @@ export default function CoachPanel({
   // An open branch explainer: a reader's question answered beside the paper.
   const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
   const seenExplainers = useRef<Set<string> | null>(null);
+  const seenFocus = useRef<Set<string> | null>(null);
+  const latestFocus = useRef(onFocus);
+  latestFocus.current = onFocus;
   const currentAnchor = useRef(anchor);
   currentAnchor.current = anchor;
   // Intent and help style are inferred, never configured: a selection is a
@@ -214,8 +220,26 @@ export default function CoachPanel({
   }, [snapshot.messages]);
   useEffect(() => {
     seenExplainers.current = null;
+    seenFocus.current = null;
     setBranch(null);
   }, [paper.id]);
+  useEffect(() => {
+    if (!snapshot.conversation_id) return;
+    const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "focus").map((a) => ({ a, m: m.id })));
+    if (seenFocus.current === null) {
+      // On load, show the latest marks without moving the PDF.
+      seenFocus.current = new Set(found.map(({ a }) => a.id));
+      if (found.length) latestFocus.current?.(found[found.length - 1].a, "restore");
+      return;
+    }
+    const fresh = found.filter(({ a }) => !seenFocus.current!.has(a.id));
+    if (!fresh.length) return;
+    const jumped = new Set(found.filter(({ a }) => seenFocus.current!.has(a.id)).map(({ m }) => m));
+    fresh.forEach(({ a }) => seenFocus.current!.add(a.id));
+    // One automatic jump per coach reply: the first place it points at. Later ones wait for a click.
+    const first = fresh.find(({ m }) => !jumped.has(m));
+    if (first) latestFocus.current?.(first.a, "auto");
+  }, [snapshot.messages, snapshot.conversation_id]);
   useEffect(() => {
     if (snapshot.read_only || !snapshot.conversation_id) return;
     const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer"));
@@ -922,6 +946,15 @@ export default function CoachPanel({
                         key={a.id + a.label}
                         className="coach-branch-link"
                         onClick={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
+                      >
+                        {a.label}
+                      </button>
+                    ) : a.kind === "focus" ? (
+                      <button
+                        key={a.id + a.label}
+                        className="coach-focus-link"
+                        title={(a.marks || []).map((m: any) => m.n + ". " + m.quote).join("\n") || a.label}
+                        onClick={() => onFocus?.(a, "click")}
                       >
                         {a.label}
                       </button>

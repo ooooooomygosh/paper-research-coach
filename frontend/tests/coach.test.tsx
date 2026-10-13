@@ -654,3 +654,30 @@ it("opens a branch panel when the coach finishes a new explanation, and one clic
   expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
   await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("发给论文教练的消息")));
 });
+
+// ---- the coach points at sentences in the PDF ----
+const focus = (id: string, page = 2) => ({
+  kind: "focus", id, label: `第 ${page + 1} 页 · 作者的主张`, rev: "t",
+  anchor: { paper_id: "p", source_version: "version", page_index: page, status: "verified", quote: "We show", rects: [[1, 2, 3, 4]] },
+  marks: [{ n: 1, quote: "We show", rects: [[1, 2, 3, 4]] }],
+});
+const pointing = (mid: string, actions: any[]) => ({ id: mid, role: "assistant", content: "看①。", status: "completed", intent: "follow", actions });
+
+it("shows old marks on load without moving the PDF, then jumps once per new coach reply", async () => {
+  const { stream } = explainerMocks([pointing("m0", [focus("f0", 1)])]);
+  const onFocus = vi.fn();
+  view({ onFocus });
+  await waitFor(() => expect(onFocus).toHaveBeenCalledWith(expect.objectContaining({ id: "f0" }), "restore"));
+  await waitFor(() => expect(stream.emit).toBeTruthy());
+  await act(async () => {
+    stream.emit!({ ...snapshot, messages: [pointing("m0", [focus("f0", 1)]), pointing("m1", [focus("f1")])] });
+  });
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "auto");
+  // A second place in the same reply waits for a click.
+  await act(async () => {
+    stream.emit!({ ...snapshot, messages: [pointing("m0", [focus("f0", 1)]), pointing("m1", [focus("f1"), focus("f2", 0)])] });
+  });
+  expect(onFocus.mock.calls.filter(([, how]) => how === "auto")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "第 1 页 · 作者的主张" }));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f2" }), "click");
+});

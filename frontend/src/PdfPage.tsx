@@ -131,10 +131,15 @@ function PdfPage({
     });
   }, [searchTerm, viewport]);
 
+  // Bring a new highlight or new coach marks into view once; a zoom redraw must not pull the reader back.
+  const shown = useRef<unknown>(null);
   useEffect(() => {
-    if (viewport && focusRects.length)
-      element.current?.querySelector(".anchor-highlight")?.scrollIntoView({ block: "center", inline: "center" });
-  }, [focusRects, viewport]);
+    if (!viewport) return;
+    const target = focusRects.length ? focusRects : marks.length ? marks : null;
+    if (!target || shown.current === target) return;
+    shown.current = target;
+    element.current?.querySelector(focusRects.length ? ".anchor-highlight" : ".coach-mark")?.scrollIntoView({ block: "center", inline: "nearest" });
+  }, [focusRects, marks, viewport]);
 
   function box(r: number[]) {
     if (!viewport || r.length !== 4 || !r.every(Number.isFinite)) return undefined;

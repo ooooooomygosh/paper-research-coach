@@ -104,6 +104,34 @@ export function App() {
   const translatedRead = useRef("");
   const [pdfView, setPdfView] = useState<PdfView>("original");
   const [selection, setSelection] = useState<any>(null);
+  // Sentences the coach pointed at, and where the reader was before the coach moved the PDF.
+  const [coachMarks, setCoachMarks] = useState<any>(null);
+  const [returnTo, setReturnTo] = useState<{ page: number; to: number; key: string } | null>(null);
+  const [followCoach, setFollowCoach] = useState(() => {
+    try { return localStorage.getItem("prc-follow-coach") !== "off"; } catch { return true; }
+  });
+  function changeFollowCoach(on: boolean) {
+    setFollowCoach(on);
+    try { localStorage.setItem("prc-follow-coach", on ? "on" : "off"); } catch { /* a convenience only */ }
+    if (!on) setReturnTo(null);
+  }
+  /** The coach marked sentences: show them; on a live turn (or a click) also take the reader there. */
+  function showCoachFocus(a: any, how: "auto" | "click" | "restore") {
+    const target = a?.anchor;
+    if (!paper || !target || target.paper_id !== paper.id || target.page_index == null) return;
+    if (target.source_version !== paper.source_version) {
+      if (how === "click") report("这处标注属于旧版本的 PDF，请让教练重新指出。");
+      return;
+    }
+    setCoachMarks({ id: a.id, page_index: target.page_index, marks: (a.marks || []).map((m: any) => ({ ...m })) });
+    if (how === "restore" || (how === "auto" && !followCoach)) return;
+    setTab("read");
+    if (pdfView !== "original") setPdfView("original");
+    if (target.page_index !== page) {
+      setReturnTo({ page, to: target.page_index, key: a.id });
+      movePage(target.page_index);
+    }
+  }
   const [markedSelection, setMarkedSelection] = useState("");
   const layout = useRef<HTMLDivElement>(null);
   const toolsTrigger = useRef<HTMLElement | null>(null);
@@ -343,6 +371,8 @@ export function App() {
     setTranslationPdfJob(null);
     setPdfView("original");
     setSelection(null);
+    setCoachMarks(null);
+    setReturnTo(null);
     if (!ready) return;
     void reloadTranslation();
     const poll = setInterval(() => void reloadTranslation(), 4000);
@@ -867,6 +897,11 @@ export function App() {
                       onExport={() => void exportCurrentPdf()}
                       exporting={exportingPdf}
                       focusAnchor={focusAnchor}
+                      coachMarks={coachMarks}
+                      returnTo={returnTo}
+                      onDismissReturn={() => setReturnTo(null)}
+                      followCoach={followCoach}
+                      onFollowCoach={changeFollowCoach}
                       notes={context.notes || []}
                       onLocateNote={locate}
                     />
@@ -943,6 +978,7 @@ export function App() {
                           setSelection(null);
                         }}
                         onLocate={locate}
+                        onFocus={showCoachFocus}
                         onAction={(kind) => {
                           if (kind === "idea") setTab("ideas");
                           else if (kind === "review") setTab("review");

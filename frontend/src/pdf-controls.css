@@ -66,3 +66,12 @@
   .pdf-page .coach-mark { background: color-mix(in srgb, #7fb2e5 22%, transparent); border-bottom-color: #7fb2e5; }
   .pdf-page .coach-mark-n { background: #7fb2e5; color: #10202e; }
 }
+/* After the coach moves the PDF: a quiet chip with one click back. */
+.pdf-return-chip { position: absolute; z-index: 9; top: 10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; max-width: calc(100% - 24px); padding: 5px 6px 5px 12px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: 0 3px 16px #263d2526; font-size: 12px; color: var(--text-2); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: chip-in .18s ease-out; }
+.pdf-return-chip span { white-space: nowrap; }
+.pdf-return-chip button { padding: 3px 9px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+.pdf-return-chip button.quiet { border: 0; background: transparent; color: var(--muted); }
+@keyframes chip-in { from { opacity: 0; transform: translate(-50%, -4px); } }
+@media (prefers-reduced-motion: reduce) { .pdf-return-chip { animation: none; } }
+.follow-coach { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); margin: 6px 0; }
+.coach-actions .coach-focus-link::before { content: "◎ "; color: #4f8cc9; }

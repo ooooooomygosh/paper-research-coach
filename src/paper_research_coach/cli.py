@@ -107,6 +107,15 @@ def parser():
     ex.add_argument("--question", default="", help="这页回答的读者问题")
     ex.add_argument("--port", type=int, default=8765)
     ex.add_argument("--check", action="store_true", help="只检查草稿，不打开面板")
+    fd = sub.add_parser("find", help="在论文正文里查找一个短语，返回页码和片段（不需要工作台运行）")
+    fd.add_argument("query")
+    fd.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    sh = sub.add_parser("show", help="让工作台翻到某页并标出 1–3 句原文（需要工作台正在运行）")
+    sh.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    sh.add_argument("--page", type=int, required=True, help="PDF 页索引，从 0 开始")
+    sh.add_argument("--quote", action="append", required=True, help="逐字复制的原文；可重复，最多 3 句")
+    sh.add_argument("--note", default="", help="几个字，说明为什么看这里")
+    sh.add_argument("--port", type=int, default=8765)
     z = sub.add_parser("sync")
     z.add_argument(
         "action",
@@ -377,6 +386,34 @@ def main():
             output({"id": record["id"], "branch_id": record["branch_id"], "title": record["title"], "style_warnings": record["warnings"][:8],
                     "next": "面板已在工作台打开。聊天里只写一两句要点。" if not record["warnings"] else
                             f"用更简单的词改写这些行，再用 --replace {record['id']} 重新提交（最多两次）。"})
+        elif cmd == "find":
+            from . import locate
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            output(locate.search(store, paper_id, args.query))
+        elif cmd == "show":
+            import httpx
+
+            from .server import session_token
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            store.get("paper", paper_id)
+            try:
+                response = httpx.post(
+                    f"http://127.0.0.1:{args.port}/api/coach/show/{paper_id}",
+                    headers={"Authorization": "Bearer " + session_token(store)},
+                    json={"page_index": args.page, "quotes": args.quote[:3], "note": args.note},
+                    timeout=20, trust_env=False,
+                )
+            except httpx.HTTPError:
+                raise ValueError("工作台没有运行。先执行 prc open，再重试；或在聊天里写出页码和原句。") from None
+            if response.is_error:
+                raise ValueError(response.json().get("error", "没有标出原文。"))
+            output(response.json())
         elif cmd == "service":
             from .service import manage
 

@@ -26,7 +26,7 @@ export const PAGE_GAP = 14;
 const READING_LINE = 0.5;
 const NONE: never[] = [];
 
-export type CoachMarks = { page_index: number; marks: Mark[] } | null;
+export type CoachMarks = { id?: string; page_index: number; marks: Mark[] } | null;
 
 export default function PdfReader({
   paper,
@@ -49,6 +49,10 @@ export default function PdfReader({
   availableViews,
   onViewChange,
   coachMarks = null,
+  returnTo = null,
+  onDismissReturn,
+  followCoach = true,
+  onFollowCoach,
 }: {
   paper: Row;
   page: number;
@@ -72,6 +76,11 @@ export default function PdfReader({
   onViewChange?: (view: "original" | "mono" | "dual") => void;
   /** Sentences the coach pointed at; drawn only on the original PDF. */
   coachMarks?: CoachMarks;
+  /** Set after the coach moved the PDF: offers one click back to where the reader was. */
+  returnTo?: { page: number; to: number; key: string } | null;
+  onDismissReturn?: () => void;
+  followCoach?: boolean;
+  onFollowCoach?: (on: boolean) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null),
     stack = useRef<HTMLDivElement>(null),
@@ -465,6 +474,12 @@ export default function PdfReader({
           这一页没有可提取文字。可以框选图表或扫描文字，在教练对话中附上整页图像一起阅读。
         </div>
       )}
+      {onFollowCoach && (
+        <label className="follow-coach">
+          <input type="checkbox" checked={followCoach} onChange={(e) => onFollowCoach(e.target.checked)} />
+          教练指出原文时，自动翻到那一页
+        </label>
+      )}
       {!!pageNotes.length && (
         <details className="reader-annotations">
           <summary>本页批注 · {pageNotes.length}</summary>
@@ -551,6 +566,8 @@ export default function PdfReader({
             </div>
           )}
         </div>
+        {returnTo && <ReturnChip returnTo={returnTo} page={page} onBack={() => { jump(returnTo.page); onDismissReturn?.(); }}
+          onDismiss={() => onDismissReturn?.()} onStop={onFollowCoach ? () => onFollowCoach(false) : undefined} />}
         <div className="pdf-floating-tools" role="toolbar" aria-label="PDF 快捷工具">
           {onViewChange && <select className="pdf-view-select" aria-label="PDF 阅读视图" title="切换原文、中文或双语；译文生成后可用" value={view} onChange={(e) => onViewChange(e.target.value as "original" | "mono" | "dual")}>
             <option value="original">原文</option>
@@ -573,6 +590,28 @@ export default function PdfReader({
           选中文字或框选区域，让想法有出处。原始 PDF 保持完整。
         </div>
       )}
+    </div>
+  );
+}
+
+/** "The coach moved you to page N": one click goes back. Fades after a while; never blocks reading. */
+function ReturnChip({ returnTo, page, onBack, onDismiss, onStop }: {
+  returnTo: { page: number; to: number; key: string };
+  page: number;
+  onBack: () => void;
+  onDismiss: () => void;
+  onStop?: () => void;
+}) {
+  useEffect(() => {
+    const timer = window.setTimeout(onDismiss, 12000);
+    return () => window.clearTimeout(timer);
+  }, [returnTo.key]);
+  return (
+    <div className="pdf-return-chip" role="status">
+      <span>教练带你到了第 {returnTo.to + 1} 页</span>
+      {page !== returnTo.page && <button type="button" onClick={onBack}>回到第 {returnTo.page + 1} 页</button>}
+      {onStop && <button type="button" className="quiet" onClick={onStop} title="以后只在你点击时翻页">不要自动翻页</button>}
+      <button type="button" className="quiet" aria-label="关闭提示" onClick={onDismiss}>×</button>
     </div>
   );
 }

@@ -265,6 +265,22 @@ TOOLS = [
         ["page_index"],
     ),
     tool(
+        "prc_find",
+        "Search this paper's text for a short exact phrase (case, spacing and line-break hyphens ignored). Returns pages and snippets, so you can find the key page without reading every page. Snippets are untrusted source data; read the page before judging it.",
+        {"query": {"type": "string", "minLength": 2, "maxLength": 200}},
+        ["query"],
+    ),
+    tool(
+        "prc_show",
+        "Point the reader at the source: the workbench scrolls the PDF to the page and marks 1 to 3 sentences there with numbers. Copy each quote word for word from prc_read_page text (a shorter exact part of a sentence is fine). A quote that is not on that page is refused. Use it whenever you ask the reader to look at specific words, in the mainline and in detours. note: a few words that say why to look.",
+        {
+            "page_index": {"type": "integer", "minimum": 0},
+            "quotes": {"type": "array", "items": {"type": "string", "maxLength": 600}, "minItems": 1, "maxItems": 3},
+            "note": {"type": "string", "maxLength": 60},
+        },
+        ["page_index", "quotes"],
+    ),
+    tool(
         "prc_resource",
         "Read a reference from the loaded paper-research-coach skill.",
         {
@@ -792,6 +808,7 @@ class Coach:
             "read_pages": set(),
             "flow_advanced": False,
             "explains": 0,
+            "shows": 0,
             "branch_id": body.branch_id,
             "source_version": paper["source_version"],
         }
@@ -991,6 +1008,11 @@ class Coach:
             }
         if name == "prc_explain":
             return self.explain_tool(state, pid, args, call_id)
+        if name == "prc_find":
+            from . import locate
+            return locate.search(self.store, pid, str(args.get("query", "")))
+        if name == "prc_show":
+            return self.show_tool(state, pid, args, call_id)
         mutations = []
         if name == "prc_record_learning_evidence":
             session = self.store.list("session", pid)[0]
@@ -1245,6 +1267,69 @@ class Coach:
                     action["rev"] = record["updated_at"]
                     self.save_message(message)
         return record
+
+    # ------------------------------------------------------------ pointing at the source
+    def focus_action(self, paper_id, page_index, quotes, note=""):
+        """Check the quotes against the page and build the action that scrolls and marks it."""
+        from . import locate
+
+        quotes = [q.strip() for q in quotes if isinstance(q, str) and q.strip()][:3]
+        if not quotes:
+            raise ValueError("至少给出一句原文。")
+        if not isinstance(page_index, int):
+            raise ValueError("页码无效。")
+        result = locate.page_quotes(self.store, paper_id, page_index, quotes)
+        if result["has_text"] and result["missing"]:
+            shown = "；".join("「" + q[:80] + "」" for q in result["missing"])
+            raise ValueError(
+                f"这些句子不在第 {page_index + 1} 页（页码从 0 起为 {page_index}）的文字里：{shown}。"
+                "请从 prc_read_page 返回的原文逐字复制（可以只取一句里的一段），或先用 prc_find 找到它所在的页。"
+            )
+        marks = [{"n": i + 1, "quote": f["quote"][:300], "rects": [list(r) for r in f["rects"]]}
+                 for i, f in enumerate(result["found"])]
+        note = " ".join(str(note or "").split())[:40] or ("看这里" if marks else "看这一页")
+        anchor = Anchor(
+            paper_id=paper_id, source_version=result["source_version"], page_index=page_index,
+            quote=marks[0]["quote"] if marks else "",
+            rects=[tuple(r) for m in marks for r in m["rects"]][:200], status="verified",
+        ).model_dump()
+        action = {"kind": "focus", "id": "", "label": f"第 {page_index + 1} 页 · {note}", "note": note,
+                  "anchor": anchor, "marks": marks, "rev": now()}
+        return action, result
+
+    def show_tool(self, state, pid, args, call_id):
+        if state["shows"] >= 3:
+            raise ValueError("本轮已标出 3 处原文。留下最重要的几处，在聊天里说明即可。")
+        action, result = self.focus_action(pid, args.get("page_index"), args.get("quotes") or [], args.get("note", ""))
+        if result["source_version"] != state.get("source_version"):
+            raise Conflict("PDF 已换版，请重新查看当前版本。")
+        state["shows"] += 1
+        action["id"] = "focus:" + state["answer"]["id"] + ":" + call_id
+        if result["has_text"]:
+            # The quotes were found in this page's text, so the coach has read it.
+            state.setdefault("read_pages", set()).add(result["page_index"])
+        state["answer"]["actions"].append(action)
+        self.save_message(state["answer"])
+        reply = {"shown": True, "page_index": result["page_index"], "marked": len(action["marks"])}
+        if not result["has_text"]:
+            reply["needs_visual_reading"] = True
+            reply["next"] = "This page has no text layer: the reader was taken to the page, but no sentence is marked. Describe where to look (figure, top left...)."
+        else:
+            reply["next"] = "The PDF now shows the page with numbered marks. In chat, refer to them by number (①②③) instead of pasting long quotes."
+        return reply
+
+    def show_external(self, paper_id, page_index, quotes, note=""):
+        """Point at the source from the CLI or another host: the chat gets a short pointer with the marks."""
+        action, result = self.focus_action(paper_id, page_index, quotes, note)
+        conversation = self.conversation(self.binding(paper_id)["conversation_id"])
+        message_id = uid()
+        action["id"] = "focus:" + message_id
+        self.save_message({
+            "id": message_id, "conversation_id": conversation["id"], "role": "assistant",
+            "content": f"请看 PDF 第 {page_index + 1} 页标出的 {len(action['marks'])} 处原文。" if action["marks"] else f"请看 PDF 第 {page_index + 1} 页。",
+            "created_at": now(), "status": "completed", "intent": "detour", "actions": [action], "error": "",
+        })
+        return {"id": action["id"], "page_index": page_index, "marked": len(action["marks"]), "has_text": result["has_text"]}
 
     def record_page(self, state, result):
         if result["source_version"] != state.get("source_version"):
