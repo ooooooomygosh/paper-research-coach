@@ -24,7 +24,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/mainline-dark.webp">
-  <img src="docs/images/mainline.webp" alt="主线任务：左侧 PDF 已翻到证据页，要看的句子标着编号 1；右侧回复里嵌着一张对比表，输入框上方的任务卡写着看哪里、你的任务、怎样算完成，并有可一键作答的选项。">
+  <img src="docs/images/mainline.webp" alt="主线任务卡：左侧 PDF 已翻到证据页，要看的句子标着编号 1；右侧的回复是一张“主线 · 第 5/8 章 证据核查”任务卡，上面是标出的原文，中间嵌着一张对比表，输入框上方一行写着当前任务。">
 </picture>
 
 <p align="center"><sub>真实界面，跟随系统深浅色 · 合成论文与明确标注的预设回复，非实时模型输出；截图时未连接模型，所以按钮是灰的 · <a href="docs/SHOWCASE.md">如何复现</a></sub></p>
@@ -39,12 +39,66 @@
   <img src="docs/images/loop.svg" alt="阅读循环：1 看原文（PDF 翻到那一页，句子标上编号）→ 2 做一件事（猜一猜或答一句）→ 3 对照证据（教练核对，需要时给小图）→ 4 留下收获（一句你自己的话），然后下一件事马上出现。">
 </picture>
 
-教练带你走完八步（阅读目标 → 独特贡献 → 问题设定 → 方法机制 → 证据核查 → 边界与判断 → 研究启发 → 回忆复习），每一步都是上面这样一个小循环。读到一半想问具体问题？旁边弹出讲解面板，点“回到主线”就接着读。
+教练带你走完八章主线（阅读目标 → 独特贡献 → 问题设定 → 方法机制 → 证据核查 → 边界与判断 → 研究启发 → 回忆复习），每一章都是上面这样一个小循环。读到一半想问具体问题？对话里直接展开一页图文讲解，这是一条支线；弄懂了点“我弄懂了”，主线停在原处。
 
 <p align="center">
   <img src="docs/images/demo.webp" width="860" alt="动图演示：任务卡出现 → PDF 自动翻到第 2 页并标出句子 ① → 回复里的小图展开 → 一键回到原来的页。">
   <br><sub>动图演示 · 合成论文与预设回复，非实时模型输出</sub>
 </p>
+
+## 🎮 像玩任务一样读论文
+
+主线是八章，每一章是一张任务卡；读的时候冒出来的问题是支线，挂在当时那一章下面。读完以后，整轮阅读变成一棵复盘树。没有经验值，也没有掌握度评分：完成一章只说明这一轮覆盖了这个判断。
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/branch-card.webp" alt="对话里的支线任务卡：标题“为什么这个比较不公平”，下面是结论卡，A 块是预算对比的流程图，还有对比表。"></td>
+<td width="50%"><img src="docs/images/side-quest-done.webp" alt="讲解页底部的支线任务区：已弄懂，下面是读者用自己的话写下的收获，以及“改写收获”“还没懂，重新打开”两个按钮。"></td>
+</tr>
+<tr>
+<td align="center"><sub><b>支线：一页讲解在对话里展开</b> · 每块都能单独追问</sub></td>
+<td align="center"><sub><b>支线完成</b> · 你写一句自己的理解，原话保存</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/quest-log-main.webp" alt="任务日志：主线 4/8 章，前四章打勾并显示各自的收获，第 5 章进行中，显示当前任务；最下面是开读主线之前的一条支线。"></td>
+<td>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/journey-dark.webp">
+  <img src="docs/images/journey.webp" alt="复盘树：根是论文，下面一条主干连着八章；已完成的章节显示收获，第 5 章显示当前任务和标出的原文，未开始的章节是虚线框。">
+</picture>
+</td>
+</tr>
+<tr>
+<td align="center"><sub><b>任务日志</b> · 主线八章和每章下的支线</sub></td>
+<td align="center"><sub><b>复盘树</b> · 原文、你的回答、收获、支线一棵树看完，可下载成 HTML</sub></td>
+</tr>
+</table>
+
+| | 是什么 | 怎样算完成 |
+|---|---|---|
+| **主线任务** | 八章，一章一张任务卡：看这里（PDF 标出的句子）、你的任务（可一键作答）、完成后的收获 | 教练对照原文核对你的回答，你写下一句收获 |
+| **支线任务** | 读的时候问的一个具体问题。讲解页在对话里展开，追问会成为同一支线的下一页 | 只有你能点“我弄懂了”（写一句自己的理解）或“先放一放” |
+| **任务日志** | 八章的状态和收获，每章下面挂着它的支线 | 随时打开，点一下回到那页讲解或那页 PDF |
+| **复盘树** | 根是论文和你的核心判断；每章下是标出的原文、你的原话回答、教练回复的第一句、收获、支线、笔记 | 读完第 8 章时出现入口；也会写进论文卡的 Markdown 导出 |
+
+<p align="center"><sub>截图为合成论文与明确标注的预设内容，非实时模型输出。</sub></p>
+
+## 🎨 一问就画出来：引入 Answer me with HTML 之后
+
+讲解页借鉴了 [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html)（QingYunA，MIT 许可）：教练不写长段文字，也不手写 HTML，只写一份很短的 Markdown 草稿，工作台把它画成一页图文。
+
+| 以前 | 现在 |
+|---|---|
+| 问一个“为什么”，得到好几段文字 | 先给一句结论，下面是 A、B、C 几块：流程图、对比表、公式、提醒 |
+| 回答混在聊天记录里，读完就找不到 | 每个问题是一条支线，挂在当时那一章下，任务日志和复盘树里都找得到 |
+| 没看懂只能整段重问 | 哪块没懂就点哪块的“没看懂”，下一页只讲那一块 |
+| 讲解和原文是分开的 | 讲解标出 PDF 页码，教练同时把原文那句标成 ①② |
+| 主线回复全是文字 | 主线回复是一张任务卡，里面可以嵌一张小图 |
+| 想留档只能复制粘贴 | 讲解页和复盘树都能下载成一个离线 HTML 文件 |
+
+- **组件**：`flow` 流程图、`sequence` 时序图、`tree` 层级、`timeline` 时间线、`callout` 提醒、`ask` 选择题、`kv` 要点，加上表格（✓ ✗ ! 徽标）和公式。宽屏两栏，宽的图用 `{span=2}` 横跨两栏。
+- **为什么自然**：页面只由数据画出来，草稿里的文字不会被当成 HTML 执行；每页先说结论；写作检查会标出过长的句子、被动语态和空话，教练改写后再给你看。
+- **借鉴了什么**：草稿语法和写作检查规则改写自 Answer me with HTML；解析器（Python）和渲染（React）是本项目自己写的，没有打包它的命令行。署名与许可见 [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md)。
 
 ## 🧭 亮点
 
@@ -64,8 +118,8 @@
 </td>
 <td width="33%" valign="top">
 
-**🧩 插话讲解，一键回主线**<br>
-具体问题在旁边的面板里用图、表和短句讲清楚，还能追问。主线回复里也会嵌一张小图。
+**🎨 一问就画出来**<br>
+具体问题变成对话里的一页讲解：流程图、表格、公式分成 A、B、C 几块，哪块没懂就追问哪块。能收起、放大、单独打开、下载成 HTML。
 
 </td>
 </tr>
@@ -115,11 +169,11 @@ PDF 与笔记存在你的电脑上；只有你发出的对话会交给你配置�
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/branch.webp" alt="讲解面板：左侧是 PDF 原文，右侧的面板用流程图、表格和提醒回答一个具体问题，右上角有“回到主线”。"></td>
+<td width="50%"><img src="docs/images/branch.webp" alt="放大到侧边的讲解页：左侧是 PDF 原文，右侧用流程图、表格和提醒回答一个具体问题，右上角有“回到主线”。"></td>
 <td width="50%"><img src="docs/images/reading.webp" alt="围绕同一处原文的带读对话：用户的问题下方附着所引用的原文。"></td>
 </tr>
 <tr>
-<td align="center"><sub><b>插话讲解面板</b> · 点“回到主线”，主线停在原处</sub></td>
+<td align="center"><sub><b>讲解页放大到侧边</b> · 点“回到主线”，主线停在原处</sub></td>
 <td align="center"><sub><b>围绕原文对话</b> · 引用跟着问题一起发出</sub></td>
 </tr>
 <tr>
@@ -203,7 +257,7 @@ npx skills add ooooooomygosh/paper-research-coach
 
 </details>
 
-装了工作台的话，Skill 在 Claude Code 里可以通过 `prc` 接上同一篇论文的阅读进度：`prc find` 找页，`prc show` 让 PDF 翻过去并标出句子，`prc explain` 打开讲解面板。
+装了工作台的话，Skill 在 Claude Code 里可以通过 `prc` 接上同一篇论文的阅读进度：`prc find` 找页，`prc show` 让 PDF 翻过去并标出句子，`prc explain` 在对话里打开一页讲解（一条支线）。
 
 <details>
 <summary>卸载、手动安装、故障排查</summary>
@@ -340,4 +394,4 @@ Skill 使用宿主（Claude Code、Codex、Pi）已有的模型配置。工作�
 
 ## 📄 许可与致谢
 
-原创代码与文档采用 [MIT](LICENSE)。引用本项目请用仓库侧栏的 “Cite this repository”（[CITATION.cff](CITATION.cff)）。阅读方法的来源与第三方许可分别见[来源与致谢](docs/SOURCES.md)、[讲解面板与写作规则的署名](docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md)和[翻译组件说明](docs/THIRD_PARTY_TRANSLATION.md)。
+原创代码与文档采用 [MIT](LICENSE)。引用本项目请用仓库侧栏的 “Cite this repository”（[CITATION.cff](CITATION.cff)）。阅读方法的来源与第三方许可分别见[来源与致谢](docs/SOURCES.md)、[讲解页与写作规则的署名](docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md)和[翻译组件说明](docs/THIRD_PARTY_TRANSLATION.md)。

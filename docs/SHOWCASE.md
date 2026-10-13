@@ -6,7 +6,18 @@ The showcase is the actual built workbench, not a marketing mockup. The paper, v
 
 The committed WebPs are 1440-pixel-wide copies of the desktop captures: `reading.webp`, its dark-theme twin `reading-dark.webp` (the README picks one with `<picture>`), `welcome.webp` and `annotations.webp` from the PDF annotation check. Full-size desktop, welcome, import-dialog and narrow-viewport PNGs are available in the `reading-showcase` artifact of [Reading browser checks](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/showcase.yml), retained for 14 days. The script below recreates them after artifact expiry.
 
-The README also uses `mainline.webp` / `mainline-dark.webp` (the mainline task card after the coach turned the PDF to a marked sentence), `branch.webp` / `branch-dark.webp` (the explainer panel) and `demo.webp`, a four-frame animated WebP of the same scripted scene (task card → page turned and sentence ① marked → the figure in the reply expanded → back to the earlier page). The captions in the demo are drawn by the browser on top of the real page and say that the replies are scripted. All of them come from `scripts/capture_showcase.py`.
+The README also uses `mainline.webp` / `mainline-dark.webp` (the mainline quest card after the coach turned the PDF to a marked sentence), `branch-card.webp` (a side-quest explainer page opened in the conversation), `side-quest-done.webp` (the same side quest closed with the reader's own sentence), `quest-log-main.webp` (the quest log), `journey.webp` / `journey-dark.webp` (the journey tree), `branch.webp` / `branch-dark.webp` (an explainer page enlarged beside the paper) and `demo.webp`, a four-frame animated WebP of the same scripted scene (quest card → page turned and sentence ① marked → the figure in the reply expanded → back to the earlier page). The captions in the demo are drawn by the browser on top of the real page and say that the replies are scripted. All of them come from `scripts/capture_showcase.py`; the PNGs are converted to WebP (quality 80) for the repository.
+
+## A real paper: Attention Is All You Need
+
+`scripts/capture_transformer_demo.py` runs the same workbench on *Attention Is All You Need* (Vaswani et al., 2017, [arXiv:1706.03762](https://arxiv.org/abs/1706.03762)). It downloads arXiv v7 into a temporary folder (or takes `--pdf` with a local copy). The PDF is never committed. Before anything is drawn, every sentence the demo marks is checked against the PDF's own text; one miss stops the script. It captures a side quest (“why divide by √d_k?”, with a follow-up on one panel and the reader closing it), the chapter-5 quest card on Table 1, the quest log, the journey tree after all eight chapters, and an animated `demo-transformer.webp`.
+
+All dialogue, explainer pages and the reader's answers in this demo are scripted. Every picture carries a “预设演示 · 非实时模型回复” badge with the paper's citation. The explainer drafts are committed as test fixtures (`tests/fixtures/explainers/transformer-*.md`) and pass the writing check with no warnings. The paper's first page grants permission to reproduce its tables and figures, with attribution, in journalistic or scholarly works; screenshots also show its text, so maintainers should judge whether a given use fits.
+
+```bash
+python scripts/capture_transformer_demo.py --output showcase-transformer   # downloads arXiv v7
+python scripts/capture_transformer_demo.py --pdf attention.pdf --output showcase-transformer
+```
 
 The reading-loop diagrams (`loop.svg`, `loop-dark.svg`, `loop-en.svg`, `loop-en-dark.svg`) and the repository's social preview (`social-preview.png`, 1280×640) are drawn by `scripts/readme_art.py` from text and the mainline screenshot:
 

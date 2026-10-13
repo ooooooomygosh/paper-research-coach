@@ -24,7 +24,7 @@ The coach takes you to the sentence in the paper, gives you one small task at a 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/mainline-dark.webp">
-  <img src="docs/images/mainline.webp" alt="A mainline task: on the left the PDF has turned to the evidence page with sentence 1 marked; on the right the reply carries a small comparison table and the task card above the message box shows where to look, the task, what counts as done and one-tap answers.">
+  <img src="docs/images/mainline.webp" alt="A mainline quest card: on the left the PDF has turned to the evidence page with sentence 1 marked; on the right the reply is a card titled “mainline · chapter 5/8, evidence” with the marked quote, a small comparison table inside, and a one-line task strip above the message box.">
 </picture>
 
 <p align="center"><sub>Actual UI, following your light / dark theme · synthetic paper and a labelled scripted reply, not live-model output; no model was connected, so the buttons are grey · <a href="docs/SHOWCASE.md">Reproduce</a></sub></p>
@@ -39,12 +39,66 @@ The coach takes you to the sentence in the paper, gives you one small task at a 
   <img src="docs/images/loop-en.svg" alt="The reading loop: 1 see the source (the PDF turns to the page, sentences numbered) → 2 do one thing (predict or answer) → 3 check the evidence (the coach checks, with a small figure if it helps) → 4 keep a takeaway (one sentence, yours), and the next task appears at once.">
 </picture>
 
-The coach walks you through eight steps (reading goal → distinctive contribution → problem setting → mechanism → evidence → boundaries and judgment → research implications → recall), each one a small loop like the one above. A concrete question halfway through opens a panel beside the paper; press “回到主线” (back to the mainline) and you carry on.
+The coach walks you through eight mainline chapters (reading goal → distinctive contribution → problem setting → mechanism → evidence → boundaries and judgment → research implications → recall), each one a small loop like the one above. A concrete question halfway through opens a one-page visual explanation right in the conversation: a side quest. When you get it, press “我弄懂了” (I get it now); the mainline is where you left it.
 
 <p align="center">
   <img src="docs/images/demo.webp" width="860" alt="Animated demo: the task card appears → the PDF turns to page 2 and marks sentence ① → the small figure in the reply expands → one click returns to the earlier page.">
   <br><sub>Animated demo · synthetic paper and scripted replies, not live-model output (captions in Chinese)</sub>
 </p>
+
+## 🎮 Read a paper like a quest
+
+The mainline has eight chapters, one quest card each. The questions you ask on the way are side quests, filed under the chapter you were in. When you finish, the whole reading becomes a journey tree. There are no points and no mastery scores: finishing a chapter only means this round covered that judgment.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/branch-card.webp" alt="A side-quest card in the conversation: the title, a conclusion card, panel A with a flow chart of the two budgets, and a comparison table."></td>
+<td width="50%"><img src="docs/images/side-quest-done.webp" alt="The side-quest box under an explainer page: done, with the reader's own one-sentence takeaway and buttons to rewrite it or reopen the side quest."></td>
+</tr>
+<tr>
+<td align="center"><sub><b>A side quest</b> · one explainer page, opened in the conversation</sub></td>
+<td align="center"><sub><b>Side quest done</b> · one sentence in your words, kept as written</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/quest-log-main.webp" alt="The quest log: mainline 4/8 chapters, the first four ticked with their takeaways, chapter 5 in progress with its task, and a side quest from before the mainline started."></td>
+<td>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/journey-dark.webp">
+  <img src="docs/images/journey.webp" alt="The journey tree: the paper at the root and a trunk with eight chapters; finished chapters show their takeaways, chapter 5 shows its task and the marked passage, and chapters not started are dashed.">
+</picture>
+</td>
+</tr>
+<tr>
+<td align="center"><sub><b>Quest log</b> · eight chapters and the side quests under each</sub></td>
+<td align="center"><sub><b>Journey tree</b> · passages, your answers, takeaways and side quests in one tree; downloadable as HTML</sub></td>
+</tr>
+</table>
+
+| | What it is | When it is done |
+|---|---|---|
+| **Main quest** | Eight chapters, one card each: look here (the sentence marked in the PDF), your task (often one tap), the takeaway when it is done | The coach checks your answer against the source; you keep one sentence |
+| **Side quest** | A concrete question you asked while reading. The page opens in the conversation; follow-ups become its next pages | Only you can press “I get it now” (with one sentence of your own) or “set it aside” |
+| **Quest log** | The eight chapters with their takeaways, and the side quests under each | Open it any time; one click goes back to the page or the PDF |
+| **Journey tree** | The paper and your core judgment at the root; under each chapter the marked passages, your verbatim answers, the coach's first sentence, takeaways, side quests and notes | Offered when chapter 8 is done; also written into the Markdown paper card |
+
+<p align="center"><sub>Screenshots use a synthetic paper and clearly labelled scripted content, not live model output.</sub></p>
+
+## 🎨 Ask, and it is drawn: what Answer me with HTML changed
+
+The explainer pages build on [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html) (QingYunA, MIT). The coach writes neither long paragraphs nor HTML: it writes a short Markdown draft, and the workbench draws the page.
+
+| Before | Now |
+|---|---|
+| A “why” got several paragraphs | One conclusion first, then panels A, B, C: a flow chart, a comparison table, a formula, a callout |
+| Answers got lost in the chat | Each question is a side quest under its chapter, easy to find in the quest log and the journey tree |
+| Not following meant asking again from scratch | Press “没看懂” on the one panel; the next page explains only that panel |
+| Explanations sat apart from the paper | Pages cite PDF pages, and the coach marks the sentences ①② in the PDF |
+| Mainline replies were plain text | A mainline reply is a quest card that can carry one small figure |
+| Keeping a copy meant copy and paste | Explainer pages and the journey tree download as one offline HTML file |
+
+- **Components**: `flow`, `sequence`, `tree`, `timeline`, `callout`, `ask`, `kv`, plus tables (✓ ✗ ! badges) and formulas. Two columns on wide screens; `{span=2}` makes a wide figure span both.
+- **Why it feels natural**: pages are drawn from data only, so text in a draft never runs as HTML; each page starts with its conclusion; a writing check flags long sentences, passive voice and empty phrases, and the coach rewrites them before you see the page.
+- **What we took**: the draft syntax and the writing-check rules are adapted from Answer me with HTML; the parser (Python) and the renderer (React) are our own, and its CLI is not bundled. See [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md).
 
 ## 🧭 Highlights
 
@@ -64,8 +118,8 @@ The task card says where to look, what to do and what counts as done. Prediction
 </td>
 <td width="33%" valign="top">
 
-**🧩 Explainer panel, one click back**<br>
-Concrete questions are answered beside the paper with figures, tables and short sentences, with follow-ups. Mainline replies can carry a small figure too.
+**🎨 Ask, and it is drawn**<br>
+A concrete question becomes a page in the conversation: flow charts, tables and formulas in lettered panels A, B, C. Ask about the one panel you did not follow. Fold it, enlarge it, pop it out or download it as HTML.
 
 </td>
 </tr>
@@ -115,11 +169,11 @@ Install the Skill for coaching in your agent, or use the workbench to read and d
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/branch.webp" alt="Explainer panel: the PDF on the left and a panel answering a concrete question with a flow chart, a table and a callout; “back to the mainline” sits at the top right."></td>
+<td width="50%"><img src="docs/images/branch.webp" alt="An explainer page enlarged beside the paper: the PDF on the left, a flow chart, a table and a callout on the right; “back to the mainline” sits at the top right."></td>
 <td width="50%"><img src="docs/images/reading.webp" alt="A discussion about one passage: the quoted source travels with the reader's question."></td>
 </tr>
 <tr>
-<td align="center"><sub><b>Explainer panel</b> · “回到主线” leaves the mainline where it was</sub></td>
+<td align="center"><sub><b>Explainer page, enlarged</b> · “回到主线” leaves the mainline where it was</sub></td>
 <td align="center"><sub><b>Talk about the source</b> · the quote travels with your question</sub></td>
 </tr>
 <tr>
@@ -203,7 +257,7 @@ Keep `references` and `assets`, not just `SKILL.md`. Format compatibility is not
 
 </details>
 
-With the workbench installed, the Skill in Claude Code can attach to the same paper's reading progress through `prc`: `prc find` finds the page, `prc show` turns the PDF there and marks the sentences, and `prc explain` opens the explainer panel.
+With the workbench installed, the Skill in Claude Code can attach to the same paper's reading progress through `prc`: `prc find` finds the page, `prc show` turns the PDF there and marks the sentences, and `prc explain` opens an explainer page (a side quest) in the conversation.
 
 <details>
 <summary>Uninstall, manual install, troubleshooting</summary>
