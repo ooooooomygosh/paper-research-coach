@@ -74,12 +74,15 @@ export default function JourneyTree({
     if (!standalone) root.current?.focus();
   }, [standalone]);
 
+  // In its own window the tree is a document: page numbers and titles are plain text there.
   const page = (i: number | null | undefined, label = pageLabel(i)) =>
-    Number.isInteger(i) && label ? (
-      <button type="button" data-export="text" className="jt-page" disabled={!onPage} onClick={() => onPage?.(i as number)}>
+    !Number.isInteger(i) || !label ? null : onPage ? (
+      <button type="button" data-export="text" className="jt-page" onClick={() => onPage(i as number)}>
         {label}
       </button>
-    ) : null;
+    ) : (
+      <span className="jt-page">{label}</span>
+    );
 
   const leaves = (x: Leaves) => (
     <>
@@ -108,9 +111,13 @@ export default function JourneyTree({
           <div>
             <p className="jt-side-title">
               <span className="jt-chip">支线 · {QUEST[q.status] || q.status}</span>
-              <button type="button" data-export="text" className="jt-link" disabled={!onOpenQuest} title="打开这页讲解" onClick={() => onOpenQuest?.(q.branch_id)}>
-                {q.title}
-              </button>
+              {onOpenQuest ? (
+                <button type="button" data-export="text" className="jt-link" title="打开这页讲解" onClick={() => onOpenQuest(q.branch_id)}>
+                  {q.title}
+                </button>
+              ) : (
+                <b className="jt-link">{q.title}</b>
+              )}
               {q.pages > 1 && <span className="jt-muted">{q.pages} 页</span>}
               {page(q.page_index)}
             </p>

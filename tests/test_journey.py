@@ -73,3 +73,15 @@ def test_journey_of_an_unread_paper_is_empty_and_needs_no_coach(store, paper):
 def test_first_sentence_skips_the_preset_label_and_markup():
     assert journey.first_sentence("> **预设带读示例**\n\n**对**，[这里](x)说得清楚。后面还有。") == "对，这里说得清楚。"
     assert journey.first_sentence("Yes. The budget matters.") == "Yes."
+
+
+def test_a_task_belongs_only_to_answers_in_its_own_chapter(store, paper):
+    start(store, paper)
+    coach = Coach(store, FakeRPC)
+    cid = turn(coach, paper)["conversation"]["id"]
+    say(coach, cid, "assistant", "猜一猜？", step="orient", intent="follow", task={"question": "猜一猜？"})
+    say(coach, cid, "user", "答第一章", step="orient", intent="answer")
+    say(coach, cid, "user", "答第二章", step="insight", intent="answer")
+    trip = journey.build(store, paper["id"])
+    assert trip["chapters"][0]["exchanges"][0]["task"] == "猜一猜？"
+    assert trip["chapters"][1]["exchanges"][0]["task"] == ""

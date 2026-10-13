@@ -266,7 +266,7 @@ def demo_frame(page, caption):
     return shot
 
 
-def save_demo(frames, path, width=960):
+def save_demo(frames, path, width=960, durations=None):
     """An animated WebP small enough for a README (each frame held long enough to read)."""
     import io
 
@@ -276,7 +276,7 @@ def save_demo(frames, path, width=960):
     for data in frames:
         image = Image.open(io.BytesIO(data)).convert("RGB")
         images.append(image.resize((width, round(image.height * width / image.width)), Image.LANCZOS))
-    images[0].save(path, save_all=True, append_images=images[1:], duration=[2600, 2800, 2800, 2400], loop=0, quality=72, method=6)
+    images[0].save(path, save_all=True, append_images=images[1:], duration=durations or [2600, 2800, 2800, 2400], loop=0, quality=72, method=6)
 
 
 def mainline_scene(browser, store, coach, paper, conversation, port, token, output, errors):

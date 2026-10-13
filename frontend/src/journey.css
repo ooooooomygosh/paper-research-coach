@@ -60,10 +60,8 @@
 .jt-side.done .jt-chip { background: var(--green); color: var(--on-accent); }
 .jt-side.parked .jt-chip { background: var(--surface-3); color: var(--muted); }
 .jt-link { padding: 0; border: 0; background: none; color: var(--text); font-weight: 650; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--jt-branch) 45%, transparent); text-underline-offset: 3px; }
-.jt-link:disabled { cursor: default; text-decoration: none; }
 .jt-page { padding: 0 6px; border: 0; border-radius: 6px; background: var(--tint); color: var(--green); font-size: 11px; white-space: nowrap; cursor: pointer; }
-.jt-page:disabled { cursor: default; }
-span.jt-page, span.jt-link { cursor: default; }
+span.jt-page, span.jt-link, b.jt-link { cursor: default; text-decoration: none; }
 .jt-mine { color: var(--text); }
 .jt-reply, .jt-muted { color: var(--text-2); }
 .jt-muted { font-size: 12.5px; }

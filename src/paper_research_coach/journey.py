@@ -76,11 +76,11 @@ def build(store, paper_id: str) -> dict:
     # The conversation: answers to tasks (verbatim) with the coach's first sentence, detour questions, marks.
     messages = _rows(store, "SELECT data FROM coach_messages WHERE conversation_id=? ORDER BY position", (_conversation(store, paper_id),))
     explained = {m.get("id") for m in messages if any(a.get("kind") == "explainer" and not a.get("mainline") for a in m.get("actions") or [])}
-    task = ""
+    task = ("", "")  # (chapter, question): a task only belongs to answers in its own chapter
     for i, m in enumerate(messages):
         if m.get("role") == "assistant":
             if m.get("task"):
-                task = m["task"].get("question", "")
+                task = (m.get("step", ""), m["task"].get("question", ""))
             target = home(m.get("step"))
             for a in m.get("actions") or []:
                 if a.get("kind") != "focus" or not target or m.get("intent") not in ("follow", "answer"):
@@ -101,7 +101,7 @@ def build(store, paper_id: str) -> dict:
                 "reply_id": (reply or {}).get("id", ""), "page_index": (m.get("anchor") or {}).get("page_index")}
         target = home(m.get("step"))
         if m.get("intent") == "answer":
-            (target or other)["exchanges"].append({**item, "task": task})
+            (target or other)["exchanges"].append({**item, "task": task[1] if task[0] == m.get("step") else ""})
         elif m.get("intent") == "detour":
             (target or other)["questions"].append(item)
 
