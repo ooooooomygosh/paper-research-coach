@@ -585,9 +585,11 @@ it("keeps the mainline step, its button and the pending question in the panel wh
   const { container } = view({ toolsContainer: drawer, onOpenTools: vi.fn() });
   await screen.findByText("第 3/8 步 · 问题设定");
   const panel = container.querySelector(".coach-panel")!;
+  const strip = screen.getByRole("button", { name: /第 3 章 · 问题设定/ });
+  expect(panel.contains(strip)).toBe(true);
+  expect(strip.textContent).toContain("决策时真正可用的信息是什么？");
+  fireEvent.click(strip);
   const task = screen.getByRole("region", { name: "本轮任务" });
-  expect(panel.contains(task)).toBe(true);
-  expect(within(task).getByText("决策时真正可用的信息是什么？")).toBeTruthy();
   expect(within(task).getByRole("button", { name: "回答" })).toBeTruthy();
   expect(drawer.querySelector(".coach-mainline")).toBeNull();
   expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
@@ -712,6 +714,7 @@ it("turns the pending question into a task with one-tap answers, a hint, and an 
   });
   const onFocus = vi.fn();
   view({ onFocus });
+  fireEvent.click(await screen.findByRole("button", { name: /第 5 章 · 证据核查/ }));
   const task = await screen.findByRole("region", { name: "本轮任务" });
   expect(within(task).getByText("先预测，再对照真实图表。")).toBeTruthy();
   // The figure is part of the reply, not a button that opens a detour panel.
@@ -733,9 +736,39 @@ it("an empty Enter continues the mainline only when nothing waits for an answer"
     return {};
   });
   view();
-  const task = await screen.findByRole("region", { name: "本轮任务" });
-  expect(within(task).getByText("核对输入输出")).toBeTruthy();
+  const strip = await screen.findByRole("button", { name: /第 3 章 · 问题设定/ });
+  expect(strip.textContent).toContain("下一步：核对输入输出");
   await screen.findByText("已连接本机 CLI");
   fireEvent.keyDown(screen.getByLabelText("发给论文教练的消息"), { key: "Enter" });
   await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ intent: "follow" })));
+});
+
+it("draws a mainline reply as a quest card: chapter, source cards, clickable marks, task and completion", async () => {
+  const steps = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"].map((id, i) => ({ id, label: ["阅读目标", "独特贡献", "问题设定", "方法机制", "证据核查", "边界与判断", "研究启发", "回忆与复习"][i] }));
+  const flow = { status: "active", current: "evidence", label: "证据核查", goal: "g", steps, completed: [], pending_question: "你预测差距还在吗？", choices: ["几乎消失", "仍然明显"] };
+  const reply = {
+    id: "m1", role: "assistant", intent: "follow", step: "evidence", status: "completed",
+    content: "预算相同，差距只剩 2。\n\n先看 ①，再回答。",
+    actions: [focus("f1", 1)],
+    task: { question: "你预测差距还在吗？", choices: ["几乎消失", "仍然明显"] },
+    completed_step: { step: "model", label: "问题设定", takeaway: "输入是历史读数。", page_index: 0 },
+  };
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, messages: [reply], reading_flow: flow };
+    if (path.startsWith("coach/send/")) return { conversation_id: "c" };
+    return {};
+  });
+  const onFocus = vi.fn();
+  view({ onFocus });
+  expect(await screen.findByText("主线 · 第 5/8 章")).toBeTruthy();
+  fireEvent.click(screen.getByTitle("在 PDF 里看这一句"));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "click");
+  onFocus.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "①" }));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "click");
+  expect(screen.getByRole("status").textContent).toContain("收获：输入是历史读数。");
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.click(within(screen.getByRole("group", { name: "快速回答" })).getByRole("button", { name: "仍然明显" }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "仍然明显", intent: "answer" })));
 });

@@ -158,3 +158,23 @@ def test_choices_and_takeaways_are_saved_with_the_mainline(store, paper, pdf):
     session = store.list("session", paper["id"])[0]
     receipt = session["reading_flow"]["completed"][0]
     assert receipt["takeaway"] == "我要判断 提升是不是来自预算。" and session["choices"] == []
+
+
+def test_replies_carry_their_chapter_task_and_completed_chapter(store, paper, pdf):
+    async def run():
+        coach = Coach(store, FakeRPC)
+        sent = await coach.send(paper["id"], Send(operation_id="go", intent="follow"))
+        await drained(coach)
+        messages = coach.messages(sent["conversation_id"])
+        assert [m.get("step") for m in messages[-2:]] == ["orient", "orient"]
+        assert messages[-1]["intent"] == "follow"
+        await coach.close()
+
+    asyncio.run(run())
+    coach = Coach(store, FakeRPC)
+    state = turn(coach, paper, "follow")
+    coach.tool_call(state, "prc_next_action", {"next_action": "a", "pending_question": "What changes?", "stage": "orient", "choices": ["A", "B"]}, "n1")
+    assert state["answer"]["task"] == {"question": "What changes?", "choices": ["A", "B"]}
+    coach.tool_call(state, "prc_read_page", {"page_index": 0}, "r1")
+    coach.tool_call(state, "prc_complete_reading_step", {"step": "orient", "evidence": "p1", "page_index": 0, "takeaway": "Mine."}, "c1")
+    assert state["answer"]["completed_step"] == {"step": "orient", "label": "阅读目标", "takeaway": "Mine.", "page_index": 0}

@@ -647,13 +647,13 @@
 .xp-card.done { border-color: color-mix(in srgb, var(--green) 45%, var(--line-strong)); }
 .xp-card-head { display: flex; align-items: stretch; background: color-mix(in srgb, #4f8cc9 7%, var(--surface)); }
 .xp-card-toggle {
-  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 9px 12px;
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px 8px; padding: 9px 12px;
   border: 0; border-radius: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer;
 }
 .xp-card-toggle > svg { margin-left: auto; color: var(--muted); }
 .xp-card-toggle b { font-size: 14px; font-weight: 650; }
 .xp-card-kind { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; background: #4f8cc9; color: #fff; font-size: 11px; font-weight: 700; }
-.xp-card-gist { flex-basis: 100%; font-size: 12.5px; color: var(--text-2); }
+.xp-card-gist { order: 1; flex-basis: 100%; font-size: 12.5px; color: var(--text-2); }
 .xp-card-status { padding: 0 8px; border-radius: 999px; background: var(--tint-strong); color: var(--green); font-size: 11px; font-weight: 700; }
 .xp-card-status.parked { background: var(--surface-3); color: var(--muted); }
 .xp-card-tools { display: flex; align-items: center; gap: 2px; padding: 0 6px; }

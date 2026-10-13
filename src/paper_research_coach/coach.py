@@ -745,6 +745,7 @@ class Coach:
             "status": "queued",
             "actions": [],
             "error": "",
+            "intent": body.intent,
         }
         result = {
             "conversation_id": cid,
@@ -770,6 +771,13 @@ class Coach:
             session = json.loads(session_row[0]) if session_row else None
             if session and body.intent in ("follow", "answer"):
                 session = reading.begin(self.store, paper, session, db)
+            if session:
+                # The chapter this exchange belongs to (for a detour: where the mainline paused),
+                # so the quest log and the review tree can place it.
+                flow = reading.snapshot(session, paper)
+                if flow["status"] == "active":
+                    message["step"] = answer["step"] = flow["current"]
+                    self.save_message(message, connection=db)
             if session and session.get("note_consent") and body.intent != "follow":
                 self.store.commit(
                     {
@@ -1073,6 +1081,9 @@ class Coach:
                 }
             )
             label = "已更新下一步"
+            if data["pending_question"].strip():
+                # The task this reply set, shown on its quest card.
+                state["answer"]["task"] = {"question": data["pending_question"][:400], "choices": data.get("choices", [])}
         elif name == "prc_complete_reading_step":
             if state.get("intent", "detour") == "detour" or state.get("flow_advanced"):
                 raise ValueError("插话保留主线；一次跟读回复最多完成一个步骤。")
@@ -1144,6 +1155,11 @@ class Coach:
         )
         if name == "prc_complete_reading_step":
             state["flow_advanced"] = True
+            done = data["reading_flow"]["completed"][-1]
+            labels = dict((k, label) for k, label, _ in reading.STEPS)
+            state["answer"]["completed_step"] = {"step": done["step"], "label": labels[done["step"]],
+                                                 "takeaway": done.get("takeaway", ""), "page_index": done["page_index"]}
+            self.save_message(state["answer"])
         action = {
             "kind": mutations[0]["kind"],
             "id": result["records"][0]["id"],

@@ -131,11 +131,19 @@ def capture(output: Path, executable: str | None = None) -> None:
                 assert page.get_by_label("更多阅读工具", exact=True).evaluate("e => e === document.activeElement")
                 # Branch explainer: a question answered beside the paper; one click returns to the mainline.
                 branch = browser.new_page(viewport={"width": 1440, "height": 1000})
+                branch.add_init_script("localStorage.setItem('prc-pane-ratio', '0.58')")  # a wider conversation for the picture
                 branch.goto(f"http://127.0.0.1:{port}/#" + urlencode({"token": token, "paper": paper["id"]}))
-                branch.get_by_role("button", name="讲解 · 为什么这个比较不公平").wait_for()
+                card = branch.locator(".xp-card-toggle").filter(has_text="为什么这个比较不公平").first
+                card.wait_for()
                 branch.wait_for_timeout(500)
-                assert not branch.get_by_role("dialog", name="讲解面板").count(), "an old branch must not pop open on load"
-                branch.get_by_role("button", name="讲解 · 为什么这个比较不公平").click()
+                assert card.get_attribute("aria-expanded") == "false", "an old explainer page must stay folded on load"
+                assert not branch.get_by_role("dialog", name="讲解面板").count()
+                card.click()
+                branch.locator(".xp-card .xp-grid").wait_for()
+                branch.locator(".xp-card").first.evaluate("e => e.scrollIntoView({block: 'start'})")
+                branch.wait_for_timeout(600)
+                branch.screenshot(animations="disabled", path=str(output / "branch-card.png"))
+                branch.get_by_role("button", name="放大到侧边").first.click()
                 panel = branch.get_by_role("dialog", name="讲解面板")
                 panel.wait_for()
                 panel.get_by_text("预设讲解示例 · 非实时模型回复").wait_for()  # the content has loaded
@@ -277,19 +285,21 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
     focus, _ = coach.focus_action(paper["id"], 1, ["Both policies receive 20 observations per episode."], "预算是否相同")
     focus["id"] = "focus:showcase-main"
     coach.save_message({"id": "showcase-main", "conversation_id": conversation, "role": "assistant", "status": "completed",
-                        "intent": "follow", "created_at": now(), "actions": [focus, coach.explainer_action(figure)],
+                        "intent": "follow", "step": "evidence", "created_at": now(), "actions": [focus, coach.explainer_action(figure)],
+                        "task": {"question": "两组预算相同后，你预测效用差距还会在吗？", "choices": ["几乎消失", "仍然明显", "说不准，要看误差"]},
                         "content": "**预设带读示例 · 非实时模型回复**\n\n现在看证据。① 说两组都观测 20 次，预算是对齐的。\n\n先别看结果：**预算相同后，你预测差距还会在吗？**"})
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    page.add_init_script("localStorage.setItem('prc-pane-ratio', '0.58')")  # a wider conversation for the picture
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(f"http://127.0.0.1:{port}/#" + urlencode({"token": token, "paper": paper["id"]}))
-    task = page.get_by_role("region", name="本轮任务")
-    task.wait_for()
+    quest = page.locator(".quest-card").first
+    quest.wait_for()
     page.get_by_role("figure", name="图解：预算相同后，差距还剩多少").wait_for()
-    assert task.get_by_role("button", name="几乎消失").is_visible()
+    assert quest.get_by_role("button", name="几乎消失").is_visible()
     page.locator(".pdf-page[data-page-index='0'] canvas").wait_for()
     page.wait_for_timeout(500)
-    frames = [demo_frame(page, "预设演示 · 任务卡写着：看哪里、做什么、怎样算完成")]
-    task.get_by_role("button", name="第 2 页 · 预算是否相同").click()
+    frames = [demo_frame(page, "预设演示 · 主线任务卡：看哪里、做什么、怎样算完成")]
+    quest.get_by_title("在 PDF 里看这一句").first.click()
     mark = page.locator(".coach-mark").first
     mark.wait_for()
     page.wait_for_timeout(700)

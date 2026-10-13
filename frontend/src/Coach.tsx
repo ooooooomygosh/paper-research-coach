@@ -11,10 +11,12 @@ import {
   Maximize2,
   Minimize2,
   ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import BranchPanel from "./explainer/BranchPanel";
 import MainlineFigure from "./explainer/MainlineFigure";
 import ExplainerCard from "./explainer/ExplainerCard";
+import QuestCard, { linkMarks, marksOf } from "./QuestCard";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
@@ -52,6 +54,11 @@ type Message = {
   connection_notice?: string;
   intent?: string;
   help_mode?: HelpMode;
+  /** The mainline chapter this exchange belongs to (for a detour: where the mainline paused). */
+  step?: string;
+  /** The task a mainline reply set, and the chapter it completed. */
+  task?: { question: string; choices?: string[] };
+  completed_step?: { step: string; label: string; takeaway: string; page_index: number };
   context_scope?: {
     notes_included: number;
     notes_total: number;
@@ -134,6 +141,8 @@ export default function CoachPanel({
   const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
   // Explainer pages live in the conversation as cards: which ones are open.
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  // The task above the message box is one line; it opens into the full task card.
+  const [taskOpen, setTaskOpen] = useState(false);
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
   const latestFocus = useRef(onFocus);
@@ -476,6 +485,45 @@ export default function CoachPanel({
       setError(String(e));
     }
   };
+  // A mainline reply is drawn as a quest card; its chapter comes from the step saved with it.
+  const questOf = (m: Message) => {
+    if (m.role !== "assistant" || !m.step || (m.intent !== "follow" && m.intent !== "answer")) return null;
+    const steps = flow?.steps || [];
+    const i = steps.findIndex((x: any) => x.id === m.step);
+    return i < 0 ? null : { chapter: i + 1, total: steps.length, label: steps[i].label as string };
+  };
+  // Only the reply that set the task still waiting for an answer offers the task's buttons.
+  const currentTaskMessage = (() => {
+    if (!flowStarted || !flow?.pending_question) return "";
+    for (let i = snapshot.messages.length - 1; i >= 0; i--) {
+      const m = snapshot.messages[i];
+      if (m.task) return m.task.question === flow.pending_question ? m.id : "";
+    }
+    return "";
+  })();
+  const coachMarkdown = (m: Message) => {
+    const marks = marksOf(m.actions || []);
+    return (
+      <Markdown
+        remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          a: ({ href, children, ...props }) => {
+            if (href?.startsWith("#mark-")) {
+              const mark = marks.find((x) => x.n === Number(href.slice(6)));
+              return mark ? (
+                <button type="button" className="mark-ref" title={mark.quote} onClick={() => onFocus?.(mark.action, "click")}>{children}</button>
+              ) : <>{children}</>;
+            }
+            return <a {...props} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+          },
+        }}
+      >
+        {marks.length ? linkMarks(prose(m.content)) : prose(m.content)}
+      </Markdown>
+    );
+  };
+  const questLogButton = null as React.ReactNode;
   const sessionTools = (
     <>
       <div className="coach-session-row">
@@ -895,7 +943,10 @@ export default function CoachPanel({
             </ol>
           </div>
         )}
-        {snapshot.messages.map((m, index) => (
+        {snapshot.messages.map((m, index) => m.role === "user" && m.intent === "follow" && !m.error ? (
+          // "Continue" is a click, not something the reader wrote: a small marker, not a bubble.
+          <p key={m.id} className="coach-follow-pill">▶ 继续主线</p>
+        ) : (
           <article key={m.id} className={"coach-message " + m.role}>
             <div className="coach-message-label">
               {m.role === "user"
@@ -945,29 +996,68 @@ export default function CoachPanel({
                   )}
                 </button>
               )}
-            <div className="coach-prose">
+            {questOf(m) ? (
+              <QuestCard
+                chapter={questOf(m)!.chapter}
+                total={questOf(m)!.total}
+                label={questOf(m)!.label}
+                actions={m.actions || []}
+                onMark={(a) => onFocus?.(a, "click")}
+                completed={m.completed_step || null}
+                body={
+                  <div className="coach-prose">
+                    {coachMarkdown(m)}
+                    {!m.content && m.status === "streaming" && (
+                      <span className="coach-thinking">正在核对论文与阅读记录…</span>
+                    )}
+                  </div>
+                }
+                figures={(m.actions || [])
+                  .filter((a) => a.kind === "explainer" && a.mainline)
+                  .map((a) => (
+                    <MainlineFigure key={a.id} id={a.id} rev={a.rev} disabled={unavailable || !!snapshot.read_only}
+                      onAnswer={ask} onOpen={() => openWindow(a.branch_id, a.id)} />
+                  ))}
+                task={m.task && (
+                  <div className="quest-task">
+                    <b>你的任务</b>
+                    <p>{m.task.question}</p>
+                    {m.id === currentTaskMessage ? (
+                      <>
+                        {(m.task.choices || []).length > 1 && (
+                          <div className="task-choices" role="group" aria-label="快速回答">
+                            {(m.task.choices || []).map((c: string) => (
+                              <button key={c} type="button" disabled={unavailable} onClick={() => ask(c)}>{c}</button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="task-actions">
+                          <button type="button" className="primary" disabled={unavailable} onClick={() => composer.current?.focus()}>回答</button>
+                          <button type="button" disabled={unavailable} onClick={() => ask("我先要一个提示：只给一条线索，先别告诉我答案。")}>给我提示</button>
+                          <button type="button" disabled={unavailable} onClick={() => ask("请直接讲给我听，讲完让我用一句话复述。")}>直接讲给我</button>
+                        </div>
+                      </>
+                    ) : (
+                      <small className="muted">已作答</small>
+                    )}
+                  </div>
+                )}
+              />
+            ) : (
+              <div className="coach-prose">
               {m.connection_notice && (
                 <p className="small muted">{m.connection_notice}</p>
               )}
               {m.role === "user" ? (
                 <p className="verbatim">{m.content}</p>
               ) : (
-                <Markdown
-                  remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    a: (props) => (
-                      <a {...props} target="_blank" rel="noopener noreferrer" />
-                    ),
-                  }}
-                >
-                  {prose(m.content)}
-                </Markdown>
+                coachMarkdown(m)
               )}
               {!m.content && m.status === "streaming" && (
                 <span className="coach-thinking">正在核对论文与阅读记录…</span>
               )}
             </div>
+            )}
             {m.error && <p className="coach-error">{m.error}</p>}
             {(m.actions || [])
               .filter((a) => a.kind === "explainer" && !a.mainline)
@@ -987,7 +1077,7 @@ export default function CoachPanel({
                   />
                 </div>
               ))}
-            {(m.actions || [])
+            {!questOf(m) && (m.actions || [])
               .filter((a) => a.kind === "explainer" && a.mainline)
               .map((a) => (
                 <MainlineFigure
@@ -1160,6 +1250,17 @@ export default function CoachPanel({
           </blockquote>
         )}
         {flowStarted && !anchor && !snapshot.read_only && (
+          <div className={"task-strip" + (taskOpen ? " open" : "")}>
+            <button type="button" className="task-strip-line" aria-expanded={taskOpen} onClick={() => setTaskOpen(!taskOpen)}
+              title={taskOpen ? "收起任务" : "展开任务"}>
+              <span className="task-strip-step">第 {stepNumber.split("/")[0]} 章 · {flow?.label}</span>
+              <span className="task-strip-text">{flow?.pending_question ? "任务：" + flow.pending_question : "下一步：" + (flow?.return_action || flow?.goal || "")}</span>
+              {taskOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
+            {questLogButton}
+          </div>
+        )}
+        {flowStarted && !anchor && !snapshot.read_only && taskOpen && (
           <TaskCard
             flow={flow}
             stepNumber={stepNumber}
