@@ -149,9 +149,10 @@ def parser():
     meta.add_argument("action", choices=["status", "resolve", "openalex-key"])
     meta.add_argument("--paper")
     meta.add_argument("--refresh", action="store_true")
-    i = sub.add_parser("install-skill")
-    i.add_argument("--host", choices=["codex", "claude", "pi"], required=True)
+    i = sub.add_parser("install-skill", help="把 Skill 复制到 Codex / Claude Code / pi；工作台每次启动会让这些副本跟上新版本")
+    i.add_argument("--host", choices=["codex", "claude", "pi"])
     i.add_argument("--force", action="store_true")
+    i.add_argument("--sync", action="store_true", help="只更新已经装过的副本，让它们与当前版本一致")
     return p
 
 
@@ -160,7 +161,14 @@ def main():
     if not args.command:
         args = parser().parse_args([*sys.argv[1:], "open"])
     try:
+        if args.command == "install-skill" and args.sync:
+            from .updater import sync_skills
+
+            output({"updated": sync_skills()})
+            return
         if args.command == "install-skill":
+            if not args.host:
+                raise ValueError("用 --host codex、--host claude 或 --host pi 指定要装到哪里。")
             base = {
                 "codex": ".agents/skills",
                 "claude": ".claude/skills",
@@ -177,6 +185,9 @@ def main():
             if dest.exists() and not args.force:
                 raise ValueError("Skill 已存在；检查差异后使用 --force 更新。")
             shutil.copytree(src, dest, dirs_exist_ok=args.force)
+            from .updater import STAMP
+
+            (dest / STAMP).write_text(__version__ + "\n", encoding="utf-8")
             output(
                 {"installed": str(dest), "next": "在新会话中启用 paper-research-coach"}
             )

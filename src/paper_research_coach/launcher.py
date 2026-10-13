@@ -51,6 +51,8 @@ def open_workbench(store, port=8765, paper_id="", conversation_id="", new=False)
         ) as client,
     ):
 
+        seen = {}
+
         def running():
             try:
                 response = client.get("/api/state")
@@ -70,9 +72,35 @@ def open_workbench(store, port=8765, paper_id="", conversation_id="", new=False)
                 raise ValueError(
                     "这个端口正在使用另一处服务，请检查工作台的数据目录与端口。"
                 )
+            seen["version"] = state.get("version", "")
             return True
 
-        if not running():
+        def restart_older():
+            """A workbench started before an update still runs the old code: switch it to this version."""
+            from . import __version__
+            from .updater import is_newer
+
+            if not seen.get("version") or not is_newer(__version__, seen["version"]):
+                return
+            try:
+                restarting = client.post("/api/system/restart").json().get("restarting")
+            except (httpx.HTTPError, ValueError):
+                return
+            if not restarting:
+                return
+            deadline = time.monotonic() + 25
+            while time.monotonic() < deadline:
+                time.sleep(0.4)
+                try:
+                    if running() and seen.get("version") == __version__:
+                        return
+                except ValueError:
+                    pass
+            raise ValueError("新版本的工作台没有按时启动。请稍后重新运行 prc。")
+
+        if running():
+            restart_older()
+        else:
             spawn_service(store, port)
             deadline = time.monotonic() + 10
             while not running():

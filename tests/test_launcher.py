@@ -86,3 +86,29 @@ def test_other_service_cannot_receive_a_private_launch_link(
     )
     with pytest.raises(ValueError, match="另一处服务"):
         launcher.open_workbench(store)
+
+
+def test_an_older_running_workbench_is_switched_to_the_installed_version(monkeypatch, store):
+    from paper_research_coach import __version__
+    calls = []
+    version = {"now": "0.0.1"}
+
+    def handler(request):
+        calls.append(request.url.path)
+        if request.url.path == "/api/system/restart":
+            version["now"] = __version__  # the relaunched service answers next
+            return httpx.Response(200, json={"restarting": True})
+        return httpx.Response(200, json={"papers": [], "version": version["now"]})
+
+    transport(monkeypatch, handler)
+    monkeypatch.setattr(launcher.subprocess, "Popen", lambda *a, **k: pytest.fail("must reuse the port"))
+    monkeypatch.setattr(launcher.webbrowser, "open", lambda url: True)
+    monkeypatch.setattr(launcher.time, "sleep", lambda s: None)
+    launcher.open_workbench(store)
+    assert calls.count("/api/system/restart") == 1
+    # The same version, or a newer service than this command: no restart.
+    calls.clear()
+    launcher.open_workbench(store)
+    version["now"] = "999.0.0"
+    launcher.open_workbench(store)
+    assert "/api/system/restart" not in calls

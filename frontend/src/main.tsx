@@ -35,7 +35,7 @@ import "./style.css";
 import "./quiet-reading.css";
 import "./workbench-polish.css";
 import BranchPanel from "./explainer/BranchPanel";
-import { UpdateRow, useUpdate } from "./UpdateNotice";
+import { UpdateRow, UpdateSettings, useUpdate } from "./UpdateNotice";
 import {
   TranslationTools,
   TranslationPopover,
@@ -748,6 +748,7 @@ export function App() {
         )}
         {tab === "settings" ? (
           <Settings
+            updates={<UpdateSettings update={update} />}
             state={state}
             refresh={() => void refresh()}
             report={report}

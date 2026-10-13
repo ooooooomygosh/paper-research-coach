@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { UpdateRow, useUpdate } from "../src/UpdateNotice";
+import { UpdateRow, UpdateSettings, useUpdate } from "../src/UpdateNotice";
 import { api } from "../src/api";
 
 vi.mock("../src/api", async (original) => ({ ...(await original<any>()), api: vi.fn() }));
@@ -93,4 +93,23 @@ it("the banner can be put off for this version, and stays off after a reload", a
   second.unmount();
   render(<Probe />);
   expect(await screen.findByText("2.0.0rc11")).toBeTruthy();
+});
+
+it("after a background install offers only a short reload, and the switch turns installs off", async () => {
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) => {
+    if (path === "update") return { ...newer, auto: true, job: { state: "ready", message: "已装好", version: "2.0.0rc11" } };
+    if (path === "update/settings") return { auto: body.auto };
+    return {};
+  });
+  function Settings() {
+    const update = useUpdate(true);
+    return <UpdateSettings update={update} />;
+  }
+  render(<Settings />);
+  expect(await screen.findByRole("button", { name: "重新载入（约 5 秒）" })).toBeTruthy();
+  const box = screen.getByRole("checkbox", { name: /自动安装新版本/ }) as HTMLInputElement;
+  expect(box.checked).toBe(true);
+  fireEvent.click(box);
+  await waitFor(() => expect(api).toHaveBeenCalledWith("update/settings", { auto: false }));
+  await waitFor(() => expect((screen.getByRole("checkbox", { name: /自动安装新版本/ }) as HTMLInputElement).checked).toBe(false));
 });

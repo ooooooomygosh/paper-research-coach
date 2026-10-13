@@ -7,6 +7,7 @@ import os
 import secrets
 import subprocess
 import threading
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
@@ -85,11 +86,29 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                         )
                 await asyncio.sleep(vault.state()["poll_seconds"])
 
+        async def update_loop():
+            # Copies of the Skill follow the version that is running now.
+            try:
+                synced = await asyncio.to_thread(updater.sync_skills)
+                if synced:
+                    log.info("Skill copies refreshed for: %s", ", ".join(synced))
+            except Exception:
+                log.exception("Skill copies were not refreshed")
+            await asyncio.sleep(float(os.environ.get("PRC_AUTO_UPDATE_DELAY", "60")))
+            while True:
+                try:
+                    await asyncio.to_thread(auto_update_round)
+                except Exception:
+                    log.exception("Background update round failed")
+                await asyncio.sleep(float(os.environ.get("PRC_AUTO_UPDATE_TICK", "60")))
+
         folder_task = asyncio.create_task(folder_loop())
         task = asyncio.create_task(loop())
+        update_task = asyncio.create_task(update_loop())
         yield
         task.cancel()
         folder_task.cancel()
+        update_task.cancel()
         await coach.close()
         await translation.close()
         try:
@@ -111,6 +130,10 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     app.state.server = None  # the uvicorn.Server, set by `prc serve`; lets the app restart itself
     app.state.port = 8765
     app.state.update_job = {"state": "idle", "message": ""}
+    # Open browser pages (event streams) and when the last one closed: a restart waits for nobody to read.
+    app.state.viewers = 0
+    app.state.idle_since = time.monotonic()
+    app.state.next_update_try = 0.0
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -428,14 +451,63 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         server.should_exit = True
         return True
 
+    def left():
+        app.state.viewers = max(0, app.state.viewers - 1)
+        if not app.state.viewers:
+            app.state.idle_since = time.monotonic()
+
+    def auto_update_round():
+        """Install a verified new version in the background; restart only while nobody is reading."""
+        job = app.state.update_job
+        if job["state"] == "ready":
+            idle = not app.state.viewers and not coach.active and time.monotonic() - app.state.idle_since >= float(os.environ.get("PRC_IDLE_RESTART", "120"))
+            if idle and app.state.server is not None:
+                log.info("Restarting idle workbench into %s", job.get("version", ""))
+                job.update(state="restarting", message="正在切换到新版本…")
+                restart_self()
+            return
+        if job["state"] != "idle" or not updater.auto_enabled(store) or time.time() < app.state.next_update_try:
+            return
+        app.state.next_update_try = time.time() + 6 * 3600
+        if not updater.check(store).get("available"):
+            return
+        job.update(state="running", message="正在后台下载并校验新版本…")
+        try:
+            result = updater.apply(store)
+        except (updater.UpdateError, OSError, subprocess.SubprocessError) as exc:
+            log.warning("Background update not installed: %s", exc)
+            job.update(state="idle", message="")
+            return
+        if not result.get("updated"):
+            job.update(state="idle", message="")
+            return
+        job.update(state="ready", version=result["to"],
+                   message=f"新版本 {result['to']} 已装好。重新载入约 5 秒，阅读位置会保留。")
+
+    app.state.auto_update_round = auto_update_round
+
     @app.get("/api/update")
     def update_status():
-        return {**updater.check(store), "job": dict(app.state.update_job)}
+        return {**updater.check(store), "auto": updater.auto_enabled(store), "job": dict(app.state.update_job)}
+
+    @app.post("/api/update/settings")
+    async def update_settings(request: Request):
+        data = await request.json()
+        store.set_setting("auto-update", bool(data.get("auto", True)))
+        return {"auto": updater.auto_enabled(store)}
 
     @app.post("/api/update/apply")
     def update_apply():
         job = app.state.update_job
         if job["state"] in ("running", "restarting"):
+            return dict(job)
+        if job["state"] == "ready":
+            # Already installed in the background: only the restart is left.
+            if app.state.server is None:
+                job.update(state="done", message="已装好。请重新运行 prc 打开新版本。")
+            else:
+                job.update(state="restarting", message="正在切换到新版本…")
+                threading.Timer(0.3, restart_self).start()
             return dict(job)
         if not updater.check(store).get("available"):
             raise ValueError("已经是最新版本。")
@@ -493,6 +565,14 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         coach.snapshot(paper_id, conversation_id)
 
         async def stream():
+            app.state.viewers += 1
+            try:
+                async for chunk in snapshots():
+                    yield chunk
+            finally:
+                left()
+
+        async def snapshots():
             previous = ""
             while not await request.is_disconnected():
                 # SQLite work runs off the event loop so other requests stay responsive.
@@ -532,7 +612,14 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             pass
 
         async def stream():
-            cursor = since
+            app.state.viewers += 1
+            try:
+                async for chunk in rows_since(since):
+                    yield chunk
+            finally:
+                left()
+
+        async def rows_since(cursor):
             while not await request.is_disconnected():
                 rows = await asyncio.to_thread(store.events, cursor)
                 if rows:
