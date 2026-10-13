@@ -34,6 +34,7 @@ import { Lineage, Ideas, Reviews, Settings, Exports } from "./Panels";
 import "./style.css";
 import "./quiet-reading.css";
 import "./workbench-polish.css";
+import JourneyTree from "./JourneyTree";
 import BranchPanel from "./explainer/BranchPanel";
 import { UpdateRow, UpdateSettings, useUpdate } from "./UpdateNotice";
 import {
@@ -1362,6 +1363,8 @@ function Root() {
   const hash = new URLSearchParams(location.hash.slice(1));
   const branch = hash.get("branch");
   const paper = hash.get("paper");
+  const journey = hash.get("journey");
+  if (journey) return <JourneyTree standalone paperId={journey} />;
   return branch && paper ? <BranchWindow paperId={paper} branchId={branch} pageId={hash.get("page") || ""} /> : <App />;
 }
 createRoot(document.getElementById("root")!).render(<Root />);

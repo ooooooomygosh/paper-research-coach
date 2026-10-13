@@ -453,3 +453,4 @@
   .quest-log-branch-icon { color: #7fb2e5; }
   .quest-controls { border-color: color-mix(in srgb, #7fb2e5 40%, var(--line)); background: color-mix(in srgb, #7fb2e5 7%, var(--surface)); }
 }
+.quest-finale { display: inline-flex; align-items: center; gap: 6px; margin: 4px 12px 12px; padding: 6px 14px; }

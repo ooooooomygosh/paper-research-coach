@@ -13,12 +13,14 @@ import {
   ChevronDown,
   ChevronUp,
   ScrollText,
+  Network,
 } from "lucide-react";
 import BranchPanel from "./explainer/BranchPanel";
 import MainlineFigure from "./explainer/MainlineFigure";
 import ExplainerCard from "./explainer/ExplainerCard";
 import QuestCard, { linkMarks, marksOf } from "./QuestCard";
 import QuestLog, { sideQuestsOf, type SideQuest } from "./QuestLog";
+import JourneyTree from "./JourneyTree";
 import QuestControls from "./explainer/QuestControls";
 import type { ExplainerSummary, Quest } from "./explainer/types";
 import Markdown from "react-markdown";
@@ -150,6 +152,7 @@ export default function CoachPanel({
   // Every explainer page of this paper (summaries): side-quest state and the quest log.
   const [explainerList, setExplainerList] = useState<ExplainerSummary[]>([]);
   const [logOpen, setLogOpen] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
   const latestFocus = useRef(onFocus);
@@ -1056,6 +1059,11 @@ export default function CoachPanel({
                 actions={m.actions || []}
                 onMark={(a) => onFocus?.(a, "click")}
                 completed={m.completed_step || null}
+                finale={m.completed_step?.step === "recall" ? (
+                  <button type="button" className="primary quest-finale" onClick={() => setJourneyOpen(true)}>
+                    <Network size={15} />查看这篇论文的复盘树
+                  </button>
+                ) : null}
                 body={
                   <div className="coach-prose">
                     {coachMarkdown(m)}
@@ -1447,6 +1455,27 @@ export default function CoachPanel({
           onClose={() => setLogOpen(false)}
           onOpenQuest={openQuest}
           onPage={(i) => onLocate(anchorFor(paper, i))}
+          onJourney={() => {
+            setLogOpen(false);
+            setJourneyOpen(true);
+          }}
+        />
+      )}
+      {journeyOpen && (
+        <JourneyTree
+          paperId={paper.id}
+          onClose={() => setJourneyOpen(false)}
+          onPage={(i) => onLocate(anchorFor(paper, i))}
+          onOpenQuest={(branchId) => {
+            setJourneyOpen(false);
+            const q = sideQuests.find((x) => x.id === branchId);
+            if (q) openQuest(q);
+            else setBranch({ branchId, pageId: branchId });
+          }}
+          onPopout={() => {
+            window.open(`/#journey=${encodeURIComponent(paper.id)}`, "prc-journey-" + paper.id, "popup=yes,width=980,height=960");
+            setJourneyOpen(false);
+          }}
         />
       )}
       {branch && (

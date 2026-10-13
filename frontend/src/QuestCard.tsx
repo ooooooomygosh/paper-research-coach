@@ -30,6 +30,7 @@ export default function QuestCard({
   figures,
   task,
   completed,
+  finale,
 }: {
   chapter: number;
   total: number;
@@ -40,6 +41,8 @@ export default function QuestCard({
   figures?: ReactNode;
   task?: ReactNode;
   completed?: { label: string; takeaway: string } | null;
+  /** After the last chapter: the way to the journey tree. */
+  finale?: ReactNode;
 }) {
   const marks = marksOf(actions);
   return (
@@ -69,6 +72,7 @@ export default function QuestCard({
           <span><b>第 {chapter} 章「{completed.label}」完成</b>{completed.takeaway && <> · 收获：{completed.takeaway}</>}</span>
         </p>
       )}
+      {finale}
     </div>
   );
 }

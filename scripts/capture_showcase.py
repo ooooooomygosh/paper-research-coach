@@ -342,6 +342,22 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
     # Scrolling moves the page number; the "back" chip returns to where the reader was.
     page.locator(".pdf-scroll").evaluate("e => e.scrollTo(0, e.scrollHeight)")
     page.wait_for_function("() => document.querySelector('[aria-label=\"阅读页码\"]').value === '3'")
+    # The quest log and the journey tree: chapters, my takeaways, side quests.
+    page.get_by_role("button", name="任务日志").first.click()
+    log = page.get_by_role("dialog", name="任务日志")
+    log.get_by_text("收获：贡献句").wait_for()
+    page.wait_for_timeout(300)
+    page.screenshot(animations="disabled", path=str(output / "quest-log-main.png"))
+    log.get_by_role("button", name="复盘树").click()
+    tree = page.get_by_role("dialog", name="复盘树")
+    tree.get_by_text("我要判断：提升来自观测时机").wait_for()
+    page.wait_for_timeout(400)
+    page.screenshot(animations="disabled", path=str(output / "journey.png"))
+    page.emulate_media(color_scheme="dark")
+    page.wait_for_timeout(300)
+    page.screenshot(animations="disabled", path=str(output / "journey-dark.png"))
+    page.emulate_media(color_scheme="light")
+    tree.get_by_role("button", name="关闭复盘树").click()
     page.close()
 
 
