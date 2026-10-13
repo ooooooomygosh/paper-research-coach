@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc11"
+  version: "2.0.0rc12"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -30,6 +30,8 @@ Give a real location, the minimum explanation needed there, and at most one thin
 
 A useful turn sounds like: “先看图 3 的右半部分。这里比较的是……。如果优势只是来自更大的训练预算，你预计预算匹配后哪一条曲线会变？” Only name a figure you have actually accessed. If no verified location is available, say so and work from the supplied excerpt.
 
+**Point at the source instead of describing it.** In the workbench, `prc_find` searches the paper for a phrase and `prc_show` scrolls the reader's PDF to a page and marks 1 to 3 sentences with numbers. Copy each quote word for word from the page text; a quote that is not on the page is refused. Then refer to the marks by number (①②③) rather than pasting long passages. From Claude Code or Codex, the same is `prc find` and `prc show --page N --quote "..."`. Without the workbench, give the page and quote the sentence.
+
 - Begin with minimal orientation, then a **provisional contribution judgment**. Verify it against the closest prior work, the mechanism, and the evidence. “The authors claim” and “the evidence establishes” are different statements.
 - For a pivotal claim, consider a plausible alternative explanation. When helpful, ask the learner to predict a discriminating result before revealing the evidence. Do not make them guess facts you already know they lack.
 - Verify illustrative calculations and counterexamples. Extra uncertainty does not universally increase decision loss; the loss function and available actions matter. Do not add a proof or causal claim that the current evidence cannot support.
@@ -41,6 +43,10 @@ A useful turn sounds like: “先看图 3 的右半部分。这里比较的是�
 
 For non-native reading, distinguish a language barrier from a conceptual or reasoning gap. Preserve English qualifiers and key terms in translation; label explanation and added background separately. Return to the original sentence or figure. Do not require whole-paper translation, equate language fluency with research ability, or force a solved local question back through the route.
 
+## The mainline as one small task at a time
+
+Each mainline turn is a small task the learner can finish without stopping to plan: **look here** (the marked source, usually where [reading-flow.md](references/reading-flow.md) says this step looks), **do one thing** (one question or one prediction, saved as the pending question; give 2 to 4 one-tap `choices` when it is a prediction or a choice), and **what counts as done** (the step's completion check). Read at the depth the learner chose: skim, understand or reconstruct. When the learner's answer is grounded in the source, complete the step with a one-sentence `takeaway` in their words, and give the next step's first task in the same reply instead of ending on "anything else?". The takeaways add up to the paper's half-page review.
+
 ## Reading order and the ten questions
 
 Reading reconstructs the author's web of thought; it is not replaying the text line by line. When the learner has no entry point or is grinding through linearly, suggest the non-linear order in [questions.md](references/questions.md): title and abstract, conclusion, figures alone, introduction read through Kajiya's five questions (about, problem, interesting, new, neat), results and discussion, and the method details last and only if worth it. Stopping at any of these points is allowed.
@@ -51,7 +57,9 @@ Aim to move the learner up one level of reading per round: passive → active �
 
 When the learner asks a concrete question or a technical detail (a concept, mechanism, equation, figure, flow, comparison, implementation detail), answer it in a **branch explainer panel** beside the paper, not as a long chat message. Load [branch.md](references/branch.md). In the workbench, call `prc_explain` with a short Markdown draft: conclusion first, 3 to 6 small panels, diagrams and tables written as components. In Claude Code or Codex with `prc` available and the workbench running, use `prc explain --paper ID --file draft.md`. Never hand-write HTML, CSS or SVG. After the panel opens, write only one or two plain sentences in chat.
 
-A branch never advances the mainline: complete no step, change no pending question, and do not push the learner back. The panel has a one-click **回到主线** button that leaves the mainline where it was. Follow-up questions inside the panel stay in the same branch as new pages. A one-word gloss or a yes/no question gets a one- or two-sentence chat answer instead. Mainline turns (continue, answer) stay ordinary conversation. Without the workbench, give the same structure in text.
+A branch never advances the mainline: complete no step, change no pending question, and do not push the learner back. The panel has a one-click **回到主线** button that leaves the mainline where it was. Follow-up questions inside the panel stay in the same branch as new pages. A one-word gloss or a yes/no question gets a one- or two-sentence chat answer instead. Without the workbench, give the same structure in text.
+
+Mainline turns (continue, answer) never open a branch panel, but one may carry **one small figure inside the reply** (`prc_explain` with `place: chat`, 1 to 3 panels) when a mechanism, a flow or an evidence table is clearer drawn than told. When the step asks the learner to predict or recall first, wait for their answer before drawing the figure, so the picture does not give the answer away.
 
 ## Plain, human wording
 

@@ -8,7 +8,7 @@ Skill ZIP：放进现有宿主，不运行本地服务。Wheel (`.whl`)：带完
 
 The Skill ZIP is for an existing agent host. The wheel includes the built UI. Source archives require a frontend build. This repository does not promise a published PyPI package or a signed desktop installer.
 
-**版本 / Version:** 推荐用下面的一行安装；手动下载时，下载 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面最上面的版本；都是预发布版，`/latest` 链接不会指向它们。已安装过的用户升级：下载新 `.whl` 后运行 `python -m pip install --upgrade ./paper_research_coach-<版本>-py3-none-any.whl`，再重新 `prc open`；`prc --version` 显示当前版本。插件或 `npx skills add` 安装的 Skill 取自主分支。Download the top entry on Releases (all are pre-releases, so `/latest` does not point to them); upgrade with `pip install --upgrade` on the new wheel.
+**版本 / Version:** 推荐用下面的一行安装；手动下载时，下载 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面最上面的版本；都是预发布版，`/latest` 链接不会指向它们。已安装过的用户**不用手动升级**：工作台会在后台校验并安装新版本，没人阅读时自动切换（见下文“更新”）；想立刻更新就运行 `prc update`。`prc --version` 显示当前版本。插件或 `npx skills add` 安装的 Skill 取自主分支。Download the top entry on Releases (all are pre-releases, so `/latest` does not point to them). Installed copies update themselves; `prc update` updates now.
 
 ## Claude Code：两条命令安装 Skill / Install the Skill as a plugin
 
@@ -41,12 +41,14 @@ irm https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/sc
 |---|---|
 | 打开工作台 | `prc`（等于 `prc open`；服务没运行会自动启动） |
 | 桌面双击图标 | `prc shortcut`（macOS `.command`、Windows `.cmd`、Linux `.desktop`） |
-| 更新到最新版 | `prc update`（也可以在界面里点“更新并重启”） |
+| 更新到最新版 | 自动（后台校验并安装）；立刻更新：`prc update`，或界面里的“更新并重启 / 重新载入” |
 | 只检查有没有新版本 | `prc update --check` |
 | 当前版本 | `prc --version` |
 | 体验示例，不碰个人书库 | `prc-demo` |
 
-**更新是怎么工作的。** `prc update` 取最新发布版，校验 SHA-256，在当前环境里安装，刷新你用 `prc install-skill` 复制过的 Skill，并让正在运行的工作台用新版本重启（刷新浏览器页面即可）。界面里的“更新并重启”做同样的事。工作台每天最多检查一次，只向 GitHub 发布接口发一次匿名请求；`PRC_NO_UPDATE_CHECK=1` 关闭检查。Claude Code 插件安装的 Skill 由插件市场更新，不受 `prc update` 影响。
+**更新是怎么工作的。** 工作台开着时每天最多检查一次（只向 GitHub 发布接口发一次匿名请求）；有新版本就取最新发布版，校验 SHA-256，在当前环境里安装。没有打开的页面、教练也没在回复时，它自动用新版本重启；页面开着时只提示“新版本已装好”，点“重新载入”约 5 秒。下次运行 `prc` 也会把旧的工作台换成新版。工作台每次启动会让你用 `prc install-skill` 复制过的 Skill 跟上当前版本（手动：`prc install-skill --sync`）。`prc update` 立刻做同样的事。关闭自动安装：“设置 → 版本与更新”或 `PRC_NO_AUTO_UPDATE=1`；连检查也关：`PRC_NO_UPDATE_CHECK=1`。Claude Code 插件安装的 Skill 由插件市场更新。
+
+How updates work: while the workbench runs it checks at most once a day, verifies the SHA-256 and installs in the background; it restarts by itself when no page is open and no coach reply runs, otherwise it offers a 5-second reload. The next `prc` also switches an older running workbench to the new one, and Skill copies from `prc install-skill` follow at every start. Turn off with Settings or `PRC_NO_AUTO_UPDATE=1`; `PRC_NO_UPDATE_CHECK=1` stops checks too.
 
 **卸载。** `uv tool uninstall paper-research-coach`（pipx：`pipx uninstall paper-research-coach`；venv：删除 `~/.paper-research-coach` 和 `~/.local/bin/prc`）。书库在 `prc doctor` 显示的数据目录里，不会被删除。
 
@@ -113,7 +115,7 @@ prc-demo
 | 现象 / Symptom | 操作 / Action |
 |---|---|
 | `prc` 找不到 | 激活安装它的虚拟环境，或直接运行该环境下的可执行文件。Use the environment where you installed it. |
-| `prc-demo` 找不到 | rc5 没有这个入口。使用本轮源码，或安装包含它的新 wheel。Do not assume an older download has it. |
+| `prc-demo` 找不到 | 很早的版本没有这个入口。运行 `prc update`，或重新执行一行安装。Update first; very old downloads lack it. |
 | 浏览器要求连接本机 | 再运行 `prc open`，不要仅打开普通地址。每个浏览器需要自己的登录 cookie。 |
 | PDF 打开了，但 AI 没连接 | 查看教练连接状态，检查本机 Codex CLI 登录。不要把模型密钥贴进问题报告。 |
 | 源码运行提示没有前端 | 运行 `npm ci --prefix frontend` 和 `npm --prefix frontend run build`。 |

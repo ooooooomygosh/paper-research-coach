@@ -8,7 +8,7 @@ This guide describes the current source. Installed behavior depends on the downl
 
 Type `prc` (the same as `prc open`) to start or reuse the loopback service and authenticate the browser. For a double-click launcher, `prc shortcut` puts an icon on your Desktop (macOS, Windows, Linux).
 
-**Updating**: when a newer version exists the library page shows a notice and the “⋯” button in the reading toolbar gets a small dot; press 更新并重启 (update and restart), or run `prc update`. It verifies the SHA-256, installs, refreshes Skill copies made by `prc install-skill`, and restarts a running workbench on the new version. The check runs at most once a day, anonymously; `PRC_NO_UPDATE_CHECK=1` turns it off.
+**Updates are automatic**: while it runs, the workbench checks at most once a day, anonymously, verifies the SHA-256 and installs a new version in the background. It switches over when nobody is reading (no page open, no coach reply running); with a page open, the library and “⋯” say the new version is ready and 重新载入 (reload) takes about 5 seconds. `prc` also replaces an older running workbench. Skill copies made by `prc install-skill` are brought to the running version at every start. By hand: `prc update`. To turn it off: Settings → 版本与更新, or `PRC_NO_AUTO_UPDATE=1` (no automatic installs) / `PRC_NO_UPDATE_CHECK=1` (no checks either).
 
 Use `prc open` to start or reuse the loopback service and authenticate the browser. Each new browser needs its own launch authentication. Never share the token-bearing launch URL. macOS users can also use the repository’s `scripts/open-workbench.command` after installation.
 
@@ -21,8 +21,12 @@ Automatic initialization is capped at 3000 characters, and ordinary per-turn pos
 ### Mainline and detours
 
 - **Where you are**: the coach title is the current step (“step n/8 · name”) above a thin progress line; click it to open the route and evidence receipts.
-- **Advance**: the small button beside the line reads **开始跟读** (start), then **继续主线** (continue), or **回答并继续主线** while you have typed something.
-- **Answer**: a pending question shows as one “待答” line above the message box; type the answer and press Enter.
+- **Start**: **开始跟读** beside the progress line. After that, the mainline lives in the **task card** above the message box.
+- **The task card**: the step, **看这里** (look here; one click turns the PDF there), **你的任务** (your task) and **完成** (what counts as done). Predictions and choices have one-tap answers; buttons are **回答** (answer, focuses the box), **给我提示** (a hint) and **直接讲给我** (explain it); with nothing pending it shows **继续** (continue), and Enter in an empty box does the same.
+- **The coach shows you the source**: when the coach points at a page, the PDF turns there and the sentences to read are numbered ①②③ (a different colour from your own marks). A small chip offers **回到第 M 页** (back to page M) and **不要自动翻页** (stop turning pages for me; turn it back on in the tools drawer). At most one automatic jump per reply; reloading never jumps.
+- **A small figure in the mainline**: for a mechanism, a flow or evidence, a reply can carry a figure you can expand or pop out; choices inside it are sent as answers to the current question.
+- **Takeaways**: each finished step adds one sentence in your words to the route; after eight steps they form the paper card, which you can export.
+- **Answer**: with a pending question, type the answer and press Enter.
 - **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline. Concrete questions and technical details are answered in the **explainer panel** (below).
 - **Nothing to configure**: answer versus detour is inferred (a selection is a detour; a reply to a pending question without a selection is an answer) and a small line under the box says where Enter will go. Ask for a hint, a direct explanation or a challenge in your own words. Region selections attach the page image automatically, and the coach can view any page itself.
 - **Getting the most out of it**: answer each step in a sentence before reading the feedback; state the contribution and your own next step in your words; park unfamiliar terms that do not block the current judgment. See [The reading method](METHOD.en.md).
@@ -36,15 +40,17 @@ Ask a concrete question (a concept, mechanism, equation, how to read a figure, a
 - **Back to the mainline**: **回到主线** at the top right (or Esc) closes the panel and focuses the message box; the mainline stays on its step and pending question, and is never advanced while the panel is open. A small line at the top reminds you where the mainline paused.
 - **New window**: the pop-out icon opens the same page in its own browser window, for a second screen; you can follow up there too, and “回到主线” closes it.
 - **History**: each explanation leaves a “讲解 · title” button in the chat; press it to reopen. Reloading never pops an old explanation open.
-- **Not every question gets a panel**: a one-word gloss or a one-sentence yes/no stays in chat, and mainline turns (continue, answer) stay ordinary conversation.
+- **Not every question gets a panel**: a one-word gloss or a one-sentence yes/no stays in chat, and mainline turns (continue, answer) open no panel; they carry at most one small figure inside the reply.
 - **From Claude Code**: `prc explain --paper ID --file draft.md` (`--check` only validates). The workbench must be running.
 - **Wording**: every reply follows plain-writing rules (short sentences, answer first, one word one meaning). Drafts are checked and may produce warnings; the check never refuses a draft. Rules: [style.md](../skills/paper-research-coach/references/style.md); sources and license: [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](THIRD_PARTY_ANSWER_ME_WITH_HTML.md).
 
 Use secondary tools for the full route with evidence receipts, model connection, notes and evidence. Direct questions and explicit explanations do not require a complete reading route or translated PDF. Eight dimensions represent coverage, not measured mastery. Note consent and local performance-recording consent remain separate; AI explanations and Continue clicks do not demonstrate independent understanding.
 
-## PDF zoom and annotations (rc7+)
+## PDF scrolling, zoom and annotations
 
-Pinch on a trackpad or touchscreen to zoom around the gesture position (25%–400%). Ordinary scrolling stays native. A frosted toolbar provides zoom, fit width, previous/next page and direct page entry, region selection and download; it becomes horizontal below the page on narrow screens.
+All pages sit in one column; scroll to read. The page box shows the page under the reading line; typing a page, ←/→ and the previous/next buttons scroll to that page's top. Only pages near the screen are drawn, so long papers stay fast. Links inside the paper (references like [12], Figure 3, sections) jump when clicked, and “返回位置” (back) returns; external links open in a new tab. Text search highlights the matching words on the page.
+
+Pinch on a trackpad or touchscreen, or hold Ctrl and scroll, to zoom the whole document around the gesture position (25%–400%). Ordinary scrolling stays native. A frosted toolbar provides zoom, fit width, previous/next page and direct page entry, region selection and download; it becomes horizontal below the page on narrow screens.
 
 Select text or a region, then keep the mark or write a note. Chinese and bilingual annotations persist on their exact PDF layout across reloads. They are scoped to the translation job and file hash, so regenerated layouts cannot silently reuse old coordinates. Existing notes remain available.
 

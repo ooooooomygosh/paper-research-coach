@@ -17,12 +17,12 @@ MAX_QUOTE = 600
 MIN_QUOTE = 6
 MAX_RECTS = 60
 _SAME = {
-    "‘": "'", "’": "'", "‚": "'", "‛": "'", "′": "'",
-    "“": '"', "”": '"', "„": '"', "‟": '"', "″": '"',
-    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "−": "-",
+    "\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'", "\u2032": "'",  # curly single quotes, prime
+    "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u201f": '"', "\u2033": '"',  # curly double quotes
+    "\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-", "\u2212": "-",  # dashes, minus
     "\x02": "-",  # PDFium's mark for a hyphen at the end of a line
 }
-_DROP = {"\xad", "￾", "​", "‌", "‍", "﻿"}
+_DROP = {"\xad", "\ufffe", "\u200b", "\u200c", "\u200d", "\ufeff"}  # soft hyphen, PDFium line-break mark, zero-width marks
 
 
 def normalize(text: str) -> tuple[str, list[int]]:

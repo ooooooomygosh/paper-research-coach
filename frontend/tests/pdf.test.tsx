@@ -383,3 +383,17 @@ it("never draws coach marks on a translated layout", async () => {
   await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
   expect(document.querySelector(".coach-mark")).toBeNull();
 });
+
+it("keeps the reader on the same page after switching to another rendition", async () => {
+  localStorage.setItem("prc-viewport-switch:v", JSON.stringify({ zoom: 1, fit: false }));
+  localStorage.setItem("prc-viewport-switch:v:job:mono", JSON.stringify({ zoom: 1, fit: false }));
+  const props = { paper: { id: "switch", source_version: "v", revision: 1, page_count: 3 }, page: 1, setPage: vi.fn(), onAnchor: vi.fn(), focusAnchor: null };
+  const view = render(<PdfReader {...props} />);
+  const box = document.querySelector<HTMLElement>(".pdf-scroll")!;
+  await waitFor(() => expect(box.scrollTop).toBe(814));
+  view.rerender(<PdfReader {...props} derived documentKey="job:mono" fileUrl="/mono.pdf"
+    rendition={{ job_id: "job", view: "mono", document_version: "a".repeat(64) }} />);
+  box.scrollTop = 0; // a browser resets the scroll while the old document is removed
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-derived="job:mono"]')).toBeTruthy());
+  await waitFor(() => expect(box.scrollTop).toBe(814));
+});

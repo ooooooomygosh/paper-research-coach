@@ -150,7 +150,7 @@ Carr sets a high bar for notes: **later, the notes alone should be enough — no
 **A concrete question opens a panel beside the paper, and the mainline waits.** Stuck on a technical detail (say, “why can an oracle serve as an upper bound?”), two bad things tend to happen: the mainline is interrupted and never resumed, or a wall of chat text arrives and you forget it as you read. So such questions are answered in an **explainer panel**: the conclusion first, then flow charts, sequence diagrams and tables that draw the relations. You can ask follow-ups inside it; each becomes a new page. One click on **回到主线** (back to the mainline) leaves the mainline on the step and pending question where it was.
 
 - Why: cognitive load theory (Sweller) says working memory is limited, and extra material crowds out thinking while you are stuck on a detail; Mayer’s multimedia-learning work proposes segmenting and removing extraneous material. One question per page, with words and pictures together, applies those ideas directly.
-- What it is not: not every word gets a panel — a one-word gloss or a one-sentence answer stays in chat, and mainline turns stay ordinary conversation.
+- What it is not: not every word gets a panel — a one-word gloss or a one-sentence answer stays in chat; mainline turns open no panel and carry at most one small figure inside the reply.
 - Honest limit: this is design motivation; its effect on PhD students reading papers has not been tested.
 
 **Short, simple, human wording.** Every reply follows a plain-writing discipline: one idea per sentence, the answer first, active voice, one word for one meaning, common words, concrete numbers, and a one-sentence explanation of each term at first use. It also sounds like a colleague at your side: “you”, a small example before a definition, “the paper does not say” when it does not, and never dropping qualifiers such as *may*, *under* or *on average*.
@@ -159,6 +159,19 @@ Carr sets a high bar for notes: **later, the notes alone should be enough — no
 - Why it helps with papers: reading in a second language already spends attention on the language; a convoluted answer takes more of it. Mayer’s personalization principle also suggests conversational wording supports learning better than formal wording.
 - Explainer drafts are checked automatically (sentence length, passive voice, discouraged words and more); the check only warns. Chat text is not checked but follows the same rules.
 - Honest limits: this is not an implementation or certification of ASD-STE100, and its effect on paper reading has not been tested. Simpler sentences are not simpler conclusions; a requested full derivation is still written in full.
+
+### How the method becomes actions in the workbench
+
+| Where it comes from | What the workbench does |
+|---|---|
+| Keshav's three passes; Carr's and Wang Shuyi's non-linear order (abstract → conclusion → figures → introduction → results → method last) | Each step has a "usually look here". The coach finds the source and **turns your PDF to that page, numbering the sentences to read**; you do not hunt for them. Each sentence must be on that page word for word, so it cannot be made up. |
+| Predict before looking (principle 3); the generation effect (Slamecka & Graf); retrieval practice (Roediger & Karpicke) | The task card asks you to **guess or answer first**, with one-tap answers for predictions; where a step asks you to predict or recall, the figure waits until you have answered, so it does not give the answer away. |
+| Cognitive load (Sweller); multimedia learning (Mayer) | A mainline reply can carry **one small figure** (a flow, an evidence table) next to the marked sentences; concrete questions go to the panel beside the paper, not into the mainline. |
+| One move per turn, help that fades by ability (Wood/Bruner/Ross, Kalyuga) | A **task card** above the message box: where to look, one thing to do, what counts as done. "Hint" and "explain it to me" are one-tap requests, not settings; a turn with help does not count as independent. |
+| Half-page review and the three-sentence judgment (Shum/Hua) | Each finished step keeps **one takeaway in your words**; the eight takeaways are the paper's review and can be exported. |
+| Three levels: skim, read, study | The depth you chose sets how far each step goes: skim takes one conclusion per step and can stop any time; study asks for derivations. |
+
+When a step is done, the next step's first small task arrives in the same reply and the PDF is already at the right place, so you do not stop to plan what comes next. This is design motivation; its effect on learning has not been tested.
 
 ## 5. What it distils into
 

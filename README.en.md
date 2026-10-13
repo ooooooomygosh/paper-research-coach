@@ -62,34 +62,54 @@ Each paper should push you up one level: from **passive** reading (what it says)
 <tr>
 <td width="33%" valign="top">
 
-**💬 Talk about the source**<br>
-Select a sentence and choose “discuss”; the quote travels with your question and stays in the conversation. Enter sends, Shift + Enter breaks a line.
+**🎯 Shows you the source**<br>
+Wherever the coach is, the PDF turns to that page and numbers the sentences to read ①②③. Each sentence must be on that page word for word, so it cannot be made up; one click takes you back.
 
 </td>
 <td width="33%" valign="top">
 
-**🖍️ Marks are not opinions**<br>
-A highlight is the paper's words, a note is yours. Kept marks are never discussed as your view; add a thought at the same place at any time.
+**✅ One small task at a time**<br>
+A task card above the message box says where to look, what to do and what counts as done. Predictions are one tap; when a step is done the next task appears at once, so you keep reading.
 
 </td>
 <td width="33%" valign="top">
 
 **🧭 Explainer panel, one click back to the mainline**<br>
-Ask a concrete question and a panel opens beside the paper: figures, tables and short sentences, with follow-ups. Press “回到主线” (back to the mainline) and the mainline is exactly where it was.
+Ask a concrete question and a panel opens beside the paper: figures, tables and short sentences, with follow-ups. Mainline replies can carry a small figure too. Press “回到主线” and the mainline is where it was.
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-**🌗 Built for focus**<br>
-The library is collapsed while reading. Immersive mode, dark theme, pinch zoom, fit-width and position recovery.
+**📜 A smooth PDF**<br>
+Scroll through all pages; pinch or Ctrl+scroll to zoom; click [12] or Figure 3 in the paper to jump there. Immersive mode, dark theme and position recovery.
+
+</td>
+<td valign="top">
+
+**🖍️ Marks are not opinions**<br>
+A highlight is the paper's words, a note is yours. Each finished step keeps one takeaway in your words; together they are your review.
 
 </td>
 <td valign="top">
 
 **🌐 Non-native friendly**<br>
 Separates language barriers from conceptual gaps; no whole-paper translation required. In optional bilingual PDFs, marks are kept per rendition.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**💬 Talk about the source**<br>
+Select a sentence and choose “discuss”; the quote travels with your question. Enter sends; Enter in an empty box continues the mainline.
+
+</td>
+<td valign="top">
+
+**🔄 Stays current by itself**<br>
+New versions are verified and installed in the background; the switch happens when nobody is reading, or with one “reload” click. Skill copies follow.
 
 </td>
 <td valign="top">
@@ -111,6 +131,13 @@ Install the Skill for coaching in your agent, or run the local workbench to read
 <td align="center"><sub>Marks kept per rendition in the side-by-side view (both columns are synthetic English, a layout test)</sub></td>
 </tr>
 </table>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/mainline-dark.webp">
+  <img src="docs/images/mainline.webp" alt="A mainline task: on the left the PDF has turned to the evidence page with sentence 1 marked; on the right the reply carries a small comparison table and the task card above the message box shows where to look, the task, what counts as done and one-tap answers.">
+</picture>
+
+<p align="center"><sub>The mainline task card: synthetic paper and a labelled scripted reply, not live model output · the PDF has turned to the page and numbered the sentence</sub></p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/branch-dark.webp">
@@ -150,11 +177,11 @@ The script finds the newest release, **verifies its SHA-256**, and installs it i
 
 | What you use | How it updates |
 |---|---|
-| **The workbench** | When a newer version exists, the library page shows a quiet notice and the “⋯” button in the reading toolbar gets a small dot (no pop-ups while you read). Press **更新并重启** (update and restart); it takes about half a minute and the page reloads itself. Or run `prc update` in a terminal. |
+| **The workbench** | **Nothing to do.** While it runs, it checks at most once a day, verifies a new version and installs it in the background. It switches over when nobody is reading; if a page is open, the library and “⋯” say the new version is ready and **重新载入** (reload) takes about 5 seconds and keeps your place. The next `prc` also switches to it. By hand: `prc update`. |
 | **The Skill inside the workbench** | It ships in the same package, so it updates with the workbench. |
-| **A Skill installed separately** | Claude Code plugin: turn on auto-update for the marketplace, or run `/plugin marketplace update paper-research-coach` (menu names depend on your Claude Code version). Installed with `npx skills add`: run the same command again. Copied by `prc install-skill`: `prc update` refreshes it too. |
+| **A Skill installed separately** | Copied by `prc install-skill`: the workbench brings it to its own version each time it starts (by hand: `prc install-skill --sync`). Claude Code plugin: turn on auto-update for the marketplace, or run `/plugin marketplace update paper-research-coach` (menu names depend on your Claude Code version). Installed with `npx skills add`: run the same command again. |
 
-At most once a day the workbench makes **one anonymous request** to GitHub's releases API to look for a newer version. It sends no papers, notes or identity. Turn it off with the environment variable `PRC_NO_UPDATE_CHECK=1`. An update installs only a package published by this project, and only after it matches the `SHA256SUMS` published in the same release.
+At most once a day the workbench makes **one anonymous request** to GitHub's releases API. It sends no papers, notes or identity. An update installs only a package published by this project, and only after it matches the `SHA256SUMS` published in the same release. To stop automatic installs, switch it off in Settings → 版本与更新 or set `PRC_NO_AUTO_UPDATE=1`; to stop checking too, `PRC_NO_UPDATE_CHECK=1`.
 
 ### Option 2: the Skill only
 
@@ -205,7 +232,7 @@ With the workbench installed, the Skill in Claude Code can attach to the same pa
 
 > **Reader:** Could this gain just come from taking more measurements?
 >
-> **Coach:** First check whether Figure 1 matches the two measurement budgets. Would that explanation still hold? A direct explanation is fine too.
+> **Coach:** (the PDF has turned to page 2 and marked ①) Look at ①: both groups observe 20 times, so the budgets match. Do you predict the gap survives? (one tap: almost gone / still clear / can't tell) A direct explanation is fine too.
 
 <sub>An illustrative exchange, not a live-model result. Solving one local question or deciding not to pursue a paper are valid outcomes too.</sub>
 
@@ -220,7 +247,7 @@ With the workbench installed, the Skill in Claude Code can attach to the same pa
 ## Privacy and limits
 
 - Papers and reading records are stored locally and the service binds to loopback. **Local storage does not mean offline AI**: using the coach or translation sends relevant content to the configured model provider.
-- The update check makes at most one anonymous request a day to GitHub's releases API, carrying no papers, notes or identity; turn it off with `PRC_NO_UPDATE_CHECK=1`. An update installs only a package published by this project that matches its SHA-256.
+- The update check makes at most one anonymous request a day to GitHub's releases API, carrying no papers, notes or identity. By default a verified package from this project is installed in the background; switch that off in Settings, with `PRC_NO_AUTO_UPDATE=1`, or stop checking with `PRC_NO_UPDATE_CHECK=1`.
 - Zotero writes require your authorization. Never share the launch link, which carries an access credential. See [Data and access boundaries](docs/SECURITY.md).
 - There is no human learning-effect claim, no full Safari / iPad / Pencil certification and no guaranteed OCR for scanned PDFs. Zotero items with several attachments currently use the first PDF. See [Testing](docs/TESTING.md) and [Review](docs/FINAL-REVIEW.md).
 

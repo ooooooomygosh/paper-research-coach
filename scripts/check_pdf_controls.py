@@ -14,14 +14,20 @@ def check_pdf_controls(browser, store, paper, port, token, output):
 
     def ready(view=None):
         page.wait_for_function("""view => {
-            const e = document.querySelector('.pdf-page');
+            const n = Number(document.querySelector('[aria-label="阅读页码"]')?.value) - 1;
+            const e = document.querySelector(`.pdf-page[data-slot="${n}"]`);
             return e && Number(e.dataset.pageIndex) >= 0 && (!view || (view === 'original' ? !e.dataset.derived : e.dataset.derived?.includes(':' + view + ':')));
         }""", arg=view)
+
+    def current_page():
+        # Pages scroll in one column; act on the page the reader is on.
+        number = int(page.get_by_label('阅读页码', exact=True).input_value())
+        return page.locator(f'.pdf-page[data-slot="{number - 1}"]')
 
     ready()
     percent = lambda: int(page.get_by_label('PDF 缩放比例', exact=True).inner_text().rstrip('%'))
     initial = percent()
-    old = page.locator('.pdf-page').bounding_box()
+    old = current_page().bounding_box()
     center = {'x': old['x'] + 300, 'y': old['y'] + 240}
     page.mouse.move(center['x'], center['y'])
     page.keyboard.down('Control')
@@ -30,7 +36,7 @@ def check_pdf_controls(browser, store, paper, port, token, output):
     page.wait_for_function("() => !document.querySelector('.pdf-gesturing')")
     ready()
     assert percent() > initial, 'Trackpad pinch must zoom the PDF'
-    current = page.locator('.pdf-page').bounding_box()
+    current = current_page().bounding_box()
     assert abs((current['x'] + 300 * current['width'] / old['width']) - center['x']) < 3
     assert abs((current['y'] + 240 * current['height'] / old['height']) - center['y']) < 3
     assert page.evaluate('visualViewport.scale') == 1, 'The application itself must not zoom'
@@ -68,8 +74,9 @@ def check_pdf_controls(browser, store, paper, port, token, output):
 
     def region():
         page.get_by_label('PDF 框选区域', exact=True).click()
-        frame = page.locator('.pdf-page').bounding_box()
-        x, y = frame['x'] + frame['width'] * .58, frame['y'] + 140
+        frame = current_page().bounding_box()
+        view = page.locator('.pdf-scroll').bounding_box()
+        x, y = frame['x'] + frame['width'] * .58, max(frame['y'], view['y']) + 140
         page.mouse.move(x, y)
         page.mouse.down()
         page.mouse.move(x + 100, y + 70, steps=5)

@@ -183,6 +183,7 @@ export default function PdfReader({
   }
 
   // --- Loading -----------------------------------------------------------------------------
+  const loadedKey = useRef("");
   useEffect(() => {
     let disposed = false;
     setDoc(null);
@@ -209,6 +210,7 @@ export default function PdfReader({
         const first = (await d.getPage(1)).getViewport({ scale: 1 });
         if (disposed) return;
         labels.current = pageLabels;
+        loadedKey.current = docKey;
         setSizes(Array.from({ length: d.numPages }, () => ({ width: first.width, height: first.height })));
         setDoc(d);
       })
@@ -231,7 +233,8 @@ export default function PdfReader({
   // First layout of a document: restore the saved spot or show the current page.
   const placed = useRef("");
   useLayoutEffect(() => {
-    if (!doc || !sizes.length || placed.current === docKey) return;
+    // Right after a view switch the previous document is still shown for one render; wait for the new one.
+    if (!doc || loadedKey.current !== docKey || !sizes.length || placed.current === docKey) return;
     // Fitting changes the zoom; place the page on the next pass, with the final geometry.
     if (fitWidth && fit(false)) return;
     placed.current = docKey;
@@ -245,7 +248,7 @@ export default function PdfReader({
 
   // A jump from outside (buttons, page box, notes, the coach, search, links).
   useLayoutEffect(() => {
-    if (!doc || placed.current !== docKey) return;
+    if (!doc || loadedKey.current !== docKey || placed.current !== docKey) return;
     if (page === reported.current) return;
     reported.current = page;
     setFromScroll(false);
@@ -328,7 +331,7 @@ export default function PdfReader({
     save();
   }, [zoom]);
   const { displayZoom, suppressSelectionUntil } = usePdfZoom({
-    scroller, frame: stack, zoom, ready: !!doc && readyPages.has(page),
+    scroller, frame: stack, zoom, ready: !!doc && readyPages.size > 0,
     documentKey: docKey,
     onCommit: changeZoom,
   });
