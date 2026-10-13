@@ -372,15 +372,16 @@ export function App() {
     setSidebarHidden(true);
     setTaskEditor(null);
   }
-  function movePage(n: number) {
-    setSelection(null);
+  function movePage(n: number, how?: "scroll") {
+    // Scrolling onto the next page keeps the open selection and the highlighted spot.
+    if (how !== "scroll") setSelection(null);
     if (paper)
       localStorage.setItem(
         "prc-page-" + paper.id + ":" + paper.source_version + (pdfView === "original" ? "" : ":" + translationPdfJob?.id + ":" + pdfView),
         String(n),
       );
     setPage(n);
-    setFocusAnchor(null);
+    if (how !== "scroll") setFocusAnchor(null);
     clearTimeout(pageTimer.current);
     const pid = selectedRef.current;
     if (pdfView !== "original") return;
