@@ -63,7 +63,8 @@ export type ExplainerDoc = {
   subtitle: string;
   lang: string;
   lead: Block[];
-  panels: { title: string; blocks: Block[] }[];
+  /** span 2 = full width in the grid; meta = small text in the title bar; bare = no title bar. */
+  panels: { title: string; blocks: Block[]; span?: number; meta?: string; bare?: boolean }[];
 };
 export type ReturnPoint = {
   status: string;
@@ -72,6 +73,8 @@ export type ReturnPoint = {
   pending_question: string;
   next_action: string;
 };
+/** A side quest's state, set only by the reader. The takeaway is the reader's own sentence. */
+export type Quest = { status?: "open" | "done" | "parked"; takeaway?: string; closed_at?: string };
 export type ExplainerRecord = {
   id: string;
   paper_id: string;
@@ -85,10 +88,13 @@ export type ExplainerRecord = {
   return_point: ReturnPoint;
   /** "mainline" for a figure inside a mainline reply; otherwise a branch page. */
   origin?: string;
+  /** On a branch's first page: the side quest's state. */
+  quest?: Quest;
+  message_id?: string;
   created_at: string;
   updated_at: string;
 };
 export type ExplainerSummary = Pick<
   ExplainerRecord,
-  "id" | "branch_id" | "seq" | "title" | "question" | "created_at" | "updated_at" | "return_point" | "origin"
->;
+  "id" | "branch_id" | "seq" | "title" | "question" | "created_at" | "updated_at" | "return_point" | "origin" | "quest" | "message_id"
+> & { /** The conclusion as one line of plain text. */ gist?: string };

@@ -18,7 +18,10 @@
      "text": "| Name | Ok |\n|---|---|\n| <b>bold</b> | ok |",
      "line": 7
     }
-   ]
+   ],
+   "span": 1,
+   "meta": "",
+   "bare": false
   }
  ]
 }

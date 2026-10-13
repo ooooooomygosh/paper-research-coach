@@ -131,11 +131,19 @@ def capture(output: Path, executable: str | None = None) -> None:
                 assert page.get_by_label("更多阅读工具", exact=True).evaluate("e => e === document.activeElement")
                 # Branch explainer: a question answered beside the paper; one click returns to the mainline.
                 branch = browser.new_page(viewport={"width": 1440, "height": 1000})
+                branch.add_init_script("localStorage.setItem('prc-pane-ratio', '0.58')")  # a wider conversation for the picture
                 branch.goto(f"http://127.0.0.1:{port}/#" + urlencode({"token": token, "paper": paper["id"]}))
-                branch.get_by_role("button", name="讲解 · 为什么这个比较不公平").wait_for()
+                card = branch.locator(".xp-card-toggle").filter(has_text="为什么这个比较不公平").first
+                card.wait_for()
                 branch.wait_for_timeout(500)
-                assert not branch.get_by_role("dialog", name="讲解面板").count(), "an old branch must not pop open on load"
-                branch.get_by_role("button", name="讲解 · 为什么这个比较不公平").click()
+                assert card.get_attribute("aria-expanded") == "false", "an old explainer page must stay folded on load"
+                assert not branch.get_by_role("dialog", name="讲解面板").count()
+                card.click()
+                branch.locator(".xp-card .xp-grid").wait_for()
+                branch.locator(".xp-card").first.evaluate("e => e.scrollIntoView({block: 'start'})")
+                branch.wait_for_timeout(600)
+                branch.screenshot(animations="disabled", path=str(output / "branch-card.png"))
+                branch.get_by_role("button", name="放大到侧边").first.click()
                 panel = branch.get_by_role("dialog", name="讲解面板")
                 panel.wait_for()
                 panel.get_by_text("预设讲解示例 · 非实时模型回复").wait_for()  # the content has loaded
@@ -149,6 +157,22 @@ def capture(output: Path, executable: str | None = None) -> None:
                 panel.get_by_role("button", name="回到主线").click()
                 assert not branch.get_by_role("dialog", name="讲解面板").count()
                 assert branch.get_by_label("发给论文教练的消息", exact=True).evaluate("e => e === document.activeElement")
+                # Side quest: the reader closes it in their own words; the quest log files it under its chapter.
+                quest = branch.get_by_role("group", name="支线任务").first
+                quest.get_by_role("button", name="我弄懂了").click()
+                quest.get_by_label("用一句话写下你弄懂了什么（可以不写）").fill("观测次数不同，比较就不公平；先把预算对齐再看差距。")
+                quest.get_by_role("button", name="记下，支线完成").click()
+                branch.get_by_text("支线完成：已弄懂").first.wait_for()
+                quest.scroll_into_view_if_needed()
+                branch.wait_for_timeout(300)
+                branch.screenshot(animations="disabled", path=str(output / "side-quest-done.png"))
+                branch.get_by_role("button", name="任务日志").first.click()
+                log = branch.get_by_role("dialog", name="任务日志")
+                log.get_by_text("我的收获：观测次数不同").wait_for()
+                branch.wait_for_timeout(300)
+                branch.screenshot(animations="disabled", path=str(output / "quest-log.png"))
+                branch.keyboard.press("Escape")
+                assert not log.count()
                 branch.close()
                 # Narrow viewport checks are not a claim about iPad/Pencil hardware.
                 page.set_viewport_size({"width": 390, "height": 844})
@@ -242,7 +266,7 @@ def demo_frame(page, caption):
     return shot
 
 
-def save_demo(frames, path, width=960):
+def save_demo(frames, path, width=960, durations=None):
     """An animated WebP small enough for a README (each frame held long enough to read)."""
     import io
 
@@ -252,7 +276,7 @@ def save_demo(frames, path, width=960):
     for data in frames:
         image = Image.open(io.BytesIO(data)).convert("RGB")
         images.append(image.resize((width, round(image.height * width / image.width)), Image.LANCZOS))
-    images[0].save(path, save_all=True, append_images=images[1:], duration=[2600, 2800, 2800, 2400], loop=0, quality=72, method=6)
+    images[0].save(path, save_all=True, append_images=images[1:], duration=durations or [2600, 2800, 2800, 2400], loop=0, quality=72, method=6)
 
 
 def mainline_scene(browser, store, coach, paper, conversation, port, token, output, errors):
@@ -277,19 +301,21 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
     focus, _ = coach.focus_action(paper["id"], 1, ["Both policies receive 20 observations per episode."], "预算是否相同")
     focus["id"] = "focus:showcase-main"
     coach.save_message({"id": "showcase-main", "conversation_id": conversation, "role": "assistant", "status": "completed",
-                        "intent": "follow", "created_at": now(), "actions": [focus, coach.explainer_action(figure)],
+                        "intent": "follow", "step": "evidence", "created_at": now(), "actions": [focus, coach.explainer_action(figure)],
+                        "task": {"question": "两组预算相同后，你预测效用差距还会在吗？", "choices": ["几乎消失", "仍然明显", "说不准，要看误差"]},
                         "content": "**预设带读示例 · 非实时模型回复**\n\n现在看证据。① 说两组都观测 20 次，预算是对齐的。\n\n先别看结果：**预算相同后，你预测差距还会在吗？**"})
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    page.add_init_script("localStorage.setItem('prc-pane-ratio', '0.58')")  # a wider conversation for the picture
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(f"http://127.0.0.1:{port}/#" + urlencode({"token": token, "paper": paper["id"]}))
-    task = page.get_by_role("region", name="本轮任务")
-    task.wait_for()
+    quest = page.locator(".quest-card").first
+    quest.wait_for()
     page.get_by_role("figure", name="图解：预算相同后，差距还剩多少").wait_for()
-    assert task.get_by_role("button", name="几乎消失").is_visible()
+    assert quest.get_by_role("button", name="几乎消失").is_visible()
     page.locator(".pdf-page[data-page-index='0'] canvas").wait_for()
     page.wait_for_timeout(500)
-    frames = [demo_frame(page, "预设演示 · 任务卡写着：看哪里、做什么、怎样算完成")]
-    task.get_by_role("button", name="第 2 页 · 预算是否相同").click()
+    frames = [demo_frame(page, "预设演示 · 主线任务卡：看哪里、做什么、怎样算完成")]
+    quest.get_by_title("在 PDF 里看这一句").first.click()
     mark = page.locator(".coach-mark").first
     mark.wait_for()
     page.wait_for_timeout(700)
@@ -316,6 +342,22 @@ def mainline_scene(browser, store, coach, paper, conversation, port, token, outp
     # Scrolling moves the page number; the "back" chip returns to where the reader was.
     page.locator(".pdf-scroll").evaluate("e => e.scrollTo(0, e.scrollHeight)")
     page.wait_for_function("() => document.querySelector('[aria-label=\"阅读页码\"]').value === '3'")
+    # The quest log and the journey tree: chapters, my takeaways, side quests.
+    page.get_by_role("button", name="任务日志").first.click()
+    log = page.get_by_role("dialog", name="任务日志")
+    log.get_by_text("收获：贡献句").wait_for()
+    page.wait_for_timeout(300)
+    page.screenshot(animations="disabled", path=str(output / "quest-log-main.png"))
+    log.get_by_role("button", name="复盘树").click()
+    tree = page.get_by_role("dialog", name="复盘树")
+    tree.get_by_text("我要判断：提升来自观测时机").wait_for()
+    page.wait_for_timeout(400)
+    page.screenshot(animations="disabled", path=str(output / "journey.png"))
+    page.emulate_media(color_scheme="dark")
+    page.wait_for_timeout(300)
+    page.screenshot(animations="disabled", path=str(output / "journey-dark.png"))
+    page.emulate_media(color_scheme="light")
+    tree.get_by_role("button", name="关闭复盘树").click()
     page.close()
 
 

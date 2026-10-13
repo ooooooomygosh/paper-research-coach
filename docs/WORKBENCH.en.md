@@ -21,27 +21,35 @@ Automatic initialization is capped at 3000 characters, and ordinary per-turn pos
 ### Mainline and detours
 
 - **Where you are**: the coach title is the current step (“step n/8 · name”) above a thin progress line; click it to open the route and evidence receipts.
-- **Start**: **开始跟读** beside the progress line. After that, the mainline lives in the **task card** above the message box.
-- **The task card**: the step, **看这里** (look here; one click turns the PDF there), **你的任务** (your task) and **完成** (what counts as done). Predictions and choices have one-tap answers; buttons are **回答** (answer, focuses the box), **给我提示** (a hint) and **直接讲给我** (explain it); with nothing pending it shows **继续** (continue), and Enter in an empty box does the same.
+- **Start**: **开始跟读** beside the progress line. The eight steps are the eight mainline chapters.
+- **The mainline quest card**: each mainline reply is a card: “mainline · chapter n/8”, **看这里** (look here: the marked quotes with their pages; one click turns the PDF there), the coach's words (①②③ in the text are clickable too), at most one small figure, and **你的任务** (your task). Predictions and choices have one-tap answers; buttons are **回答** (answer, focuses the box), **给我提示** (a hint) and **直接讲给我** (explain it). When a chapter is done, the card ends with “chapter n done · takeaway: …”.
+- **The task strip**: one line above the message box with the current chapter and task; it opens into the full task (where to look, what counts as done), and **任务日志** (quest log) sits on its right. With nothing pending, Enter in an empty box continues the mainline.
 - **The coach shows you the source**: when the coach points at a page, the PDF turns there and the sentences to read are numbered ①②③ (a different colour from your own marks). A small chip offers **回到第 M 页** (back to page M) and **不要自动翻页** (stop turning pages for me; turn it back on in the tools drawer). At most one automatic jump per reply; reloading never jumps.
 - **A small figure in the mainline**: for a mechanism, a flow or evidence, a reply can carry a figure you can expand or pop out; choices inside it are sent as answers to the current question.
 - **Takeaways**: each finished step adds one sentence in your words to the route; after eight steps they form the paper card, which you can export.
 - **Answer**: with a pending question, type the answer and press Enter.
-- **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline. Concrete questions and technical details are answered in the **explainer panel** (below).
+- **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline. Concrete questions and technical details open a **side quest** answered by one explainer page (below).
 - **Nothing to configure**: answer versus detour is inferred (a selection is a detour; a reply to a pending question without a selection is an answer) and a small line under the box says where Enter will go. Ask for a hint, a direct explanation or a challenge in your own words. Region selections attach the page image automatically, and the coach can view any page itself.
 - **Getting the most out of it**: answer each step in a sentence before reading the feedback; state the contribution and your own next step in your words; park unfamiliar terms that do not block the current judgment. See [The reading method](METHOD.en.md).
 
-### The explainer panel (a branch)
+### Side quests and explainer pages
 
-Ask a concrete question (a concept, mechanism, equation, how to read a figure, a flow, a comparison, an implementation detail) and the coach opens an **explainer panel** beside the PDF instead of writing a wall of chat text:
+Ask a concrete question (a concept, mechanism, equation, how to read a figure, a flow, a comparison, an implementation detail) and the coach opens a **side quest** instead of writing a wall of chat text: one explainer page, shown as a card in the conversation and opened in place.
 
-- **Content**: the conclusion first, then flow charts, sequence diagrams, trees, timelines, tables (✓ ✗ badges) and callouts that draw the relations. The workbench draws them; the coach writes only content, and any text in a draft is shown as text and never executed.
-- **Follow-ups**: ask at the bottom of the panel; each follow-up is a new page of the same question (numbered tabs at the top). A decision the coach asks (`ask`) can be clicked, then “按这个选择继续” sends it.
-- **Back to the mainline**: **回到主线** at the top right (or Esc) closes the panel and focuses the message box; the mainline stays on its step and pending question, and is never advanced while the panel is open. A small line at the top reminds you where the mainline paused.
-- **New window**: the pop-out icon opens the same page in its own browser window, for a second screen; you can follow up there too, and “回到主线” closes it.
-- **History**: each explanation leaves a “讲解 · title” button in the chat; press it to reopen. Reloading never pops an old explanation open.
-- **Not every question gets a panel**: a one-word gloss or a one-sentence yes/no stays in chat, and mainline turns (continue, answer) open no panel; they carry at most one small figure inside the reply.
+- **Content**: a conclusion card, then panels lettered A, B, C: flow charts, sequence diagrams, trees, timelines, tables (✓ ✗ ! badges), formulas and callouts. Wide screens show two columns, and a wide figure spans both. The workbench draws them; the coach writes only content, and any text in a draft is shown as text and never executed.
+- **Fold and unfold**: click the card's title; folded, it is one line (title and conclusion). A new page in the same side quest folds the older ones. Reloading never unfolds an old page.
+- **Follow-ups**: ask at the bottom of the card, or use **追问这一块** (ask about this panel) and **没看懂** (I did not follow) at the top right of one panel. Each follow-up is a new page of the same side quest. A decision the coach asks (`ask`) can be clicked, then “按这个选择继续” sends it.
+- **Ending a side quest**: under the newest page, **我弄懂了** (I get it now; you may write one sentence in your words, kept as written) and **先放一放** (set it aside). Only you end a side quest; the coach never declares it for you. Setting it aside is not a failure: **继续这条支线** reopens it.
+- **Enlarge, pop out, download**: three buttons at the card's top right: enlarge beside the PDF (**回到主线** or Esc closes it and focuses the message box), open in its own window (for a second screen), or download one offline HTML file (static; no follow-ups).
+- **The mainline stays put**: during a side quest the mainline keeps its chapter and pending question.
+- **Not every question gets a side quest**: a one-word gloss or a one-sentence yes/no stays in chat, and mainline turns (continue, answer) open none; they carry at most one small figure inside the reply.
 - **From Claude Code**: `prc explain --paper ID --file draft.md` (`--check` only validates). The workbench must be running.
+
+### Quest log and journey tree
+
+- **Quest log**: from the task strip (or the icon beside the coach title). The eight chapters with their state (not started, in progress, done) and takeaways, and under each the side quests asked during it (in progress, understood, set aside). Click a side quest to go back to its page, or a page number to turn the PDF there.
+- **Journey tree**: **复盘树** in the quest log, or **查看这篇论文的复盘树** when chapter 8 is done. The root is the paper and the core judgment you wrote in chapter 6; the trunk is the eight chapters; under each chapter are the marked passages, the tasks with your verbatim answers, the first sentence of the coach's reply, the takeaway, side quests, notes, research ideas and review questions (filed by the chapter that was current when you wrote them; anything from before the mainline goes under “主线之外”). Fold it, open it in its own window (`#journey=PAPER_ID`), or download it as offline HTML.
+- **Records only**: the tree is not a new model summary, invents no answers and gives no scores. The Markdown paper card export carries the same content in a “主线与支线” section.
 - **Wording**: every reply follows plain-writing rules (short sentences, answer first, one word one meaning). Drafts are checked and may produce warnings; the check never refuses a draft. Rules: [style.md](../skills/paper-research-coach/references/style.md); sources and license: [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](THIRD_PARTY_ANSWER_ME_WITH_HTML.md).
 
 Use secondary tools for the full route with evidence receipts, model connection, notes and evidence. Direct questions and explicit explanations do not require a complete reading route or translated PDF. Eight dimensions represent coverage, not measured mastery. Note consent and local performance-recording consent remain separate; AI explanations and Continue clicks do not demonstrate independent understanding.

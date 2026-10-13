@@ -69,6 +69,11 @@ def paper_card(store: Store, paper_id: str):
             "",
             f"<!-- prc-note:{n['id']} revision:{n['revision']} -->",
         ]
+    from . import journey
+
+    trip = journey.build(store, paper_id)
+    if trip["status"] != "not_started" or trip["counts"]["side_quests"]:
+        lines += ["", journey.markdown(trip).rstrip()]
     sessions = store.list("session", paper_id)
     if sessions:
         s = sessions[-1]

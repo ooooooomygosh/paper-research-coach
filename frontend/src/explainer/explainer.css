@@ -558,3 +558,114 @@
 .xp-inline.open .xp-inline-body { max-height: none; }
 .xp-inline .xp-doc { font-size: 13px; }
 .xp-inline-error { font-size: 12px; color: var(--danger, #b3261e); }
+
+/* ---- The sheet: Answer-me-with-HTML's page layout, drawn with this app's tokens ---------------
+   Conclusion card first, then lettered panel cards in a grid (two columns when the page is wide). */
+.xp-doc { container-type: inline-size; --xp-accent: var(--green); --xp-mark: #4f8cc9; --xp-grid-line: color-mix(in srgb, var(--line-strong) 55%, transparent); }
+@media (prefers-color-scheme: dark) { .xp-doc { --xp-mark: #7fb2e5; } }
+.xp-doc .xp-lead {
+  position: relative; margin: 0 0 14px; padding: 14px 16px 12px 16px; border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tint-strong) 55%, var(--surface)) 0%, var(--tint) 100%);
+  border: 1px solid color-mix(in srgb, var(--green-soft) 45%, transparent);
+  font-size: 15.5px; line-height: 1.7; color: var(--text);
+}
+.xp-lead-tag {
+  display: inline-block; margin-bottom: 4px; padding: 1px 8px; border-radius: 999px;
+  background: var(--xp-accent); color: var(--surface); font-size: 11px; font-weight: 700; letter-spacing: .06em;
+}
+.xp-lead strong { color: var(--xp-accent); }
+.xp-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@container (min-width: 700px) {
+  .xp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xp-grid > .xp-section.span-2 { grid-column: 1 / -1; }
+}
+.xp-doc .xp-section {
+  margin: 0; padding: 0; overflow: hidden; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line-strong);
+  box-shadow: 0 1px 2px #263d2510, 0 6px 18px #263d250a;
+}
+.xp-doc .xp-section > * + * { margin-top: 0; }
+.xp-panel-head {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 10px;
+  border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.xp-letter {
+  flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px;
+  background: var(--xp-accent); color: var(--surface); font-size: 12px; font-weight: 800;
+}
+.xp-panel-head h3 { flex: 1; min-width: 0; margin: 0; font-size: 13.5px; font-weight: 650; color: var(--text); letter-spacing: 0; }
+.xp-meta { flex: none; font-size: 11px; color: var(--muted); }
+.xp-panel-actions { flex: none; display: flex; gap: 2px; opacity: .55; transition: opacity .15s; }
+.xp-section:hover .xp-panel-actions, .xp-panel-actions:focus-within { opacity: 1; }
+.xp-panel-actions button {
+  display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px;
+  background: transparent; color: var(--text-2); cursor: pointer;
+}
+.xp-panel-actions button:hover:not(:disabled) { background: var(--tint-strong); color: var(--xp-accent); }
+.xp-panel-body { padding: 10px 14px 12px; }
+.xp-panel-body > * + * { margin-top: 10px; }
+.xp-section.bare .xp-panel-body { padding-top: 12px; }
+/* Diagram panels get a faint blueprint grid behind the drawing. */
+.xp-section.has-diagram .xp-panel-body {
+  background-color: var(--surface);
+  background-image: linear-gradient(var(--xp-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--xp-grid-line) 1px, transparent 1px);
+  background-size: 18px 18px; background-position: -1px -1px;
+}
+.xp-section.has-diagram .xp-node rect, .xp-section.has-diagram .xp-node polygon, .xp-section.has-diagram .xp-node path { filter: drop-shadow(0 1px 1.5px #263d2522); }
+.xp-node.hi rect, .xp-node.hi polygon, .xp-node.hi path { fill: color-mix(in srgb, var(--xp-accent) 16%, var(--surface)); stroke: var(--xp-accent); }
+.xp-node.hi text { font-weight: 650; }
+.xp-edge { stroke: color-mix(in srgb, var(--xp-accent) 60%, var(--muted)); }
+.xp-arrowhead { fill: color-mix(in srgb, var(--xp-accent) 60%, var(--muted)); }
+/* Tables: zebra rows and pill badges. */
+.xp-doc .xp-prose table { border-radius: 8px; overflow: hidden; border-style: hidden; box-shadow: 0 0 0 1px var(--line-strong); }
+.xp-doc .xp-prose tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.xp-doc .xp-badge { width: 20px; height: 20px; font-size: 11.5px; }
+/* Callouts: a coloured bar and a soft fill. */
+.xp-doc .xp-callout { border-width: 0 0 0 4px; border-radius: 8px; padding: 10px 12px; }
+.xp-doc .xp-callout.info { border-color: var(--xp-mark); background: color-mix(in srgb, var(--xp-mark) 9%, var(--surface)); }
+/* Math: display formulas centred, scroll when wider than the panel. */
+.xp-doc .katex-display { margin: 6px 0; padding: 8px 0; overflow-x: auto; overflow-y: hidden; }
+/* A figure inside a chat reply: one column, a little smaller. */
+.xp-doc.compact { font-size: 13px; }
+.xp-doc.compact .xp-lead { font-size: 14px; padding: 10px 12px; }
+.xp-doc.compact .xp-grid { grid-template-columns: minmax(0, 1fr); }
+.xp-doc.compact .xp-grid > .xp-section.span-2 { grid-column: auto; }
+/* A decision on the page: options as cards, the suggested one tagged. */
+.xp-doc .xp-ask { border: 1px solid color-mix(in srgb, var(--xp-mark) 35%, var(--line-strong)); border-radius: 10px; background: color-mix(in srgb, var(--xp-mark) 5%, var(--surface)); }
+.xp-doc .xp-ask legend { font-size: 13.5px; }
+.xp-doc .xp-ask label { border: 1px solid var(--line); background: var(--surface); margin: 6px 0; padding: 8px 10px; transition: border-color .15s, background .15s; }
+.xp-doc .xp-ask label:hover { border-color: color-mix(in srgb, var(--xp-mark) 45%, var(--line-strong)); }
+.xp-doc .xp-ask label.on { border-color: var(--xp-mark); background: color-mix(in srgb, var(--xp-mark) 10%, var(--surface)); }
+.xp-doc .xp-ask em { padding: 0 6px; border-radius: 999px; background: var(--tint-strong); }
+
+/* ---- An explainer page inside the conversation (a side quest) ------------------------------ */
+.xp-card {
+  margin: 10px 0 4px; border-radius: 14px; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--xp-mark, #4f8cc9) 35%, var(--line-strong));
+  background: var(--surface); box-shadow: 0 2px 10px #263d2512;
+}
+.xp-card.done { border-color: color-mix(in srgb, var(--green) 45%, var(--line-strong)); }
+.xp-card-head { display: flex; align-items: stretch; background: color-mix(in srgb, #4f8cc9 7%, var(--surface)); }
+.xp-card-toggle {
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px 8px; padding: 9px 12px;
+  border: 0; border-radius: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer;
+}
+.xp-card-toggle > svg { margin-left: auto; color: var(--muted); }
+.xp-card-toggle b { font-size: 14px; font-weight: 650; }
+.xp-card-kind { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; background: #4f8cc9; color: #fff; font-size: 11px; font-weight: 700; }
+.xp-card-gist { order: 1; flex-basis: 100%; font-size: 12.5px; color: var(--text-2); }
+.xp-card-status { padding: 0 8px; border-radius: 999px; background: var(--tint-strong); color: var(--green); font-size: 11px; font-weight: 700; }
+.xp-card-status.parked { background: var(--surface-3); color: var(--muted); }
+.xp-card-tools { display: flex; align-items: center; gap: 2px; padding: 0 6px; }
+.xp-card-tools button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); }
+.xp-card-tools button:hover { background: var(--tint-strong); color: var(--green); }
+.xp-card-body { padding: 12px; border-top: 1px solid var(--line); background: var(--surface-2); }
+.xp-card-question { margin: 0 0 10px; font-size: 13px; color: var(--text-2); }
+.xp-card-question b { margin-right: 8px; font-size: 11px; color: #4f8cc9; }
+.xp-card-ask { display: flex; gap: 6px; align-items: flex-end; margin-top: 12px; }
+.xp-card-ask textarea { flex: 1; min-height: 36px; resize: vertical; padding: 7px 10px; border-radius: 10px; font-size: 13px; }
+.xp-card-ask .primary { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border-radius: 10px; }
+@media (prefers-color-scheme: dark) {
+  .xp-card-head { background: color-mix(in srgb, #7fb2e5 10%, var(--surface)); }
+  .xp-card-kind { background: #7fb2e5; color: #10202e; }
+}

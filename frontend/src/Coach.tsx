@@ -11,9 +11,18 @@ import {
   Maximize2,
   Minimize2,
   ChevronDown,
+  ChevronUp,
+  ScrollText,
+  Network,
 } from "lucide-react";
 import BranchPanel from "./explainer/BranchPanel";
 import MainlineFigure from "./explainer/MainlineFigure";
+import ExplainerCard from "./explainer/ExplainerCard";
+import QuestCard, { linkMarks, marksOf } from "./QuestCard";
+import QuestLog, { sideQuestsOf, type SideQuest } from "./QuestLog";
+import JourneyTree from "./JourneyTree";
+import QuestControls from "./explainer/QuestControls";
+import type { ExplainerSummary, Quest } from "./explainer/types";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
@@ -51,6 +60,11 @@ type Message = {
   connection_notice?: string;
   intent?: string;
   help_mode?: HelpMode;
+  /** The mainline chapter this exchange belongs to (for a detour: where the mainline paused). */
+  step?: string;
+  /** The task a mainline reply set, and the chapter it completed. */
+  task?: { question: string; choices?: string[] };
+  completed_step?: { step: string; label: string; takeaway: string; page_index: number };
   context_scope?: {
     notes_included: number;
     notes_total: number;
@@ -131,6 +145,14 @@ export default function CoachPanel({
   const [routeOpen, setRouteOpen] = useState(false);
   // An open branch explainer: a reader's question answered beside the paper.
   const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
+  // Explainer pages live in the conversation as cards: which ones are open.
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  // The task above the message box is one line; it opens into the full task card.
+  const [taskOpen, setTaskOpen] = useState(false);
+  // Every explainer page of this paper (summaries): side-quest state and the quest log.
+  const [explainerList, setExplainerList] = useState<ExplainerSummary[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
   const latestFocus = useRef(onFocus);
@@ -249,13 +271,56 @@ export default function CoachPanel({
       seenExplainers.current = new Set(found.map((a) => a.id));
       return;
     }
-    const fresh = found.filter((a) => !seenExplainers.current!.has(a.id));
-    fresh.forEach((a) => seenExplainers.current!.add(a.id));
+    const fresh = found.filter((a) => !seenExplainers.current!.has(a.id) && !a.mainline);
+    found.forEach((a) => seenExplainers.current!.add(a.id));
     if (fresh.length) {
+      // A new page opens in place, in the conversation; older pages of the same question fold up.
       const last = fresh[fresh.length - 1];
-      setBranch({ branchId: last.branch_id, pageId: last.id });
+      setOpenCards((open) => {
+        const next = { ...open };
+        for (const a of found) if (a.branch_id === last.branch_id) next[a.id] = false;
+        next[last.id] = true;
+        return next;
+      });
+      requestAnimationFrame(() =>
+        document.getElementById("xp-card-" + last.id)?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
+      );
     }
   }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
+  const explainerSignature = snapshot.messages
+    .flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer").map((a) => a.id + ":" + (a.rev || "")))
+    .join(",");
+  useEffect(() => {
+    let live = true;
+    if (!explainerSignature && !logOpen) {
+      setExplainerList([]);
+      return;
+    }
+    api("coach/explainers/" + paper.id)
+      .then((r) => live && setExplainerList(r.data || []))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [paper.id, explainerSignature, logOpen]);
+  const questByBranch: Record<string, Quest | undefined> = Object.fromEntries(
+    explainerList.filter((p) => p.id === p.branch_id).map((p) => [p.id, p.quest]),
+  );
+  const latestPage: Record<string, string> = {};
+  for (const p of explainerList) if (p.origin !== "mainline") latestPage[p.branch_id] = p.id;
+  const saveQuest = (branchId: string, quest: Quest) =>
+    setExplainerList((list) => list.map((p) => (p.id === branchId ? { ...p, quest } : p)));
+  const openQuest = (q: SideQuest) => {
+    const target = latestPage[q.id] || q.id;
+    setLogOpen(false);
+    if (!document.getElementById("xp-card-" + target)) {
+      // A page from another conversation or the CLI: open it beside the reading instead.
+      setBranch({ branchId: q.id, pageId: target });
+      return;
+    }
+    setOpenCards((open) => ({ ...open, [target]: true }));
+    requestAnimationFrame(() => document.getElementById("xp-card-" + target)?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+  };
   useEffect(() => {
     setIncludeImage(
       !!anchor?.rects?.length &&
@@ -291,6 +356,7 @@ export default function CoachPanel({
     content = text,
     retry = false,
     intent = effectiveIntent as string,
+    branchId = "",
   ) {
     if (
       snapshot.read_only ||
@@ -324,6 +390,7 @@ export default function CoachPanel({
             model,
             effort,
             page_image: intent !== "follow" && includeImage ? pageImage() : "",
+            branch_id: branchId,
           };
       if (!body) return;
       // Persist the exact request before crossing the network.
@@ -462,6 +529,51 @@ export default function CoachPanel({
       setError(String(e));
     }
   };
+  // A mainline reply is drawn as a quest card; its chapter comes from the step saved with it.
+  const questOf = (m: Message) => {
+    if (m.role !== "assistant" || !m.step || (m.intent !== "follow" && m.intent !== "answer")) return null;
+    const steps = flow?.steps || [];
+    const i = steps.findIndex((x: any) => x.id === m.step);
+    return i < 0 ? null : { chapter: i + 1, total: steps.length, label: steps[i].label as string };
+  };
+  // Only the reply that set the task still waiting for an answer offers the task's buttons.
+  const currentTaskMessage = (() => {
+    if (!flowStarted || !flow?.pending_question) return "";
+    for (let i = snapshot.messages.length - 1; i >= 0; i--) {
+      const m = snapshot.messages[i];
+      if (m.task) return m.task.question === flow.pending_question ? m.id : "";
+    }
+    return "";
+  })();
+  const coachMarkdown = (m: Message) => {
+    const marks = marksOf(m.actions || []);
+    return (
+      <Markdown
+        remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          a: ({ href, children, ...props }) => {
+            if (href?.startsWith("#mark-")) {
+              const mark = marks.find((x) => x.n === Number(href.slice(6)));
+              return mark ? (
+                <button type="button" className="mark-ref" title={mark.quote} onClick={() => onFocus?.(mark.action, "click")}>{children}</button>
+              ) : <>{children}</>;
+            }
+            return <a {...props} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+          },
+        }}
+      >
+        {marks.length ? linkMarks(prose(m.content)) : prose(m.content)}
+      </Markdown>
+    );
+  };
+  const sideQuests = sideQuestsOf(explainerList);
+  const questLogButton = (
+    <button type="button" className="quest-log-open" aria-expanded={logOpen} title="主线章节和所有支线" onClick={() => setLogOpen(!logOpen)}>
+      <ScrollText size={14} />
+      任务日志{sideQuests.length ? ` · 支线 ${sideQuests.length}` : ""}
+    </button>
+  );
   const sessionTools = (
     <>
       <div className="coach-session-row">
@@ -766,6 +878,11 @@ export default function CoachPanel({
             />
             {statusLabel}
           </span>
+          {!(flowStarted && !anchor && !snapshot.read_only) && (sideQuests.length > 0 || flowDone) && (
+            <button type="button" className="coach-log-icon" aria-label="任务日志" title="任务日志：主线章节和所有支线" onClick={() => setLogOpen(!logOpen)}>
+              <ScrollText size={15} />
+            </button>
+          )}
         </div>
         <button
           aria-label={
@@ -881,7 +998,10 @@ export default function CoachPanel({
             </ol>
           </div>
         )}
-        {snapshot.messages.map((m, index) => (
+        {snapshot.messages.map((m, index) => m.role === "user" && m.intent === "follow" && !m.error ? (
+          // "Continue" is a click, not something the reader wrote: a small marker, not a bubble.
+          <p key={m.id} className="coach-follow-pill">▶ 继续主线</p>
+        ) : (
           <article key={m.id} className={"coach-message " + m.role}>
             <div className="coach-message-label">
               {m.role === "user"
@@ -931,31 +1051,104 @@ export default function CoachPanel({
                   )}
                 </button>
               )}
-            <div className="coach-prose">
+            {questOf(m) ? (
+              <QuestCard
+                chapter={questOf(m)!.chapter}
+                total={questOf(m)!.total}
+                label={questOf(m)!.label}
+                actions={m.actions || []}
+                onMark={(a) => onFocus?.(a, "click")}
+                completed={m.completed_step || null}
+                finale={m.completed_step?.step === "recall" ? (
+                  <button type="button" className="primary quest-finale" onClick={() => setJourneyOpen(true)}>
+                    <Network size={15} />查看这篇论文的复盘树
+                  </button>
+                ) : null}
+                body={
+                  <div className="coach-prose">
+                    {coachMarkdown(m)}
+                    {!m.content && m.status === "streaming" && (
+                      <span className="coach-thinking">正在核对论文与阅读记录…</span>
+                    )}
+                  </div>
+                }
+                figures={(m.actions || [])
+                  .filter((a) => a.kind === "explainer" && a.mainline)
+                  .map((a) => (
+                    <MainlineFigure key={a.id} id={a.id} rev={a.rev} disabled={unavailable || !!snapshot.read_only}
+                      onAnswer={ask} onOpen={() => openWindow(a.branch_id, a.id)} />
+                  ))}
+                task={m.task && (
+                  <div className="quest-task">
+                    <b>你的任务</b>
+                    <p>{m.task.question}</p>
+                    {m.id === currentTaskMessage ? (
+                      <>
+                        {(m.task.choices || []).length > 1 && (
+                          <div className="task-choices" role="group" aria-label="快速回答">
+                            {(m.task.choices || []).map((c: string) => (
+                              <button key={c} type="button" disabled={unavailable} onClick={() => ask(c)}>{c}</button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="task-actions">
+                          <button type="button" className="primary" disabled={unavailable} onClick={() => composer.current?.focus()}>回答</button>
+                          <button type="button" disabled={unavailable} onClick={() => ask("我先要一个提示：只给一条线索，先别告诉我答案。")}>给我提示</button>
+                          <button type="button" disabled={unavailable} onClick={() => ask("请直接讲给我听，讲完让我用一句话复述。")}>直接讲给我</button>
+                        </div>
+                      </>
+                    ) : (
+                      <small className="muted">已作答</small>
+                    )}
+                  </div>
+                )}
+              />
+            ) : (
+              <div className="coach-prose">
               {m.connection_notice && (
                 <p className="small muted">{m.connection_notice}</p>
               )}
               {m.role === "user" ? (
                 <p className="verbatim">{m.content}</p>
               ) : (
-                <Markdown
-                  remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    a: (props) => (
-                      <a {...props} target="_blank" rel="noopener noreferrer" />
-                    ),
-                  }}
-                >
-                  {prose(m.content)}
-                </Markdown>
+                coachMarkdown(m)
               )}
               {!m.content && m.status === "streaming" && (
                 <span className="coach-thinking">正在核对论文与阅读记录…</span>
               )}
             </div>
+            )}
             {m.error && <p className="coach-error">{m.error}</p>}
             {(m.actions || [])
+              .filter((a) => a.kind === "explainer" && !a.mainline)
+              .map((a) => (
+                <div key={a.id} id={"xp-card-" + a.id}>
+                  <ExplainerCard
+                    id={a.id}
+                    rev={a.rev}
+                    branchId={a.branch_id}
+                    paperTitle={paper.title}
+                    expanded={!!openCards[a.id]}
+                    onToggle={(open) => setOpenCards((all) => ({ ...all, [a.id]: open }))}
+                    disabled={unavailable || !!snapshot.read_only}
+                    disabledHint={snapshot.read_only ? "历史对话为只读" : status?.state !== "ready" ? "教练未连接，连上后可以接着问" : "教练正在回复…"}
+                    onAsk={(question, branchId) => void send(question, false, "detour", branchId)}
+                    onEnlarge={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
+                    onPopout={() => openWindow(a.branch_id, a.id)}
+                    quest={questByBranch[a.branch_id]}
+                    questSlot={
+                      !snapshot.read_only && latestPage[a.branch_id] === a.id ? (
+                        <QuestControls
+                          branchId={a.branch_id}
+                          quest={questByBranch[a.branch_id]}
+                          onSaved={(quest) => saveQuest(a.branch_id, quest)}
+                        />
+                      ) : null
+                    }
+                  />
+                </div>
+              ))}
+            {!questOf(m) && (m.actions || [])
               .filter((a) => a.kind === "explainer" && a.mainline)
               .map((a) => (
                 <MainlineFigure
@@ -967,12 +1160,12 @@ export default function CoachPanel({
                   onOpen={() => openWindow(a.branch_id, a.id)}
                 />
               ))}
-            {m.actions?.some((a) => !(a.kind === "explainer" && a.mainline)) ? (
+            {m.actions?.some((a) => a.kind !== "explainer") ? (
               <div className="coach-actions">
                 {m.actions!
                   .filter(
                     (a, i, all) =>
-                      !(a.kind === "explainer" && a.mainline) &&
+                      a.kind !== "explainer" &&
                       all.findIndex(
                         (b) => b.id === a.id && b.label === a.label,
                       ) === i,
@@ -1128,6 +1321,17 @@ export default function CoachPanel({
           </blockquote>
         )}
         {flowStarted && !anchor && !snapshot.read_only && (
+          <div className={"task-strip" + (taskOpen ? " open" : "")}>
+            <button type="button" className="task-strip-line" aria-expanded={taskOpen} onClick={() => setTaskOpen(!taskOpen)}
+              title={taskOpen ? "收起任务" : "展开任务"}>
+              <span className="task-strip-step">第 {stepNumber.split("/")[0]} 章 · {flow?.label}</span>
+              <span className="task-strip-text">{flow?.pending_question ? "任务：" + flow.pending_question : "下一步：" + (flow?.return_action || flow?.goal || "")}</span>
+              {taskOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
+            {questLogButton}
+          </div>
+        )}
+        {flowStarted && !anchor && !snapshot.read_only && taskOpen && (
           <TaskCard
             flow={flow}
             stepNumber={stepNumber}
@@ -1244,6 +1448,36 @@ export default function CoachPanel({
           </button>
         )}
       </div>
+      {logOpen && (
+        <QuestLog
+          flow={flow}
+          quests={sideQuests}
+          onClose={() => setLogOpen(false)}
+          onOpenQuest={openQuest}
+          onPage={(i) => onLocate(anchorFor(paper, i))}
+          onJourney={() => {
+            setLogOpen(false);
+            setJourneyOpen(true);
+          }}
+        />
+      )}
+      {journeyOpen && (
+        <JourneyTree
+          paperId={paper.id}
+          onClose={() => setJourneyOpen(false)}
+          onPage={(i) => onLocate(anchorFor(paper, i))}
+          onOpenQuest={(branchId) => {
+            setJourneyOpen(false);
+            const q = sideQuests.find((x) => x.id === branchId);
+            if (q) openQuest(q);
+            else setBranch({ branchId, pageId: branchId });
+          }}
+          onPopout={() => {
+            window.open(`/#journey=${encodeURIComponent(paper.id)}`, "prc-journey-" + paper.id, "popup=yes,width=980,height=960");
+            setJourneyOpen(false);
+          }}
+        />
+      )}
       {branch && (
         <BranchPanel
           key={branch.branchId}

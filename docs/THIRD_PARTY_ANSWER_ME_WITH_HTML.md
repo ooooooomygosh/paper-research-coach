@@ -3,7 +3,8 @@
 The branch explainer reuses ideas and rules from **Answer me with HTML** (https://github.com/QingYunA/answer-me-with-html), which is MIT licensed:
 
 - the Markdown draft syntax (front matter, `##` panels, and the `flow`, `sequence`, `tree`, `timeline`, `callout`, `ask` and `kv` fenced components), reduced to what a reading branch needs;
-- the plain-writing check: sentence and paragraph limits, the English non-approved-word list, English passive voice, and the Chinese light-verb, cliché and vague-quantity rules (`src/paper_research_coach/explainer.py`).
+- the plain-writing check: sentence and paragraph limits, the English non-approved-word list, English passive voice, and the Chinese light-verb, cliché and vague-quantity rules (`src/paper_research_coach/explainer.py`);
+- the page layout idea: a conclusion card first, then lettered panel cards in a grid (two columns when wide; a panel can span both), with small meta text in a panel's title bar. Our heading attributes `{span=2 meta="…" bare}` follow that idea. The CSS is our own (`frontend/src/explainer/explainer.css`); no stylesheet or template was copied.
 
 We wrote our own parser (Python, returning typed JSON) and our own renderer (React). We do not bundle their CLI. A draft written for that project works here for these components. Their Chinese word list in turn comes from Simplified Technical Chinese (https://github.com/mzopedia/simplified-technical-chinese). Flow layout uses dagre (MIT).
 

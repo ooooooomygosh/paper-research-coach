@@ -114,7 +114,18 @@ export default function BranchPanel({ paper, branchId, firstPageId, standalone, 
           </blockquote>
         )}
         {record ? (
-          <ExplainerView doc={record.doc} onAnswer={(t) => void ask(t, page)} disabled={busy} />
+          <ExplainerView
+            doc={record.doc}
+            onAnswer={(t) => void ask(t, page)}
+            disabled={busy}
+            onPanelAsk={(letter, title, kind) => {
+              if (kind === "confused") void ask(`${letter}「${title}」这一块我没看懂，请换个说法，或者举一个小例子。`, page);
+              else {
+                setText(`关于 ${letter}「${title}」：`);
+                requestAnimationFrame(() => root.current?.querySelector<HTMLTextAreaElement>(".branch-compose textarea")?.focus());
+              }
+            }}
+          />
         ) : (
           <p className="branch-wait" role="status">
             {error || "教练正在写讲解…"}

@@ -306,7 +306,7 @@ TOOLS = [
     ),
     tool(
         "prc_explain",
-        "Draw an explanation from a short Markdown draft (conclusion first); the workbench renders it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. place=panel opens a branch panel beside the reading for a reader's concrete question (3 to 6 panels; the default on question turns). place=chat embeds one small mainline figure (1 to 3 panels) in the mainline reply (the default on mainline turns; one per turn). Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
+        "Draw an explanation from a short Markdown draft (conclusion first); the workbench renders it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. place=panel opens a side quest: an explainer page shown as a card inside the conversation, for a reader's concrete question (3 to 6 lettered panels, `{span=2}` after a heading for a wide one; the default on question turns). place=chat embeds one small mainline figure (1 to 3 panels) in the mainline reply (the default on mainline turns; one per turn). Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
         {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT, "place": {"type": "string", "enum": ["panel", "chat"]}},
         ["draft"],
     ),
@@ -745,6 +745,7 @@ class Coach:
             "status": "queued",
             "actions": [],
             "error": "",
+            "intent": body.intent,
         }
         result = {
             "conversation_id": cid,
@@ -770,6 +771,13 @@ class Coach:
             session = json.loads(session_row[0]) if session_row else None
             if session and body.intent in ("follow", "answer"):
                 session = reading.begin(self.store, paper, session, db)
+            if session:
+                # The chapter this exchange belongs to (for a detour: where the mainline paused),
+                # so the quest log and the review tree can place it.
+                flow = reading.snapshot(session, paper)
+                if flow["status"] == "active":
+                    message["step"] = answer["step"] = flow["current"]
+                    self.save_message(message, connection=db)
             if session and session.get("note_consent") and body.intent != "follow":
                 self.store.commit(
                     {
@@ -1073,6 +1081,9 @@ class Coach:
                 }
             )
             label = "已更新下一步"
+            if data["pending_question"].strip():
+                # The task this reply set, shown on its quest card.
+                state["answer"]["task"] = {"question": data["pending_question"][:400], "choices": data.get("choices", [])}
         elif name == "prc_complete_reading_step":
             if state.get("intent", "detour") == "detour" or state.get("flow_advanced"):
                 raise ValueError("插话保留主线；一次跟读回复最多完成一个步骤。")
@@ -1144,6 +1155,11 @@ class Coach:
         )
         if name == "prc_complete_reading_step":
             state["flow_advanced"] = True
+            done = data["reading_flow"]["completed"][-1]
+            labels = dict((k, label) for k, label, _ in reading.STEPS)
+            state["answer"]["completed_step"] = {"step": done["step"], "label": labels[done["step"]],
+                                                 "takeaway": done.get("takeaway", ""), "page_index": done["page_index"]}
+            self.save_message(state["answer"])
         action = {
             "kind": mutations[0]["kind"],
             "id": result["records"][0]["id"],
@@ -1167,9 +1183,32 @@ class Coach:
         with self.store.connect() as db:
             rows = db.execute("SELECT data FROM coach_explainers WHERE paper_id=? ORDER BY rowid", (paper_id,)).fetchall()
         return [
-            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point", "origin")}
+            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point",
+                                   "origin", "quest", "message_id")}
+            | {"gist": explainers.gist(d.get("doc") or {})}
             for d in (json.loads(r[0]) for r in rows)
         ]
+
+    QUEST_STATUSES = ("open", "done", "parked")
+
+    def set_quest(self, branch_id, status, takeaway=""):
+        """The reader closes or parks a side quest. Only the reader does this; the model has no tool for it.
+
+        The state lives on the branch's first page. The takeaway is the reader's own sentence, kept as written."""
+        if status not in self.QUEST_STATUSES:
+            raise ValueError("支线状态只能是 open、done 或 parked。")
+        record = self.explainer(branch_id)
+        if record["branch_id"] != record["id"]:
+            raise ValueError("支线状态记在这条支线的第一页上。")
+        if record.get("origin") == "mainline":
+            raise ValueError("主线图解不是支线任务。")
+        takeaway = takeaway.strip()[:500]
+        quest = {"status": status, "takeaway": takeaway or (record.get("quest") or {}).get("takeaway", ""),
+                 "closed_at": now() if status != "open" else ""}
+        record["quest"] = quest
+        with self.store.connect() as db:
+            db.execute("UPDATE coach_explainers SET data=? WHERE id=?", (json.dumps(record, ensure_ascii=False), record["id"]))
+        return {"branch_id": record["id"], "quest": quest}
 
     def branch_title(self, paper_id, branch_id):
         if not branch_id:
@@ -1202,7 +1241,9 @@ class Coach:
             old = self.explainer(replace_id, paper_id)
             record.update(id=old["id"], branch_id=old["branch_id"], seq=old["seq"], created_at=old["created_at"],
                           anchor=old.get("anchor"), question=old.get("question", ""), message_id=old.get("message_id", ""),
-                          conversation_id=old["conversation_id"])
+                          conversation_id=old["conversation_id"], return_point=old.get("return_point", point))
+            if old.get("quest"):
+                record["quest"] = old["quest"]
         else:
             if branch_id:
                 self.explainer(branch_id, paper_id)
@@ -1273,7 +1314,8 @@ class Coach:
         elif place == "chat":
             result["next"] = "The figure is shown inside your reply. Refer to it in one sentence; do not repeat it in text."
         else:
-            result["next"] = "The panel is open. In chat, write one or two plain sentences with the key point; do not repeat the page."
+            result["next"] = ("The page is open in the conversation. In chat, write one or two plain sentences with the key point; "
+                              "do not repeat the page. The reader closes the side quest themselves.")
         return result
 
     def explain_external(self, paper_id, draft_text, branch_id="", replace_id="", question="", anchor=None):
@@ -1287,7 +1329,7 @@ class Coach:
         if not replace_id:
             self.save_message({
                 "id": message_id, "conversation_id": conversation["id"], "role": "assistant",
-                "content": "已打开讲解面板：" + record["title"], "created_at": now(), "status": "completed",
+                "content": "已打开讲解页：" + record["title"], "created_at": now(), "status": "completed",
                 "intent": "detour", "actions": [self.explainer_action(record)], "error": "",
             })
         else:

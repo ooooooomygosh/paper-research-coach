@@ -145,12 +145,12 @@ Carr sets a high bar for notes: **later, the notes alone should be enough — no
 
 **In the tool.** Step 8 needs a real answer from this round; research-question cards hold the observation, hypothesis, alternative, strong simple baseline, minimal test and refutation condition. The default 1/3/7/14-day review spacing is an adjustable starting point, **not** a schedule proven optimal.
 
-### Two supporting designs: the explainer panel and the way it speaks
+### Two supporting designs: side-quest explainer pages and the way it speaks
 
-**A concrete question opens a panel beside the paper, and the mainline waits.** Stuck on a technical detail (say, “why can an oracle serve as an upper bound?”), two bad things tend to happen: the mainline is interrupted and never resumed, or a wall of chat text arrives and you forget it as you read. So such questions are answered in an **explainer panel**: the conclusion first, then flow charts, sequence diagrams and tables that draw the relations. You can ask follow-ups inside it; each becomes a new page. One click on **回到主线** (back to the mainline) leaves the mainline on the step and pending question where it was.
+**A concrete question opens a side quest, and the mainline waits.** Stuck on a technical detail (say, “why can an oracle serve as an upper bound?”), two bad things tend to happen: the mainline is interrupted and never resumed, or a wall of chat text arrives and you forget it as you read. So such questions are answered by **one explainer page**, shown as a side quest in the conversation: the conclusion first, then lettered panels A, B, C with flow charts, sequence diagrams and tables that draw the relations. Ask about the one panel you did not follow; each follow-up becomes a new page. When you get it, you press “我弄懂了” and write one sentence in your words; the mainline stays on the step and pending question where it was.
 
 - Why: cognitive load theory (Sweller) says working memory is limited, and extra material crowds out thinking while you are stuck on a detail; Mayer’s multimedia-learning work proposes segmenting and removing extraneous material. One question per page, with words and pictures together, applies those ideas directly.
-- What it is not: not every word gets a panel — a one-word gloss or a one-sentence answer stays in chat; mainline turns open no panel and carry at most one small figure inside the reply.
+- What it is not: not every word gets a side quest — a one-word gloss or a one-sentence answer stays in chat; mainline turns open none and carry at most one small figure inside the reply.
 - Honest limit: this is design motivation; its effect on PhD students reading papers has not been tested.
 
 **Short, simple, human wording.** Every reply follows a plain-writing discipline: one idea per sentence, the answer first, active voice, one word for one meaning, common words, concrete numbers, and a one-sentence explanation of each term at first use. It also sounds like a colleague at your side: “you”, a small example before a definition, “the paper does not say” when it does not, and never dropping qualifiers such as *may*, *under* or *on average*.
@@ -166,9 +166,10 @@ Carr sets a high bar for notes: **later, the notes alone should be enough — no
 |---|---|
 | Keshav's three passes; Carr's and Wang Shuyi's non-linear order (abstract → conclusion → figures → introduction → results → method last) | Each step has a "usually look here". The coach finds the source and **turns your PDF to that page, numbering the sentences to read**; you do not hunt for them. Each sentence must be on that page word for word, so it cannot be made up. |
 | Predict before looking (principle 3); the generation effect (Slamecka & Graf); retrieval practice (Roediger & Karpicke) | The task card asks you to **guess or answer first**, with one-tap answers for predictions; where a step asks you to predict or recall, the figure waits until you have answered, so it does not give the answer away. |
-| Cognitive load (Sweller); multimedia learning (Mayer) | A mainline reply can carry **one small figure** (a flow, an evidence table) next to the marked sentences; concrete questions go to the panel beside the paper, not into the mainline. |
-| One move per turn, help that fades by ability (Wood/Bruner/Ross, Kalyuga) | A **task card** above the message box: where to look, one thing to do, what counts as done. "Hint" and "explain it to me" are one-tap requests, not settings; a turn with help does not count as independent. |
-| Half-page review and the three-sentence judgment (Shum/Hua) | Each finished step keeps **one takeaway in your words**; the eight takeaways are the paper's review and can be exported. |
+| Cognitive load (Sweller); multimedia learning (Mayer) | A mainline reply can carry **one small figure** (a flow, an evidence table) next to the marked sentences; concrete questions become **one explainer page** (a side quest) drawn and asked about panel by panel, not part of the mainline. |
+| One move per turn, help that fades by ability (Wood/Bruner/Ross, Kalyuga) | Each mainline reply is a **quest card**: where to look, one thing to do, what counts as done; a one-line task strip sits above the message box. "Hint" and "explain it to me" are one-tap requests, not settings; a turn with help does not count as independent. |
+| Completion is not mastery (clicking continue or reading an AI explanation is not mastery) | Eight mainline chapters and side quests move like a game's quests, but there are **no points, levels or mastery scores**; only you can mark a side quest understood, in your own words. |
+| Half-page review and the three-sentence judgment (Shum/Hua); retrieval practice | Each finished step keeps **one takeaway in your words**; after reading, the **journey tree** lays out the chapters, marked passages, your verbatim answers, side quests and notes, from records only and without scores, and can be exported. |
 | Three levels: skim, read, study | The depth you chose sets how far each step goes: skim takes one conclusion per step and can stop any time; study asks for derivations. |
 
 When a step is done, the next step's first small task arrives in the same reply and the PDF is already at the right place, so you do not stop to plan what comes next. This is design motivation; its effect on learning has not been tested.
@@ -226,7 +227,7 @@ Questions 9 and 10 are answered by you first and checked by the coach; an AI-wri
 | Can’t say what the paper did | Each paper leaves a testable contribution sentence, not an evenly weighted summary |
 | Stumped in group meeting | You already asked “what is the alternative explanation, is the baseline fair?” while reading |
 | Many papers read, no ideas | Enter through a failure, contradiction, mechanism, missing information or cost, and land on a falsifiable question and minimal test |
-| Stuck on a technical detail mid-read | A panel beside the paper explains it with figures and tables; the mainline waits; one click returns |
+| Stuck on a technical detail mid-read | A side quest: one explainer page in the conversation with figures and tables, asked about panel by panel; the mainline waits |
 | Thoughts vanish | Your words are saved with an anchor; you resume at the same passage |
 | A week per paper | Minutes to decide whether a paper deserves more; a recorded stop is an outcome |
 | Language and concepts tangled | Language and concept gaps are separated; no whole-paper translation needed |

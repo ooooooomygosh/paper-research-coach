@@ -585,9 +585,11 @@ it("keeps the mainline step, its button and the pending question in the panel wh
   const { container } = view({ toolsContainer: drawer, onOpenTools: vi.fn() });
   await screen.findByText("第 3/8 步 · 问题设定");
   const panel = container.querySelector(".coach-panel")!;
+  const strip = screen.getByRole("button", { name: /第 3 章 · 问题设定/ });
+  expect(panel.contains(strip)).toBe(true);
+  expect(strip.textContent).toContain("决策时真正可用的信息是什么？");
+  fireEvent.click(strip);
   const task = screen.getByRole("region", { name: "本轮任务" });
-  expect(panel.contains(task)).toBe(true);
-  expect(within(task).getByText("决策时真正可用的信息是什么？")).toBeTruthy();
   expect(within(task).getByRole("button", { name: "回答" })).toBeTruthy();
   expect(drawer.querySelector(".coach-mainline")).toBeNull();
   expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
@@ -632,17 +634,20 @@ const withExplainer = (id = "x1") => ({
   actions: [{ kind: "explainer", id, branch_id: id, label: "讲解 · 预算为什么要相同", rev: "t" }],
 });
 
-it("does not pop old branches open on reload, but offers them in the chat", async () => {
+it("keeps old explainer pages folded on reload; one click opens the page in the conversation", async () => {
   explainerMocks([withExplainer()]);
   view();
-  await screen.findByRole("button", { name: "讲解 · 预算为什么要相同" });
+  const toggle = await screen.findByRole("button", { name: /支线.*预算为什么要相同/ });
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "讲解 · 预算为什么要相同" }));
-  const dialog = await screen.findByRole("dialog", { name: "讲解面板" });
-  expect(await within(dialog).findByText("预算为什么要相同")).toBeTruthy();
+  fireEvent.click(toggle);
+  expect(await screen.findByText("先说结论。")).toBeTruthy();
+  // The side panel is still one click away.
+  fireEvent.click(screen.getByRole("button", { name: "放大到侧边" }));
+  expect(await screen.findByRole("dialog", { name: "讲解面板" })).toBeTruthy();
 });
 
-it("opens a branch panel when the coach finishes a new explanation, and one click returns to the mainline composer", async () => {
+it("opens a new explainer page inside the conversation, and a follow-up stays in the same branch", async () => {
   const { stream } = explainerMocks([]);
   view();
   await screen.findByText("已连接本机 CLI");
@@ -650,11 +655,71 @@ it("opens a branch panel when the coach finishes a new explanation, and one clic
   await act(async () => {
     stream.emit!({ ...snapshot, messages: [withExplainer()] });
   });
-  const dialog = await screen.findByRole("dialog", { name: "讲解面板" });
-  expect(dialog.textContent).toContain("主线停在「问题设定」");
-  fireEvent.click(within(dialog).getByRole("button", { name: "回到主线" }));
-  expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
-  await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("发给论文教练的消息")));
+  const toggle = await screen.findByRole("button", { name: /支线.*预算为什么要相同/ });
+  await waitFor(() => expect(toggle.getAttribute("aria-expanded")).toBe("true"));
+  expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull(); // nothing covers the paper
+  fireEvent.change(screen.getByLabelText("接着问这一页"), { target: { value: "那误差条呢？" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送追问" }));
+  await waitFor(() =>
+    expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "那误差条呢？", intent: "detour", branch_id: "x1" })),
+  );
+});
+
+it("closes a side quest with the reader's own sentence, and the quest log files it under its chapter", async () => {
+  explainerMocks([withExplainer()]);
+  const base = vi.mocked(api).getMockImplementation()!;
+  let quest: any = undefined;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) => {
+    if (path === "coach/branch/x1/quest") {
+      quest = { status: body.status, takeaway: body.takeaway.trim(), closed_at: "t2" };
+      return { branch_id: "x1", quest };
+    }
+    if (path === "coach/explainers/p") {
+      const [first] = (await base(path)).data;
+      return { data: [{ ...first, gist: "先说结论。", quest }] };
+    }
+    if (path.startsWith("coach/conversation/"))
+      return { ...(await base(path)), reading_flow: {
+        status: "active", current: "model", label: "问题设定",
+        steps: [{ id: "orient", label: "定位" }, { id: "model", label: "问题设定" }],
+        completed: [{ step: "orient", page_index: 0, takeaway: "这篇在比两种观测策略。" }],
+        pending_question: "", choices: [],
+      } };
+    return base(path, body);
+  });
+  view();
+  fireEvent.click(await screen.findByRole("button", { name: /支线.*预算为什么要相同/ }));
+  const box = await screen.findByRole("group", { name: "支线任务" });
+  fireEvent.click(within(box).getByRole("button", { name: /我弄懂了/ }));
+  const mine = "  预算不同，所以不能直接比  ";
+  fireEvent.change(within(box).getByLabelText(/用一句话写下/), { target: { value: mine } });
+  fireEvent.click(within(box).getByRole("button", { name: /记下，支线完成/ }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/branch/x1/quest", { status: "done", takeaway: mine }));
+  expect(await screen.findByText(/支线完成：已弄懂/)).toBeTruthy();
+  expect(screen.getByText("已弄懂", { selector: ".xp-card-status" })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: /任务日志/ }));
+  const log = await screen.findByRole("dialog", { name: "任务日志" });
+  expect(within(log).getByText(/主线 1\/2 章 · 支线 1 条（弄懂 1）/)).toBeTruthy();
+  const chapter = within(log).getByRole("list", { name: "第 2 章的支线" });
+  expect(within(chapter).getByText("我的收获：" + mine.trim())).toBeTruthy();
+  expect(within(log).getByText("收获：这篇在比两种观测策略。")).toBeTruthy();
+  expect(within(log).queryByText(/分|XP|掌握度/)).toBeNull();
+  // A side quest in the log opens its page in the conversation.
+  fireEvent.click(within(chapter).getByRole("button", { name: /预算为什么要相同/ }));
+  expect(screen.queryByRole("dialog", { name: "任务日志" })).toBeNull();
+});
+
+it("parks a side quest without calling it a failure", async () => {
+  explainerMocks([withExplainer()]);
+  const base = vi.mocked(api).getMockImplementation()!;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) =>
+    path === "coach/branch/x1/quest" ? { branch_id: "x1", quest: { status: body.status, takeaway: "", closed_at: "t" } } : base(path, body));
+  view();
+  fireEvent.click(await screen.findByRole("button", { name: /支线.*预算为什么要相同/ }));
+  fireEvent.click(within(await screen.findByRole("group", { name: "支线任务" })).getByRole("button", { name: /先放一放/ }));
+  expect(await screen.findByText("这条支线先放一放")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "继续这条支线" })).toBeTruthy();
 });
 
 // ---- the coach points at sentences in the PDF ----
@@ -706,6 +771,7 @@ it("turns the pending question into a task with one-tap answers, a hint, and an 
   });
   const onFocus = vi.fn();
   view({ onFocus });
+  fireEvent.click(await screen.findByRole("button", { name: /第 5 章 · 证据核查/ }));
   const task = await screen.findByRole("region", { name: "本轮任务" });
   expect(within(task).getByText("先预测，再对照真实图表。")).toBeTruthy();
   // The figure is part of the reply, not a button that opens a detour panel.
@@ -727,9 +793,39 @@ it("an empty Enter continues the mainline only when nothing waits for an answer"
     return {};
   });
   view();
-  const task = await screen.findByRole("region", { name: "本轮任务" });
-  expect(within(task).getByText("核对输入输出")).toBeTruthy();
+  const strip = await screen.findByRole("button", { name: /第 3 章 · 问题设定/ });
+  expect(strip.textContent).toContain("下一步：核对输入输出");
   await screen.findByText("已连接本机 CLI");
   fireEvent.keyDown(screen.getByLabelText("发给论文教练的消息"), { key: "Enter" });
   await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ intent: "follow" })));
+});
+
+it("draws a mainline reply as a quest card: chapter, source cards, clickable marks, task and completion", async () => {
+  const steps = ["orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall"].map((id, i) => ({ id, label: ["阅读目标", "独特贡献", "问题设定", "方法机制", "证据核查", "边界与判断", "研究启发", "回忆与复习"][i] }));
+  const flow = { status: "active", current: "evidence", label: "证据核查", goal: "g", steps, completed: [], pending_question: "你预测差距还在吗？", choices: ["几乎消失", "仍然明显"] };
+  const reply = {
+    id: "m1", role: "assistant", intent: "follow", step: "evidence", status: "completed",
+    content: "预算相同，差距只剩 2。\n\n先看 ①，再回答。",
+    actions: [focus("f1", 1)],
+    task: { question: "你预测差距还在吗？", choices: ["几乎消失", "仍然明显"] },
+    completed_step: { step: "model", label: "问题设定", takeaway: "输入是历史读数。", page_index: 0 },
+  };
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, messages: [reply], reading_flow: flow };
+    if (path.startsWith("coach/send/")) return { conversation_id: "c" };
+    return {};
+  });
+  const onFocus = vi.fn();
+  view({ onFocus });
+  expect(await screen.findByText("主线 · 第 5/8 章")).toBeTruthy();
+  fireEvent.click(screen.getByTitle("在 PDF 里看这一句"));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "click");
+  onFocus.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "①" }));
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "f1" }), "click");
+  expect(screen.getByRole("status").textContent).toContain("收获：输入是历史读数。");
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.click(within(screen.getByRole("group", { name: "快速回答" })).getByRole("button", { name: "仍然明显" }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "仍然明显", intent: "answer" })));
 });

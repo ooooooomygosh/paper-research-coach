@@ -419,6 +419,18 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     def coach_explainer(explainer_id: str):
         return coach.explainer(explainer_id)
 
+    @app.get("/api/coach/journey/{paper_id}")
+    def coach_journey(paper_id: str):
+        from . import journey
+
+        return journey.build(store, paper_id)
+
+    @app.post("/api/coach/branch/{branch_id}/quest")
+    async def coach_branch_quest(branch_id: str, request: Request):
+        # The reader closes or parks a side quest from the page; there is no model tool for this.
+        data = await request.json()
+        return await asyncio.to_thread(coach.set_quest, branch_id, str(data.get("status", "")), str(data.get("takeaway", "")))
+
     @app.post("/api/coach/explain/{paper_id}")
     async def coach_explain(paper_id: str, request: Request):
         data = await request.json()

@@ -47,7 +47,7 @@ export default function MainlineFigure({ id, rev, onAnswer, disabled, onOpen }: 
         </span>
       </figcaption>
       <div className="xp-inline-body">
-        <ExplainerView doc={record.doc} onAnswer={onAnswer} disabled={disabled} />
+        <ExplainerView doc={record.doc} onAnswer={onAnswer} disabled={disabled} compact />
       </div>
     </figure>
   );

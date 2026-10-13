@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc12"
+  version: "2.0.0rc13"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -53,11 +53,13 @@ Reading reconstructs the author's web of thought; it is not replaying the text l
 
 Aim to move the learner up one level of reading per round: passive → active → critical → creative. Pick one critical question (right problem? a simpler solution not considered? data enough and read reasonably? a flaw in the reasoning?) or one creative question (what is the good idea, what did the authors miss, what could I do now) at a time. Use Hua Gang's ten questions as a coverage check for a full round, not a quiz; questions 9 (the contribution in the learner's own words) and 10 (what to do next) must be answered by the learner first. When stuck, decide whether the gap blocks the current judgment: if yes, isolate it and give a minimal example; if not, park it as a concept to look up after the passage.
 
-## Questions open a branch
+## Questions open a side quest
 
-When the learner asks a concrete question or a technical detail (a concept, mechanism, equation, figure, flow, comparison, implementation detail), answer it in a **branch explainer panel** beside the paper, not as a long chat message. Load [branch.md](references/branch.md). In the workbench, call `prc_explain` with a short Markdown draft: conclusion first, 3 to 6 small panels, diagrams and tables written as components. In Claude Code or Codex with `prc` available and the workbench running, use `prc explain --paper ID --file draft.md`. Never hand-write HTML, CSS or SVG. After the panel opens, write only one or two plain sentences in chat.
+When the learner asks a concrete question or a technical detail (a concept, mechanism, equation, figure, flow, comparison, implementation detail), answer it as an **explainer page**, not as a long chat message. Load [branch.md](references/branch.md). In the workbench, call `prc_explain` with a short Markdown draft: conclusion first, 3 to 6 small lettered panels (`{span=2}` for a wide diagram), diagrams and tables written as components. The page opens as a **side-quest card inside the conversation**; the learner can fold it, enlarge it beside the paper, pop it out or download it as one HTML file. In Claude Code or Codex with `prc` available and the workbench running, use `prc explain --paper ID --file draft.md`. Never hand-write HTML, CSS or SVG. After the page opens, write only one or two plain sentences in chat.
 
-A branch never advances the mainline: complete no step, change no pending question, and do not push the learner back. The panel has a one-click **回到主线** button that leaves the mainline where it was. Follow-up questions inside the panel stay in the same branch as new pages. A one-word gloss or a yes/no question gets a one- or two-sentence chat answer instead. Without the workbench, give the same structure in text.
+A side quest never advances the mainline: complete no step, change no pending question, and do not push the learner back. Follow-up questions, including a follow-up on one panel, stay in the same side quest as new pages. Only the learner closes a side quest (“我弄懂了” with one sentence in their own words, or “先放一放”); never claim it is done for them. A one-word gloss or a yes/no question gets a one- or two-sentence chat answer instead. Without the workbench, give the same structure in text.
+
+The eight steps are the **eight mainline chapters**; side quests hang under the chapter where they were asked. The quest log and the **journey tree** (a review of the whole reading: chapters, marked passages, the learner's verbatim answers, takeaways, side quests, notes) are built from saved records only. There are no points, levels or mastery scores. When chapter 8 is complete, point the learner to the journey tree instead of rewriting it.
 
 Mainline turns (continue, answer) never open a branch panel, but one may carry **one small figure inside the reply** (`prc_explain` with `place: chat`, 1 to 3 panels) when a mechanism, a flow or an evidence table is clearer drawn than told. When the step asks the learner to predict or recall first, wait for their answer before drawing the figure, so the picture does not give the answer away.
 
@@ -100,7 +102,7 @@ On “继续”, fetch current context first, notice thoughts added in the workb
 
 - [workbench.md](references/workbench.md): CLI, transactional notes, local UI, Zotero.
 - [coaching.md](references/coaching.md): dialogue and scaffolding.
-- [branch.md](references/branch.md): branch explainer panel, draft syntax, components, return to mainline.
+- [branch.md](references/branch.md): side quests and explainer pages, draft syntax, components, panel layout, how a side quest ends.
 - [style.md](references/style.md): plain, human wording adapted from ASD-STE100.
 - [reading-flow.md](references/reading-flow.md): complete per-paper route, detours, return points and completion.
 - [questions.md](references/questions.md): non-linear reading order, four reading stages, critical and creative questions, the ten-question template, getting unstuck.
