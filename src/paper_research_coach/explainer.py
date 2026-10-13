@@ -120,7 +120,7 @@ def parse_draft(text: str) -> Draft:
             flush()
             if len(panels) >= MAX_PANELS:
                 raise DraftError(f"too many panels (max {MAX_PANELS}); cut panels or split the answer", i + 1)
-            panel = {"title": ATTRS.sub("", heading.group(1)).strip(), "blocks": []}
+            panel = {"title": ATTRS.sub("", heading.group(1)).strip(), "blocks": [], **panel_attrs(heading.group(1))}
             panels.append(panel)
             current = panel["blocks"]
         else:
@@ -144,6 +144,19 @@ def parse_draft(text: str) -> Draft:
         "panels": panels,
     }
     return Draft(doc=doc, warnings=lint(doc))
+
+
+def panel_attrs(heading: str) -> dict:
+    """`## Title {span=2 meta="note" bare}`: layout hints for one panel (am's syntax)."""
+    found = ATTRS.search(heading)
+    text = found.group(0) if found else ""
+    span = re.search(r"\bspan\s*=\s*(\d+)", text)
+    meta = re.search(r'\bmeta\s*=\s*"([^"]{0,80})"', text)
+    return {
+        "span": 2 if span and int(span.group(1)) >= 2 else 1,
+        "meta": meta.group(1).strip() if meta else "",
+        "bare": bool(re.search(r"\bbare\b", text)),
+    }
 
 
 def detect_lang(text: str) -> str:

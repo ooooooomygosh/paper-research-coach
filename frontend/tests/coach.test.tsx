@@ -632,17 +632,20 @@ const withExplainer = (id = "x1") => ({
   actions: [{ kind: "explainer", id, branch_id: id, label: "讲解 · 预算为什么要相同", rev: "t" }],
 });
 
-it("does not pop old branches open on reload, but offers them in the chat", async () => {
+it("keeps old explainer pages folded on reload; one click opens the page in the conversation", async () => {
   explainerMocks([withExplainer()]);
   view();
-  await screen.findByRole("button", { name: "讲解 · 预算为什么要相同" });
+  const toggle = await screen.findByRole("button", { name: /支线.*预算为什么要相同/ });
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "讲解 · 预算为什么要相同" }));
-  const dialog = await screen.findByRole("dialog", { name: "讲解面板" });
-  expect(await within(dialog).findByText("预算为什么要相同")).toBeTruthy();
+  fireEvent.click(toggle);
+  expect(await screen.findByText("先说结论。")).toBeTruthy();
+  // The side panel is still one click away.
+  fireEvent.click(screen.getByRole("button", { name: "放大到侧边" }));
+  expect(await screen.findByRole("dialog", { name: "讲解面板" })).toBeTruthy();
 });
 
-it("opens a branch panel when the coach finishes a new explanation, and one click returns to the mainline composer", async () => {
+it("opens a new explainer page inside the conversation, and a follow-up stays in the same branch", async () => {
   const { stream } = explainerMocks([]);
   view();
   await screen.findByText("已连接本机 CLI");
@@ -650,11 +653,14 @@ it("opens a branch panel when the coach finishes a new explanation, and one clic
   await act(async () => {
     stream.emit!({ ...snapshot, messages: [withExplainer()] });
   });
-  const dialog = await screen.findByRole("dialog", { name: "讲解面板" });
-  expect(dialog.textContent).toContain("主线停在「问题设定」");
-  fireEvent.click(within(dialog).getByRole("button", { name: "回到主线" }));
-  expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull();
-  await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("发给论文教练的消息")));
+  const toggle = await screen.findByRole("button", { name: /支线.*预算为什么要相同/ });
+  await waitFor(() => expect(toggle.getAttribute("aria-expanded")).toBe("true"));
+  expect(screen.queryByRole("dialog", { name: "讲解面板" })).toBeNull(); // nothing covers the paper
+  fireEvent.change(screen.getByLabelText("接着问这一页"), { target: { value: "那误差条呢？" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送追问" }));
+  await waitFor(() =>
+    expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "那误差条呢？", intent: "detour", branch_id: "x1" })),
+  );
 });
 
 // ---- the coach points at sentences in the PDF ----

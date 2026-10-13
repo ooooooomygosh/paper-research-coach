@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import BranchPanel from "./explainer/BranchPanel";
 import MainlineFigure from "./explainer/MainlineFigure";
+import ExplainerCard from "./explainer/ExplainerCard";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
@@ -131,6 +132,8 @@ export default function CoachPanel({
   const [routeOpen, setRouteOpen] = useState(false);
   // An open branch explainer: a reader's question answered beside the paper.
   const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
+  // Explainer pages live in the conversation as cards: which ones are open.
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
   const latestFocus = useRef(onFocus);
@@ -249,11 +252,20 @@ export default function CoachPanel({
       seenExplainers.current = new Set(found.map((a) => a.id));
       return;
     }
-    const fresh = found.filter((a) => !seenExplainers.current!.has(a.id));
-    fresh.forEach((a) => seenExplainers.current!.add(a.id));
+    const fresh = found.filter((a) => !seenExplainers.current!.has(a.id) && !a.mainline);
+    found.forEach((a) => seenExplainers.current!.add(a.id));
     if (fresh.length) {
+      // A new page opens in place, in the conversation; older pages of the same question fold up.
       const last = fresh[fresh.length - 1];
-      setBranch({ branchId: last.branch_id, pageId: last.id });
+      setOpenCards((open) => {
+        const next = { ...open };
+        for (const a of found) if (a.branch_id === last.branch_id) next[a.id] = false;
+        next[last.id] = true;
+        return next;
+      });
+      requestAnimationFrame(() =>
+        document.getElementById("xp-card-" + last.id)?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
+      );
     }
   }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
   useEffect(() => {
@@ -291,6 +303,7 @@ export default function CoachPanel({
     content = text,
     retry = false,
     intent = effectiveIntent as string,
+    branchId = "",
   ) {
     if (
       snapshot.read_only ||
@@ -324,6 +337,7 @@ export default function CoachPanel({
             model,
             effort,
             page_image: intent !== "follow" && includeImage ? pageImage() : "",
+            branch_id: branchId,
           };
       if (!body) return;
       // Persist the exact request before crossing the network.
@@ -956,6 +970,24 @@ export default function CoachPanel({
             </div>
             {m.error && <p className="coach-error">{m.error}</p>}
             {(m.actions || [])
+              .filter((a) => a.kind === "explainer" && !a.mainline)
+              .map((a) => (
+                <div key={a.id} id={"xp-card-" + a.id}>
+                  <ExplainerCard
+                    id={a.id}
+                    rev={a.rev}
+                    branchId={a.branch_id}
+                    paperTitle={paper.title}
+                    expanded={!!openCards[a.id]}
+                    onToggle={(open) => setOpenCards((all) => ({ ...all, [a.id]: open }))}
+                    disabled={unavailable || !!snapshot.read_only}
+                    onAsk={(question, branchId) => void send(question, false, "detour", branchId)}
+                    onEnlarge={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
+                    onPopout={() => openWindow(a.branch_id, a.id)}
+                  />
+                </div>
+              ))}
+            {(m.actions || [])
               .filter((a) => a.kind === "explainer" && a.mainline)
               .map((a) => (
                 <MainlineFigure
@@ -967,12 +999,12 @@ export default function CoachPanel({
                   onOpen={() => openWindow(a.branch_id, a.id)}
                 />
               ))}
-            {m.actions?.some((a) => !(a.kind === "explainer" && a.mainline)) ? (
+            {m.actions?.some((a) => a.kind !== "explainer") ? (
               <div className="coach-actions">
                 {m.actions!
                   .filter(
                     (a, i, all) =>
-                      !(a.kind === "explainer" && a.mainline) &&
+                      a.kind !== "explainer" &&
                       all.findIndex(
                         (b) => b.id === a.id && b.label === a.label,
                       ) === i,

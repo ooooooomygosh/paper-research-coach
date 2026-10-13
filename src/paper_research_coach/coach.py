@@ -1287,7 +1287,7 @@ class Coach:
         if not replace_id:
             self.save_message({
                 "id": message_id, "conversation_id": conversation["id"], "role": "assistant",
-                "content": "已打开讲解面板：" + record["title"], "created_at": now(), "status": "completed",
+                "content": "已打开讲解页：" + record["title"], "created_at": now(), "status": "completed",
                 "intent": "detour", "actions": [self.explainer_action(record)], "error": "",
             })
         else:

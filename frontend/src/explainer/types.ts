@@ -63,7 +63,8 @@ export type ExplainerDoc = {
   subtitle: string;
   lang: string;
   lead: Block[];
-  panels: { title: string; blocks: Block[] }[];
+  /** span 2 = full width in the grid; meta = small text in the title bar; bare = no title bar. */
+  panels: { title: string; blocks: Block[]; span?: number; meta?: string; bare?: boolean }[];
 };
 export type ReturnPoint = {
   status: string;
