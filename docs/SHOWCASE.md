@@ -6,6 +6,17 @@ The showcase is the actual built workbench, not a marketing mockup. The paper, v
 
 The committed WebPs are 1440-pixel-wide copies of the desktop captures: `reading.webp`, its dark-theme twin `reading-dark.webp` (the README picks one with `<picture>`), `welcome.webp` and `annotations.webp` from the PDF annotation check. Full-size desktop, welcome, import-dialog and narrow-viewport PNGs are available in the `reading-showcase` artifact of [Reading browser checks](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/showcase.yml), retained for 14 days. The script below recreates them after artifact expiry.
 
+The README also uses `mainline.webp` / `mainline-dark.webp` (the mainline task card after the coach turned the PDF to a marked sentence), `branch.webp` / `branch-dark.webp` (the explainer panel) and `demo.webp`, a four-frame animated WebP of the same scripted scene (task card → page turned and sentence ① marked → the figure in the reply expanded → back to the earlier page). The captions in the demo are drawn by the browser on top of the real page and say that the replies are scripted. All of them come from `scripts/capture_showcase.py`.
+
+The reading-loop diagrams (`loop.svg`, `loop-dark.svg`, `loop-en.svg`, `loop-en-dark.svg`) and the repository's social preview (`social-preview.png`, 1280×640) are drawn by `scripts/readme_art.py` from text and the mainline screenshot:
+
+```bash
+python scripts/readme_art.py                                  # the loop diagrams
+python scripts/readme_art.py --social --chromium "$CHROMIUM"  # also the social preview (needs Playwright)
+```
+
+GitHub does not read the social preview from the repository: upload `docs/images/social-preview.png` in **Settings → General → Social preview**.
+
 ## First reading
 
 ![Welcome screen from the same built workbench](images/welcome.webp)

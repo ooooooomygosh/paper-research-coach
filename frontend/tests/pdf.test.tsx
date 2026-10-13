@@ -287,6 +287,10 @@ it("reports the page under the reading line while scrolling, and scrolls to jump
   box.scrollTop = 1500; // the reading line at 1700 is on the third page
   fireEvent.scroll(box);
   await waitFor(() => expect(setPage).toHaveBeenCalledWith(2, "scroll"));
+  // The saved spot pairs the new page with this scroll offset (page 3 starts at 1628).
+  const saved = JSON.parse(localStorage.getItem(key)!);
+  expect(saved.page).toBe(2);
+  expect(saved.frac).toBeCloseTo((1500 - 1628) / 800, 2);
   setPage.mockClear();
   view.rerender(<PdfReader {...props} page={1} />);
   await waitFor(() => expect(box.scrollTop).toBe(814));
@@ -364,7 +368,7 @@ it("zooms with trackpad pinch events but leaves ordinary wheel scrolling native"
 it("draws numbered coach marks and offers one click back to the earlier page", async () => {
   const setPage = vi.fn(), dismiss = vi.fn(), stop = vi.fn();
   render(<PdfReader paper={{ id: "marks", source_version: "v", revision: 1, page_count: 3 }} page={1} setPage={setPage} onAnchor={vi.fn()} focusAnchor={null}
-    coachMarks={{ page_index: 1, marks: [{ n: 1, rects: [[100, 200, 160, 260]] }, { n: 2, rects: [[100, 300, 160, 320]] }] }}
+    coachMarks={{ page_index: 1, reveal: true, marks: [{ n: 1, rects: [[100, 200, 160, 260]] }, { n: 2, rects: [[100, 300, 160, 320]] }] }}
     returnTo={{ page: 0, to: 1, key: "f1" }} onDismissReturn={dismiss} onFollowCoach={stop} />);
   await waitFor(() => expect(document.querySelectorAll('.pdf-page[data-slot="1"] .coach-mark')).toHaveLength(2));
   expect(document.querySelector(".coach-mark-n")!.textContent).toBe("1");
@@ -396,4 +400,11 @@ it("keeps the reader on the same page after switching to another rendition", asy
   box.scrollTop = 0; // a browser resets the scroll while the old document is removed
   await waitFor(() => expect(document.querySelector('.pdf-page[data-derived="job:mono"]')).toBeTruthy());
   await waitFor(() => expect(box.scrollTop).toBe(814));
+});
+
+it("draws restored coach marks without pulling the reader to them", async () => {
+  render(<PdfReader paper={{ id: "restore", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()} focusAnchor={null}
+    coachMarks={{ page_index: 1, marks: [{ n: 1, rects: [[100, 200, 160, 260]] }] }} />);
+  await waitFor(() => expect(document.querySelectorAll('.pdf-page[data-slot="1"] .coach-mark')).toHaveLength(1));
+  expect(HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
 });

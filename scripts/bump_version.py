@@ -2,7 +2,7 @@
 
 Usage: python scripts/bump_version.py 2.0.0rc10
 
-Updates pyproject.toml, the package, SKILL.md, the plugin marketplace and the
+Updates pyproject.toml, the package, SKILL.md, CITATION.cff, the plugin marketplace and the
 frontend package files, and turns CHANGELOG "Unreleased" into the new version.
 Merging the result to main lets CI publish the matching GitHub release.
 """
@@ -30,6 +30,9 @@ def sub(path, pattern, replacement, count=1):
 sub("pyproject.toml", r'^version = "[^"]+"', f'version = "{version}"')
 sub("src/paper_research_coach/__init__.py", r'^__version__ = "[^"]+"', f'__version__ = "{version}"')
 sub("skills/paper-research-coach/SKILL.md", r'^  version: "[^"]+"', f'  version: "{version}"')
+sub("CITATION.cff", r'^version: "[^"]+"', f'version: "{version}"')
+from datetime import date
+sub("CITATION.cff", r'^date-released: "[^"]+"', f'date-released: "{date.today().isoformat()}"')
 market = root / ".claude-plugin/marketplace.json"
 data = json.loads(market.read_text(encoding="utf-8"))
 data["metadata"]["version"] = version

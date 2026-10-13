@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use or discuss Paper Research Coach, please cite it as below."
+title: "Paper Research Coach"
+abstract: >-
+  A source-grounded paper-reading coach: a local PDF workbench and a portable
+  agent Skill that takes the reader to the sentence in the paper, gives one
+  small task at a time and keeps the reader's own judgment and words.
+type: software
+authors:
+  - alias: ooooooomygosh
+repository-code: "https://github.com/ooooooomygosh/paper-research-coach"
+url: "https://github.com/ooooooomygosh/paper-research-coach"
+license: MIT
+version: "2.0.0rc12"
+date-released: "2026-10-13"
+keywords:
+  - paper reading
+  - research training
+  - PDF reader
+  - agent skill
+  - learning science

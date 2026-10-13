@@ -28,7 +28,7 @@ async function linkTarget(doc: PDFDocumentProxy, dest: any): Promise<{ page: num
 /** One page of the scrolling stack. Draws only while `active`; otherwise keeps its size as a placeholder. */
 function PdfPage({
   doc, index, zoom, width, height, active, paperId, sourceVersion, derived,
-  notes, focusRects, draftRects, marks, region, searchTerm,
+  notes, focusRects, draftRects, marks, revealMarks = false, region, searchTerm,
   onBaseSize, onReady, onScan, onRegion, onLink, suppressUntil,
 }: {
   doc: PDFDocumentProxy;
@@ -44,6 +44,7 @@ function PdfPage({
   focusRects: number[][];
   draftRects: number[][];
   marks: Mark[];
+  revealMarks?: boolean;
   region: boolean;
   searchTerm: string;
   onBaseSize: (index: number, width: number, height: number) => void;
@@ -136,7 +137,7 @@ function PdfPage({
   const shown = useRef<unknown>(null);
   useEffect(() => {
     if (!viewport) return;
-    const target = focusRects.length ? focusRects : marks.length ? marks : null;
+    const target = focusRects.length ? focusRects : marks.length && revealMarks ? marks : null;
     if (!target || shown.current === target) return;
     shown.current = target;
     element.current?.querySelector(focusRects.length ? ".anchor-highlight" : ".coach-mark")?.scrollIntoView({ block: "center", inline: "nearest" });
