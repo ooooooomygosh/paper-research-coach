@@ -318,3 +318,21 @@
   border-radius: 50%;
   background: var(--green-soft);
 }
+
+/* The mainline as one task at a time, above the message box. */
+.task-card { margin: 0 0 8px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--green-soft) 45%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--tint-strong) 22%, var(--surface)); font-size: 13px; line-height: 1.5; }
+.task-card header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.task-step { font-size: 11px; font-weight: 600; color: var(--green); letter-spacing: .02em; }
+.task-look { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+.task-look button { padding: 1px 8px; border-radius: 999px; font-size: 11px; border-color: color-mix(in srgb, #4f8cc9 40%, transparent); }
+.task-look button::before { content: "◎ "; color: #4f8cc9; }
+.task-do { margin: 2px 0; color: var(--text); }
+.task-do b, .task-check b { display: inline-block; margin-right: 6px; font-size: 11px; font-weight: 600; color: var(--green); }
+.task-check { margin: 2px 0 0; font-size: 12px; color: var(--text-2); }
+.task-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.task-choices button { padding: 5px 10px; border-radius: 999px; font-size: 12px; text-align: left; }
+.task-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.task-actions button { padding: 4px 10px; font-size: 12px; }
+.reading-takeaway { margin: 2px 0 0; font-size: 12px; color: var(--text); }
+.paper-card-done { margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--tint-strong) 25%, transparent); }
+.paper-card-done p { margin: 2px 0 6px; }

@@ -139,3 +139,22 @@ def test_comment_keeps_region_note_discussed_without_changing_its_location(store
     assert saved["anchor"] == note["anchor"]
     assert saved["content"] == note["content"]
     assert not store.context(paper["id"])["pending_thoughts"]
+
+
+def test_choices_and_takeaways_are_saved_with_the_mainline(store, paper, pdf):
+    start(store, paper)
+    coach = Coach(store, FakeRPC)
+    state = turn(coach, paper, "follow")
+    coach.tool_call(state, "prc_next_action", {"next_action": "Predict", "pending_question": "Which is fairer?",
+                                               "stage": "orient", "choices": ["Same budget", " Twice the budget ", "x" * 200]}, "n1")
+    session = store.list("session", paper["id"])[0]
+    assert session["choices"] == ["Same budget", "Twice the budget", "x" * 80]
+    # One option is not a choice; it is dropped.
+    coach.tool_call(state, "prc_next_action", {"next_action": "a", "pending_question": "Open question?", "stage": "orient", "choices": ["only"]}, "n2")
+    assert store.list("session", paper["id"])[0]["choices"] == []
+    coach.tool_call(state, "prc_read_page", {"page_index": 0}, "r1")
+    coach.tool_call(state, "prc_complete_reading_step", {"step": "orient", "evidence": "Budget-matched claim on p1",
+                                                         "page_index": 0, "takeaway": "我要判断  提升是不是来自预算。"}, "c1")
+    session = store.list("session", paper["id"])[0]
+    receipt = session["reading_flow"]["completed"][0]
+    assert receipt["takeaway"] == "我要判断 提升是不是来自预算。" and session["choices"] == []

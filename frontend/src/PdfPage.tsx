@@ -68,7 +68,7 @@ function PdfPage({
       onReady(index, null);
       return;
     }
-    let disposed = false, render: any, text: any;
+    let disposed = false, render: any;
     setError(false);
     doc.getPage(index + 1).then(async (p) => {
       if (disposed) return;
@@ -88,7 +88,7 @@ function PdfPage({
       const layer = document.createElement("div");
       layer.className = "textLayer";
       layer.style.setProperty("--total-scale-factor", String(zoom));
-      text = new TextLayer({ textContentSource: content, container: layer, viewport: v });
+      const text = new TextLayer({ textContentSource: content, container: layer, viewport: v });
       const annotations: any[] = typeof p.getAnnotations === "function" ? await p.getAnnotations({ intent: "display" }).catch(() => []) : [];
       await Promise.all([text.render(), render.promise]);
       if (disposed) return;
@@ -113,8 +113,9 @@ function PdfPage({
     });
     return () => {
       disposed = true;
+      // Only the canvas is cancelled: TextLayer.cancel() in pdf.js 6 can throw from a pending
+      // stream read, and an unfinished layer is still detached, so it can finish into nothing.
       render?.cancel();
-      text?.cancel();
     };
   }, [doc, index, zoom, active]);
 

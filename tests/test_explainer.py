@@ -153,13 +153,29 @@ def test_coach_tool_returns_fixable_errors_and_style_hints(store, paper):
     assert result["style_warnings"] and "replace_id=" + result["id"] in result["next"]
 
 
-def test_the_mainline_follow_turn_cannot_open_a_branch_and_calls_are_capped(store, paper):
+def test_the_mainline_gets_one_inline_figure_but_never_a_branch_and_calls_are_capped(store, paper):
     start(store, paper)
     coach = Coach(store, FakeRPC)
     follow = turn(coach, paper, "follow")
     follow.update(message={"content": "", "anchor": None}, explains=0, branch_id="")
-    with pytest.raises(ValueError, match="主线"):
-        coach.tool_call(follow, "prc_explain", {"draft": DRAFT}, "c")
+    with pytest.raises(ValueError, match="不开插话面板"):
+        coach.tool_call(follow, "prc_explain", {"draft": DRAFT, "place": "panel"}, "c")
+    figure = coach.tool_call(follow, "prc_explain", {"draft": DRAFT}, "c1")
+    assert figure["place"] == "chat"
+    action = follow["answer"]["actions"][-1]
+    assert action["mainline"] and action["label"].startswith("图解 · ")
+    record = coach.explainer(figure["id"], paper["id"])
+    assert record["origin"] == "mainline" and record["question"] == ""
+    # A rewrite of the same figure is fine; a second figure is not.
+    coach.tool_call(follow, "prc_explain", {"draft": DRAFT, "replace_id": figure["id"]}, "c2")
+    with pytest.raises(ValueError, match="一张图解"):
+        coach.tool_call(follow, "prc_explain", {"draft": DRAFT}, "c3")
+    # The mainline figure does not count as a branch panel, and a detour cannot put one in the chat.
+    assert follow["explains"] == 0
+    question = turn(coach, paper, "detour")
+    question.update(message={"content": "q", "anchor": None}, explains=0, branch_id="")
+    with pytest.raises(ValueError, match="place=panel"):
+        coach.tool_call(question, "prc_explain", {"draft": DRAFT, "place": "chat"}, "c4")
     detour = turn(coach, paper, "detour")
     detour.update(message={"content": "q", "anchor": None}, explains=3, branch_id="")
     with pytest.raises(ValueError, match="3 次"):

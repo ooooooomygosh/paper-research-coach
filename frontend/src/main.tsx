@@ -983,6 +983,7 @@ export function App() {
                           if (kind === "idea") setTab("ideas");
                           else if (kind === "review") setTab("review");
                           else if (kind === "note") openTools("notes");
+                          else if (kind === "export") setTab("export");
                         }}
                         refresh={() => void refresh()}
                         report={report}

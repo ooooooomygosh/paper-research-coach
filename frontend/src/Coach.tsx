@@ -13,6 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import BranchPanel from "./explainer/BranchPanel";
+import MainlineFigure from "./explainer/MainlineFigure";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
@@ -433,15 +434,27 @@ export default function CoachPanel({
     setBranch(null);
     requestAnimationFrame(() => composer.current?.focus());
   };
-  const popoutBranch = () => {
-    if (!branch) return;
+  const openWindow = (branchId: string, pageId: string) =>
     window.open(
-      `/#branch=${encodeURIComponent(branch.branchId)}&page=${encodeURIComponent(branch.pageId)}&paper=${encodeURIComponent(paper.id)}`,
-      "prc-branch-" + branch.branchId,
+      `/#branch=${encodeURIComponent(branchId)}&page=${encodeURIComponent(pageId)}&paper=${encodeURIComponent(paper.id)}`,
+      "prc-branch-" + branchId,
       "popup=yes,width=900,height=900",
     );
+  const popoutBranch = () => {
+    if (!branch) return;
+    openWindow(branch.branchId, branch.pageId);
     setBranch(null);
   };
+  // The places the coach's latest reply pointed at: the task card's "look here".
+  const lastFocus = (() => {
+    for (let i = snapshot.messages.length - 1; i >= 0; i--) {
+      const m = snapshot.messages[i];
+      if (m.role !== "assistant") continue;
+      return (m.actions || []).filter((a) => a.kind === "focus");
+    }
+    return [] as any[];
+  })();
+  const ask = (content: string) => void send(content, false, "answer");
   const reconnect = async () => {
     try {
       setStatus(await api("coach/reconnect", {}));
@@ -507,6 +520,7 @@ export default function CoachPanel({
             >
               {receipt ? "✓ " : ""}
               {step.label}
+              {receipt?.takeaway && <p className="reading-takeaway">{receipt.takeaway}</p>}
               {receipt && (
                 <details className="reading-receipt">
                   <summary>核查依据</summary>
@@ -529,6 +543,13 @@ export default function CoachPanel({
           );
         })}
       </ol>
+      {flowDone && (
+        <div className="paper-card-done">
+          <b>这篇论文卡</b>
+          <p className="small muted">八步的收获连起来，就是这篇论文的复盘。</p>
+          <button onClick={() => onAction("export")}>导出阅读记录</button>
+        </div>
+      )}
       <p className="small muted">核查进度不是掌握度；独立理解要靠不看答案的回忆来检验。</p>
     </div>
   );
@@ -790,15 +811,18 @@ export default function CoachPanel({
             />
           ))}
         </ol>
-        <button
-          className={flowStarted || flowDone ? "coach-continue" : "primary"}
-          disabled={unavailable}
-          onClick={() =>
-            void send(text, false, text.trim() ? "answer" : "follow")
-          }
-        >
-          {mainlineLabel}
-        </button>
+        {/* Once started, the task card below carries the mainline's actions. */}
+        {!flowStarted && (
+          <button
+            className={flowDone ? "coach-continue" : "primary"}
+            disabled={unavailable}
+            onClick={() =>
+              void send(text, false, text.trim() ? "answer" : "follow")
+            }
+          >
+            {mainlineLabel}
+          </button>
+        )}
       </div>
       {routeOpen && route}
       {status?.state === "login_required" && (
@@ -931,11 +955,24 @@ export default function CoachPanel({
               )}
             </div>
             {m.error && <p className="coach-error">{m.error}</p>}
-            {m.actions?.length ? (
+            {(m.actions || [])
+              .filter((a) => a.kind === "explainer" && a.mainline)
+              .map((a) => (
+                <MainlineFigure
+                  key={a.id}
+                  id={a.id}
+                  rev={a.rev}
+                  disabled={unavailable || !!snapshot.read_only}
+                  onAnswer={ask}
+                  onOpen={() => openWindow(a.branch_id, a.id)}
+                />
+              ))}
+            {m.actions?.some((a) => !(a.kind === "explainer" && a.mainline)) ? (
               <div className="coach-actions">
-                {m.actions
+                {m.actions!
                   .filter(
                     (a, i, all) =>
+                      !(a.kind === "explainer" && a.mainline) &&
                       all.findIndex(
                         (b) => b.id === a.id && b.label === a.label,
                       ) === i,
@@ -1090,11 +1127,19 @@ export default function CoachPanel({
             {anchorQuote(anchor)}
           </blockquote>
         )}
-        {flowStarted && flow?.pending_question && !anchor && (
-          <p className="coach-pending-question" title={flow.pending_question}>
-            <b>待答</b>
-            {flow.pending_question}
-          </p>
+        {flowStarted && !anchor && !snapshot.read_only && (
+          <TaskCard
+            flow={flow}
+            stepNumber={stepNumber}
+            focus={lastFocus}
+            busy={unavailable}
+            onFocus={(a) => onFocus?.(a, "click")}
+            onChoice={ask}
+            onAnswer={() => composer.current?.focus()}
+            onHint={() => ask("我先要一个提示：只给一条线索，先别告诉我答案。")}
+            onExplain={() => ask("请直接讲给我听，讲完让我用一句话复述。")}
+            onContinue={() => void send("", false, "follow")}
+          />
         )}
         {snapshot.read_only && (
           <button
@@ -1129,7 +1174,9 @@ export default function CoachPanel({
               e.nativeEvent.keyCode !== 229
             ) {
               e.preventDefault();
-              void send();
+              // An empty Enter keeps the mainline moving when nothing is waiting for an answer.
+              if (!text.trim() && flowStarted && !anchor && !flow?.pending_question) void send("", false, "follow");
+              else void send();
             }
           }}
         />
@@ -1209,6 +1256,70 @@ export default function CoachPanel({
           onLocate={onLocate}
         />
       )}
+    </section>
+  );
+}
+
+/** The mainline as one small task at a time: where to look, what to do, what counts as done. */
+function TaskCard({ flow, stepNumber, focus, busy, onFocus, onChoice, onAnswer, onHint, onExplain, onContinue }: {
+  flow: any;
+  stepNumber: string;
+  focus: any[];
+  busy: boolean;
+  onFocus: (a: any) => void;
+  onChoice: (text: string) => void;
+  onAnswer: () => void;
+  onHint: () => void;
+  onExplain: () => void;
+  onContinue: () => void;
+}) {
+  const question = flow?.pending_question || "";
+  const choices: string[] = flow?.choices || [];
+  return (
+    <section className="task-card" aria-label="本轮任务">
+      <header>
+        <span className="task-step">第 {stepNumber.split("/")[0]} 步 · {flow?.label}</span>
+        {focus.length > 0 && (
+          <span className="task-look">
+            看这里
+            {focus.map((a) => (
+              <button key={a.id} type="button" title={(a.marks || []).map((m: any) => m.n + ". " + m.quote).join("\n")} onClick={() => onFocus(a)}>
+                {a.label}
+              </button>
+            ))}
+          </span>
+        )}
+      </header>
+      <p className="task-do">
+        <b>{question ? "你的任务" : "下一步"}</b>
+        {question || flow?.return_action || flow?.goal}
+      </p>
+      {flow?.check && (
+        <p className="task-check" title="完成标准">
+          <b>完成</b>
+          {flow.check}
+        </p>
+      )}
+      {question && choices.length > 1 && (
+        <div className="task-choices" role="group" aria-label="快速回答">
+          {choices.map((c) => (
+            <button key={c} type="button" disabled={busy} onClick={() => onChoice(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="task-actions">
+        {question ? (
+          <>
+            <button type="button" className="primary" disabled={busy} onClick={onAnswer}>回答</button>
+            <button type="button" disabled={busy} onClick={onHint}>给我提示</button>
+            <button type="button" disabled={busy} onClick={onExplain}>直接讲给我</button>
+          </>
+        ) : (
+          <button type="button" className="primary" disabled={busy} onClick={onContinue}>继续 · Enter</button>
+        )}
+      </div>
     </section>
   );
 }

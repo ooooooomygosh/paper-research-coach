@@ -31,3 +31,20 @@ def test_detour_keeps_the_mainline_and_answer_checks_the_learner(store, paper):
     answer = reading.turn_guide(flow, "answer")
     assert "预测" in answer and "原话" in answer and "Q" * 251 not in answer
     assert reading.turn_guide({"status": "not_started"}, "detour") == ""
+
+
+def test_mainline_card_assigns_a_task_with_place_check_and_depth():
+    flow = {"status": "active", "current": "method", "label": "方法机制", "goal": "g", "pending_question": "", "depth": "skim"}
+    card = reading.turn_guide(flow, "follow")
+    assert set(reading.CHECKS) == set(reading.LOOKS) == set(reading.KEYS)
+    assert reading.CHECKS["method"] in card and reading.LOOKS["method"] in card
+    assert "速读" in card and "prc_show" in card and "choices" in card and "takeaway" in card
+    assert "同一条回复里布置下一步" in card
+    assert "研读" in reading.turn_guide({**flow, "depth": "reconstruct"}, "answer")
+
+
+def test_snapshot_exposes_the_task_and_drops_choices_without_a_question(store, paper):
+    session = store.list("session", paper["id"])[0]
+    flow = reading.snapshot({**session, "pending_question": "Which baseline?", "choices": ["A", "B"]}, paper)
+    assert flow["choices"] == ["A", "B"] and flow["check"] == reading.CHECKS["orient"] and flow["look"]
+    assert reading.snapshot({**session, "pending_question": "", "choices": ["A", "B"]}, paper)["choices"] == []

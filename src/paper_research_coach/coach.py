@@ -306,16 +306,17 @@ TOOLS = [
     ),
     tool(
         "prc_explain",
-        "Open a branch explainer panel beside the reading for a concrete question or technical detail. Write a short Markdown draft (3 to 6 panels, conclusion first); the workbench draws it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
-        {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT},
+        "Draw an explanation from a short Markdown draft (conclusion first); the workbench renders it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. place=panel opens a branch panel beside the reading for a reader's concrete question (3 to 6 panels; the default on question turns). place=chat embeds one small mainline figure (1 to 3 panels) in the mainline reply (the default on mainline turns; one per turn). Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
+        {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT, "place": {"type": "string", "enum": ["panel", "chat"]}},
         ["draft"],
     ),
     tool(
         "prc_next_action",
-        "Save one next reading action, pending question and stage. No paper switching or consent changes.",
+        "Save one next reading action, the pending question (the reader's one task) and stage. choices: 2 to 4 short one-tap answers when the task is a prediction or a choice; omit for open questions. No paper switching or consent changes.",
         {
             "next_action": TEXT,
             "pending_question": TEXT,
+            "choices": {"type": "array", "items": {"type": "string", "maxLength": 80}, "maxItems": 4},
             "stage": {
                 "type": "string",
                 "enum": [
@@ -335,11 +336,12 @@ TOOLS = [
     ),
     tool(
         "prc_complete_reading_step",
-        "Complete the current mainline step after discussing real evidence. One step per turn; unavailable during detours. Recall requires a saved learner review attempt. Completion means the reading round was covered, not independent mastery.",
+        "Complete the current mainline step after discussing real evidence. One step per turn; unavailable during detours. Recall requires a saved learner review attempt. takeaway: one sentence the reader keeps, in the reader's own words where possible. Completion means the reading round was covered, not independent mastery.",
         {
             "step": {"type": "string", "enum": list(reading.KEYS)},
             "evidence": TEXT,
             "page_index": {"type": "integer", "minimum": 0},
+            "takeaway": {"type": "string", "maxLength": 400},
         },
         ["step", "evidence", "page_index"],
     ),
@@ -808,6 +810,7 @@ class Coach:
             "read_pages": set(),
             "flow_advanced": False,
             "explains": 0,
+            "figures": 0,
             "shows": 0,
             "branch_id": body.branch_id,
             "source_version": paper["source_version"],
@@ -1053,6 +1056,8 @@ class Coach:
                 **session,
                 **{k: args[k] for k in ("next_action", "pending_question", "stage")},
             }
+            choices = [" ".join(str(c).split())[:80] for c in args.get("choices") or [] if str(c).strip()]
+            data["choices"] = choices[:4] if args["pending_question"].strip() and len(choices) >= 2 else []
             if flow["status"] == "active":
                 data["stage"] = flow["current"]
             mutations.append(
@@ -1072,7 +1077,7 @@ class Coach:
             if args["page_index"] not in state.get("read_pages", set()):
                 raise ValueError("先实际读取该页，再记录阅读步骤。")
             session = self.store.list("session", pid)[0]
-            data = reading.complete(self.store, paper, session, args["step"], args["evidence"], args["page_index"])
+            data = reading.complete(self.store, paper, session, args["step"], args["evidence"], args["page_index"], args.get("takeaway", ""))
             mutations.append({"kind": "session", "data": data, "expected_revision": session["revision"]})
             if data["reading_flow"]["status"] == "completed":
                 mutations.append({"kind": "paper", "data": {**paper, "status": "done"}, "expected_revision": paper["revision"]})
@@ -1157,7 +1162,7 @@ class Coach:
         with self.store.connect() as db:
             rows = db.execute("SELECT data FROM coach_explainers WHERE paper_id=? ORDER BY rowid", (paper_id,)).fetchall()
         return [
-            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point")}
+            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point", "origin")}
             for d in (json.loads(r[0]) for r in rows)
         ]
 
@@ -1214,21 +1219,39 @@ class Coach:
     @staticmethod
     def explainer_action(record):
         # rev lets an open panel notice a replaced page; the label is what the chat shows.
-        return {"kind": "explainer", "id": record["id"], "branch_id": record["branch_id"],
-                "label": "讲解 · " + record["title"][:40], "rev": record["updated_at"]}
+        action = {"kind": "explainer", "id": record["id"], "branch_id": record["branch_id"],
+                  "label": "讲解 · " + record["title"][:40], "rev": record["updated_at"]}
+        if record.get("origin") == "mainline":
+            # A mainline figure is part of the reply itself, not a detour panel.
+            action.update(mainline=True, label="图解 · " + record["title"][:40])
+        return action
 
     def explain_tool(self, state, pid, args, call_id):
-        if state["intent"] == "follow":
-            raise ValueError("主线继续用普通对话讲解；只有读者提出具体问题时才打开讲解面板。")
-        if state["explains"] >= 3:
-            raise ValueError("本轮已调用讲解面板 3 次。保留最后一版，在聊天里说明。")
-        state["explains"] += 1
+        mainline_turn = state["intent"] in ("follow", "answer") and not state.get("branch_id")
+        place = args.get("place") or ("chat" if mainline_turn else "panel")
+        replace_id = args.get("replace_id", "")
+        if replace_id:
+            # A rewrite keeps the page where it is.
+            place = "chat" if self.explainer(replace_id, pid).get("origin") == "mainline" else "panel"
+        if place == "chat" and not mainline_turn:
+            raise ValueError("插话的讲解放在讲解面板里（place=panel）；主线图解只用于主线回合。")
+        if place == "panel" and state["intent"] == "follow":
+            raise ValueError("继续主线时不开插话面板；需要图解时用 place=chat，把图嵌在主线回复里。")
+        if place == "chat":
+            if not replace_id and state.get("figures", 0) >= 1:
+                raise ValueError("主线每轮最多一张图解。保留这一张，其余用文字说明。")
+            state["figures"] = state.get("figures", 0) + (0 if replace_id else 1)
+        else:
+            if state["explains"] >= 3:
+                raise ValueError("本轮已调用讲解面板 3 次。保留最后一版，在聊天里说明。")
+            state["explains"] += 1
         explainer_id = hashlib.sha256((state["answer"]["id"] + call_id).encode()).hexdigest()[:32]
         message = state["message"]
         record = self.save_explainer(
             pid, state["conversation"]["id"], args["draft"], explainer_id=explainer_id, message_id=state["answer"]["id"],
-            branch_id=state.get("branch_id", ""), replace_id=args.get("replace_id", ""),
-            anchor=message.get("anchor"), question=message.get("content", ""),
+            branch_id=state.get("branch_id", "") if place == "panel" else "", replace_id=replace_id,
+            anchor=message.get("anchor"), question=message.get("content", "") if place == "panel" else "",
+            origin="mainline" if place == "chat" else "coach",
         )
         actions = state["answer"]["actions"]
         existing = next((a for a in actions if a.get("id") == record["id"]), None)
@@ -1237,11 +1260,13 @@ class Coach:
         else:
             actions.append(self.explainer_action(record))
         self.save_message(state["answer"])
-        result = {"id": record["id"], "title": record["title"], "opened": True}
+        result = {"id": record["id"], "title": record["title"], "opened": True, "place": place}
         if record["warnings"]:
             result["style_warnings"] = record["warnings"][:8]
             result["next"] = ("Rewrite the flagged lines in plainer words, then call prc_explain again with "
                               f"replace_id={record['id']}. Do this at most twice; keep the last page.")
+        elif place == "chat":
+            result["next"] = "The figure is shown inside your reply. Refer to it in one sentence; do not repeat it in text."
         else:
             result["next"] = "The panel is open. In chat, write one or two plain sentences with the key point; do not repeat the page."
         return result
