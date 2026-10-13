@@ -1,0 +1,548 @@
+/* Branch explainer: a calm reading sheet beside the paper. Tokens only, so dark mode follows. */
+.branch-panel {
+  position: fixed;
+  z-index: 45;
+  top: 16px;
+  right: 16px;
+  width: min(720px, calc(100vw - 32px));
+  height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  box-shadow: 0 10px 55px #253b292b;
+  overflow: hidden;
+  outline: none;
+}
+.branch-panel.standalone {
+  position: static;
+  width: 100%;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+@media (max-width: 700px) {
+  .branch-panel:not(.standalone) {
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+  }
+}
+.branch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 8px;
+}
+.branch-title {
+  min-width: 0;
+}
+.branch-kicker {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.branch-title h2 {
+  margin: 2px 0 0;
+  font-size: 17px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.branch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.branch-icon {
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  padding: 6px;
+}
+.branch-return {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.branch-mainline {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0 16px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.branch-mainline span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* nav is a column in the app shell; the page tabs are a row of small pills. */
+.branch-panel nav.branch-pages {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 0;
+}
+.branch-panel nav.branch-pages button {
+  flex: none;
+  width: auto;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 9px;
+  font-size: 12px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  border-radius: 14px;
+  color: var(--text-2);
+}
+.branch-panel nav.branch-pages button[aria-current="page"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-accent);
+}
+.branch-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 18px 20px;
+}
+.branch-question {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.branch-question b {
+  margin-right: 8px;
+  color: var(--green);
+  font-weight: 600;
+}
+.branch-quote {
+  margin: 0 0 12px;
+  padding: 6px 12px;
+  border-left: 3px solid var(--line-heavy);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.branch-quote button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  font-size: 12px;
+}
+.branch-wait {
+  color: var(--muted);
+  font-size: 13px;
+}
+.branch-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.branch-compose textarea {
+  flex: 1 1 200px;
+  min-height: 54px;
+  max-height: 120px;
+  resize: none;
+}
+.branch-compose .primary {
+  padding: 8px 12px;
+}
+.branch-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* The document */
+.xp-doc {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.xp-subtitle {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+.xp-lead {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--tint);
+  border-radius: 8px;
+  font-size: 15px;
+}
+.xp-lead .xp-prose > :first-child,
+.xp-callout .xp-prose > :first-child {
+  margin-top: 0;
+}
+.xp-lead .xp-prose > :last-child,
+.xp-callout .xp-prose > :last-child {
+  margin-bottom: 0;
+}
+.xp-section {
+  margin: 0 0 18px;
+  padding: 12px 14px 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.xp-section > h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--green);
+}
+.xp-section > * + * {
+  margin-top: 10px;
+}
+.xp-prose p {
+  margin: 0 0 8px;
+}
+.xp-prose ul,
+.xp-prose ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+.xp-prose code {
+  padding: 1px 4px;
+  background: var(--surface-3);
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+.xp-prose pre {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  overflow: auto;
+  background: var(--surface-3);
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.xp-prose pre code {
+  padding: 0;
+  background: none;
+}
+.xp-prose blockquote {
+  margin: 0 0 8px;
+  padding-left: 12px;
+  border-left: 3px solid var(--line-heavy);
+  color: var(--text-2);
+}
+.xp-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+/* The app's global table style is for the wide comparison grid; reset it here. */
+.xp-prose table {
+  border-collapse: collapse;
+  min-width: 0;
+  width: auto;
+  background: transparent;
+  font-size: 13px;
+}
+.xp-prose th,
+.xp-prose td {
+  min-width: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+  white-space: normal;
+  line-height: 1.6;
+}
+.xp-prose th {
+  background: var(--surface-3);
+  color: var(--text);
+  font-weight: 600;
+}
+.xp-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+}
+.xp-badge.ok {
+  background: var(--tint-strong);
+  color: var(--green);
+}
+.xp-badge.no {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.xp-badge.warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+.xp-callout {
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.xp-callout > strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+.xp-callout.ok {
+  border-color: var(--green-soft);
+  background: var(--tint);
+}
+.xp-callout.warn {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+.xp-callout.err {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Diagrams */
+.xp-diagram {
+  overflow-x: auto;
+  padding: 4px 0;
+}
+.xp-diagram svg {
+  display: block;
+  max-width: none;
+  height: auto;
+  margin: 0 auto;
+  font-family: inherit;
+}
+.xp-node rect,
+.xp-node polygon,
+.xp-node path {
+  fill: var(--surface);
+  stroke: var(--line-heavy);
+  stroke-width: 1.2;
+}
+.xp-node text {
+  fill: var(--text);
+}
+.xp-node.hi rect,
+.xp-node.hi polygon,
+.xp-node.hi path {
+  fill: var(--tint);
+  stroke: var(--green);
+  stroke-width: 1.6;
+}
+.xp-edge {
+  stroke: var(--muted);
+  stroke-width: 1.3;
+}
+.xp-edge.dashed {
+  stroke-dasharray: 5 4;
+}
+.xp-arrowhead {
+  fill: var(--muted);
+}
+.xp-edge-bg {
+  fill: var(--surface);
+}
+.xp-edge-label {
+  fill: var(--text-2);
+}
+.xp-group {
+  fill: var(--surface-3);
+  stroke: var(--line-strong);
+  stroke-dasharray: 4 3;
+}
+.xp-group-label {
+  fill: var(--muted);
+}
+.xp-lifeline {
+  stroke: var(--line-strong);
+  stroke-dasharray: 3 4;
+}
+.xp-note rect {
+  fill: var(--warn-bg);
+  stroke: var(--warn-line);
+}
+.xp-note text {
+  fill: var(--warn-text);
+}
+.xp-divider {
+  stroke: var(--line-strong);
+}
+.xp-divider-label {
+  fill: var(--muted);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 8px;
+}
+
+/* Tree, timeline, key-value */
+.xp-tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 18px;
+  border-left: 1px solid var(--line-strong);
+}
+.xp-tree > ul {
+  padding-left: 0;
+  border-left: 0;
+}
+.xp-tree li {
+  position: relative;
+  margin: 4px 0;
+}
+.xp-tree ul ul > li::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 0.9em;
+  width: 12px;
+  border-top: 1px solid var(--line-strong);
+}
+.xp-tree li.hi > .xp-tree-label {
+  font-weight: 600;
+  color: var(--green);
+}
+.xp-tree-note {
+  margin-left: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.xp-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+}
+.xp-timeline li {
+  display: grid;
+  gap: 2px;
+  min-width: 110px;
+  padding-top: 4px;
+}
+.xp-timeline.vertical {
+  display: block;
+  padding-left: 14px;
+  border-left: 2px solid var(--line-strong);
+}
+.xp-timeline.vertical li {
+  position: relative;
+  margin-bottom: 10px;
+}
+.xp-timeline.vertical .xp-dot {
+  position: absolute;
+  left: -21px;
+  top: 8px;
+}
+.xp-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line-heavy);
+}
+.xp-timeline li.hi .xp-dot {
+  background: var(--green);
+}
+.xp-when {
+  font-size: 12px;
+  color: var(--muted);
+}
+.xp-title {
+  font-weight: 600;
+}
+.xp-detail {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.xp-kv {
+  display: grid;
+  gap: 8px 14px;
+  margin: 0;
+}
+.xp-kv dt {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.xp-kv dd {
+  margin: 0;
+}
+.xp-kv .wide dd {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* A decision the reader makes on the page */
+.xp-ask {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-heavy);
+  border-radius: 8px;
+}
+.xp-ask legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+/* The app's global label is a column with a margin (for form fields); an option is a row. */
+.xp-ask label {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 2px 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.xp-ask label.on {
+  background: var(--tint);
+}
+.xp-ask input {
+  flex: none;
+  width: auto;
+  margin: 5px 0 0;
+  padding: 0;
+}
+.xp-ask small {
+  display: block;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.xp-ask em {
+  margin-left: 6px;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--green);
+}
+.xp-ask-send {
+  margin-top: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+}

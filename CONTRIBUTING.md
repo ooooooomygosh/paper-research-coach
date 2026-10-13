@@ -28,6 +28,8 @@ Every merge to `main` publishes a GitHub pre-release named after the package ver
 python scripts/bump_version.py 2.0.0rc11
 ```
 
+The release job also publishes a `SHA256SUMS` file. `prc update`, the workbench's update button and `scripts/install.sh` / `install.ps1` refuse any wheel that does not match it, so never publish a release by hand without that file. The installer scripts are fetched from `main`, not from a release, so changing them needs no version bump; `tests/test_install_script.py` runs `install.sh` against a stub release.
+
 ## Safe examples and screenshots
 
 Use `prc-demo`, never a personal library. The example paper and values are synthetic. Label any scripted AI exchange as scripted, not a model benchmark. Do not expose launch tokens, user paths, private PDFs, credentials or conversation history in a screenshot. Reproduction instructions live in [Showcase](docs/SHOWCASE.md).

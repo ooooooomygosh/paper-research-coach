@@ -39,6 +39,11 @@ def capture(output: Path, executable: str | None = None) -> None:
             coach.save_message({"id": f"showcase-{index}", "conversation_id": conversation,
                                 "role": role, "content": content, "status": "completed",
                                 "anchor": source, "intent": "detour"})
+        # A scripted branch explainer, labelled as such in its own subtitle.
+        draft = (Path(__file__).resolve().parents[1] / "tests/fixtures/explainers/budget-zh.md").read_text(encoding="utf-8")
+        coach.explain_external(paper["id"], draft.replace("subtitle: 先对齐预算，再比较效果", "subtitle: 预设讲解示例 · 非实时模型回复"),
+                               question="这个提升会不会只是因为测量次数更多？", anchor=anchor)
+
         async def preview_status():
             return {"state": "unavailable", "models": [], "skill": "paper-research-coach",
                     "message": "展示使用预设对话，未发起模型请求。"}
@@ -122,6 +127,27 @@ def capture(output: Path, executable: str | None = None) -> None:
                 assert opener.evaluate("e => e === document.activeElement")
                 page.keyboard.press("Escape")
                 assert page.get_by_label("更多阅读工具", exact=True).evaluate("e => e === document.activeElement")
+                # Branch explainer: a question answered beside the paper; one click returns to the mainline.
+                branch = browser.new_page(viewport={"width": 1440, "height": 1000})
+                branch.goto(f"http://127.0.0.1:{port}/#" + urlencode({"token": token, "paper": paper["id"]}))
+                branch.get_by_role("button", name="讲解 · 为什么这个比较不公平").wait_for()
+                branch.wait_for_timeout(500)
+                assert not branch.get_by_role("dialog", name="讲解面板").count(), "an old branch must not pop open on load"
+                branch.get_by_role("button", name="讲解 · 为什么这个比较不公平").click()
+                panel = branch.get_by_role("dialog", name="讲解面板")
+                panel.wait_for()
+                panel.get_by_text("预设讲解示例 · 非实时模型回复").wait_for()  # the content has loaded
+                assert panel.get_by_role("img", name="流程图：", exact=False).count()
+                branch.wait_for_timeout(500)
+                branch.screenshot(animations="disabled", path=str(output / "branch.png"))
+                branch.emulate_media(color_scheme="dark")
+                branch.wait_for_timeout(300)
+                branch.screenshot(animations="disabled", path=str(output / "branch-dark.png"))
+                branch.emulate_media(color_scheme="light")
+                panel.get_by_role("button", name="回到主线").click()
+                assert not branch.get_by_role("dialog", name="讲解面板").count()
+                assert branch.get_by_label("发给论文教练的消息", exact=True).evaluate("e => e === document.activeElement")
+                branch.close()
                 # Narrow viewport checks are not a claim about iPad/Pencil hardware.
                 page.set_viewport_size({"width": 390, "height": 844})
                 page.wait_for_timeout(200)

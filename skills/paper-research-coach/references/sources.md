@@ -16,6 +16,10 @@
 | [Peng Sida, learning_research](https://github.com/pengsida/learning_research) | 作者经验；README及入门内容，进阶外链未全部读到 | 用研究问题组织文献 → 单一检索问题 → 下一篇理由检查 |
 | 王树义《如何高效读论文？》（知乎专栏 / 公众号“玉树芝兰”） | 作者经验；用户提供的 PDF 全文（2026-10-07 已读） | 按载体可靠程度排优先级、转述 Peter W. Carr 的非线性读法顺序（摘要→结论→图表→引言→结果讨论→方法）、随时停止、笔记以“不必再读原文”为标准、生词先记后查 → questions.md 读法顺序与卡点分流、selection.md 优先级、notebook.md 笔记标准 → linear-grind、park-unknown-term 场景 |
 | 沈向洋、华刚《读科研论文的三个层次、四个阶段与十个问题》（微软亚洲研究院知乎账号） | 研究者经验；用户提供的 PDF 全文（2026-10-07 已读） | 速读/精读/研读，消极→积极→批判→创造性阅读，Kajiya 引言五问，批判性阅读问题（引自 Mitzenmacher），卡住时的路径，半页 review 与口头报告，华刚“十个问题”模板阅读 → questions.md、reading-flow.md 十问映射、review-talk.md 半页评述 → ten-questions-close、critical-to-creative 场景 |
+| Mayer (2009), *Multimedia Learning*, 2nd ed., Cambridge University Press（分段、去除无关内容、个性化原则） | 学习科学；书目已核对，未逐章引用 | 一个问题一页、图文同页、口语化措辞 → 讲解面板与 style.md |
+| [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html) (QingYunA, MIT) | 工具与写作规则；仓库 README、SKILL.md、STE 检查源码已读（2026-10-13） | 把长讲解变成旁边的一页：短 Markdown 草稿 + 由程序画图；写作检查 → 讲解面板、`prc_explain`、style.md → branch-* 与 plain-language 场景；署名与许可见 THIRD_PARTY_ANSWER_ME_WITH_HTML.md |
+| [ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/) | 受控写作规范；仅采用其公开思路（短句、一词一义、主动语态），未实现或认证该标准 | 句长、词义一致、命令式步骤 → style.md 与草稿检查 → plain-language 场景 |
+| [Simplified Technical Chinese](https://github.com/mzopedia/simplified-technical-chinese) | 中文受控写作词表；经 Answer me with HTML 间接采用，未单独核实全文 | 轻动词、空话、含糊数量 → 中文检查规则 |
 
 规范与工程参考：[Agent Skills](https://agentskills.io/specification)、[cangjie-skill](https://github.com/kangarooking/cangjie-skill)、[Zotero local API](https://www.zotero.org/support/dev/web_api/v3/local_api)。借鉴 cangjie 的来源核验、能力拆解和行为验证思路；不宣称通过其完整流水线认证。
 

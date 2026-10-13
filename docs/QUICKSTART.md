@@ -8,7 +8,7 @@ Skill ZIP：放进现有宿主，不运行本地服务。Wheel (`.whl`)：带完
 
 The Skill ZIP is for an existing agent host. The wheel includes the built UI. Source archives require a frontend build. This repository does not promise a published PyPI package or a signed desktop installer.
 
-**版本 / Version:** 下载 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面最上面的版本；都是预发布版，`/latest` 链接不会指向它们。已安装过的用户升级：下载新 `.whl` 后运行 `python -m pip install --upgrade ./paper_research_coach-<版本>-py3-none-any.whl`，再重新 `prc open`；`prc --version` 显示当前版本。插件或 `npx skills add` 安装的 Skill 取自主分支。Download the top entry on Releases (all are pre-releases, so `/latest` does not point to them); upgrade with `pip install --upgrade` on the new wheel.
+**版本 / Version:** 推荐用下面的一行安装；手动下载时，下载 [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) 页面最上面的版本；都是预发布版，`/latest` 链接不会指向它们。已安装过的用户升级：下载新 `.whl` 后运行 `python -m pip install --upgrade ./paper_research_coach-<版本>-py3-none-any.whl`，再重新 `prc open`；`prc --version` 显示当前版本。插件或 `npx skills add` 安装的 Skill 取自主分支。Download the top entry on Releases (all are pre-releases, so `/latest` does not point to them); upgrade with `pip install --upgrade` on the new wheel.
 
 ## Claude Code：两条命令安装 Skill / Install the Skill as a plugin
 
@@ -19,7 +19,38 @@ The Skill ZIP is for an existing agent host. The wheel includes the built UI. So
 
 Codex、Pi 等其他宿主可运行 `npx skills add ooooooomygosh/paper-research-coach`，或按 [README](../README.md#快速开始) 手动解压 Skill ZIP。Other hosts: `npx skills add`, or extract the Skill ZIP by hand.
 
-## macOS / Linux：从 wheel 安装
+## 推荐：一行安装 / One-line install
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows PowerShell — 尚未在 Windows 真机上验证；失败请用下面的手动步骤。Not yet run on real Windows.
+irm https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/scripts/install.ps1 | iex
+```
+
+脚本：找到最新发布版（包括预发布）→ 下载 → 用同一发布里的 `SHA256SUMS` 校验 → 装进独立环境（有 uv 用 uv，它会自动准备 Python；否则 pipx；再否则 `python -m venv`）。**不用 sudo，不改 shell 配置，不碰书库。** 校验失败或发布里没有校验文件，它会拒绝安装。
+
+没有 uv、pipx，也没有 Python 3.10+ 时，脚本会告诉你怎么装 uv，也可以加 `--install-uv` 让它代你安装：`curl -fsSL …/install.sh | sh -s -- --install-uv`。其他选项：`--open` 装完就打开，`--shortcut` 同时在桌面放启动图标。再运行一次脚本就是更新。
+
+装好以后：
+
+| 想做什么 | 命令 |
+|---|---|
+| 打开工作台 | `prc`（等于 `prc open`；服务没运行会自动启动） |
+| 桌面双击图标 | `prc shortcut`（macOS `.command`、Windows `.cmd`、Linux `.desktop`） |
+| 更新到最新版 | `prc update`（也可以在界面里点“更新并重启”） |
+| 只检查有没有新版本 | `prc update --check` |
+| 当前版本 | `prc --version` |
+| 体验示例，不碰个人书库 | `prc-demo` |
+
+**更新是怎么工作的。** `prc update` 取最新发布版，校验 SHA-256，在当前环境里安装，刷新你用 `prc install-skill` 复制过的 Skill，并让正在运行的工作台用新版本重启（刷新浏览器页面即可）。界面里的“更新并重启”做同样的事。工作台每天最多检查一次，只向 GitHub 发布接口发一次匿名请求；`PRC_NO_UPDATE_CHECK=1` 关闭检查。Claude Code 插件安装的 Skill 由插件市场更新，不受 `prc update` 影响。
+
+**卸载。** `uv tool uninstall paper-research-coach`（pipx：`pipx uninstall paper-research-coach`；venv：删除 `~/.paper-research-coach` 和 `~/.local/bin/prc`）。书库在 `prc doctor` 显示的数据目录里，不会被删除。
+
+## 手动安装（macOS / Linux：从 wheel 安装）
 
 在下载目录执行，将文件名替换成实际文件名。Use the actual downloaded filename.
 
@@ -32,7 +63,7 @@ prc open
 
 以后在同一虚拟环境运行 `prc open`。它启动或复用本机服务，并带入当前浏览器所需的访问凭证。不要复制或分享含 token 的启动链接。
 
-## Windows PowerShell
+## 手动安装（Windows PowerShell）
 
 ```powershell
 py -m venv .venv

@@ -1,12 +1,15 @@
+import type { ReactNode } from "react";
 import { ArrowRight, Plus } from "lucide-react";
 import "./onboarding.css";
 
-export default function Welcome({ onImport, onConnect }: {
+export default function Welcome({ onImport, onConnect, notice }: {
   onImport: () => void;
   onConnect: () => void;
+  notice?: ReactNode;
 }) {
   return (
     <section className="welcome welcome-reading" aria-labelledby="welcome-title">
+      {notice}
       <span className="eyebrow">从一篇值得读的论文开始</span>
       <h1 id="welcome-title">不止读懂。<br />形成自己的判断。</h1>
       <p className="welcome-lead">原文放在眼前，问题留在身边。<br />从一个看不懂、想核实，或不同意的地方开始。</p>

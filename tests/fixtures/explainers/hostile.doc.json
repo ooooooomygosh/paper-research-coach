@@ -1,0 +1,24 @@
+{
+ "title": "Hostile text stays text",
+ "subtitle": "",
+ "lang": "en",
+ "lead": [
+  {
+   "type": "md",
+   "text": "<script>alert(1)</script> and <img src=x onerror=alert(1)> and [click](javascript:alert(1)).",
+   "line": 4
+  }
+ ],
+ "panels": [
+  {
+   "title": "Table",
+   "blocks": [
+    {
+     "type": "md",
+     "text": "| Name | Ok |\n|---|---|\n| <b>bold</b> | ok |",
+     "line": 7
+    }
+   ]
+  }
+ ]
+}

@@ -14,6 +14,22 @@ from .exports import export, import_markdown
 from .store import Store
 
 
+def _restart_running_service(store, port) -> bool:
+    """Ask a running workbench to restart itself with the newly installed code."""
+    import httpx
+
+    from .server import session_token
+
+    try:
+        response = httpx.post(
+            f"http://127.0.0.1:{port}/api/system/restart",
+            headers={"Authorization": "Bearer " + session_token(store)}, timeout=5, trust_env=False,
+        )
+        return response.is_success and bool(response.json().get("restarting"))
+    except (httpx.HTTPError, ValueError):
+        return False
+
+
 def output(value):
     print(json.dumps(value, ensure_ascii=False, indent=2))
 
@@ -28,7 +44,8 @@ def parser():
         default=os.environ.get("PRC_DATA_DIR")
         or str(user_data_path("paper-research-coach")),
     )
-    sub = p.add_subparsers(dest="command", required=True)
+    # No command at all means "open the workbench": `prc` is the one thing to remember.
+    sub = p.add_subparsers(dest="command")
     sub.add_parser("doctor")
     sub.add_parser("list")
     imp = sub.add_parser("import", help="导入 PDF 或论文书目")
@@ -78,6 +95,18 @@ def parser():
     intent = coach.add_mutually_exclusive_group()
     intent.add_argument("--follow", action="store_true", help="直接继续当前论文的既定跟读主线，无须输入 prompt")
     intent.add_argument("--answer", action="store_true", help="把输入作为主线问题的回答；默认消息是插话")
+    up = sub.add_parser("update", help="更新到最新版本（工作台与已安装的 Skill），并重启正在运行的工作台")
+    up.add_argument("--check", action="store_true", help="只检查有没有新版本")
+    up.add_argument("--port", type=int, default=8765)
+    sub.add_parser("shortcut", help="在桌面创建双击即可打开工作台的启动图标")
+    ex = sub.add_parser("explain", help="把一份短 Markdown 草稿打开为工作台里的讲解面板（分支）")
+    ex.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    ex.add_argument("--file", default="-", help="草稿文件，默认标准输入")
+    ex.add_argument("--branch", default="", help="继续这个讲解分支（填它第一页的 id）")
+    ex.add_argument("--replace", default="", help="替换一页讲解（重写风格警告时使用）")
+    ex.add_argument("--question", default="", help="这页回答的读者问题")
+    ex.add_argument("--port", type=int, default=8765)
+    ex.add_argument("--check", action="store_true", help="只检查草稿，不打开面板")
     z = sub.add_parser("sync")
     z.add_argument(
         "action",
@@ -119,6 +148,8 @@ def parser():
 
 def main():
     args = parser().parse_args()
+    if not args.command:
+        args = parser().parse_args([*sys.argv[1:], "open"])
     try:
         if args.command == "install-skill":
             base = {
@@ -235,13 +266,13 @@ def main():
                 import webbrowser
 
                 threading.Timer(1.5, lambda: webbrowser.open(url)).start()
-            uvicorn.run(
-                create_app(store, token),
-                host="127.0.0.1",
-                port=args.port,
-                access_log=False,
-                timeout_graceful_shutdown=3,
+            app = create_app(store, token)
+            app.state.port = args.port
+            server = uvicorn.Server(
+                uvicorn.Config(app, host="127.0.0.1", port=args.port, access_log=False, timeout_graceful_shutdown=3)
             )
+            app.state.server = server  # lets an update restart this service
+            server.run()
         elif cmd == "coach":
             import httpx
 
@@ -289,6 +320,63 @@ def main():
                                     output(answer)
                                     break
                                 time.sleep(.5)
+        elif cmd == "update":
+            from . import updater
+
+            if args.check:
+                output(updater.check(store, force=True))
+                return
+            result = updater.apply(store)
+            if not result["updated"]:
+                print(f"已经是最新版本（{result['current']}）。")
+                return
+            restarted = _restart_running_service(store, args.port)
+            print(f"已更新：{result['from']} → {result['to']}")
+            if result["skills"]:
+                print("已刷新 Skill：" + "、".join(result["skills"]))
+            print(
+                "正在运行的工作台已用新版本重启；刷新浏览器页面即可。"
+                if restarted
+                else "下次运行 prc 就是新版本。"
+            )
+            print("Claude Code 插件安装的 Skill 由插件自己更新：/plugin marketplace update。")
+        elif cmd == "shortcut":
+            from .shortcut import create
+
+            for path in create():
+                print("已创建：" + path)
+            print("双击它就能打开工作台。")
+        elif cmd == "explain":
+            from . import explainer
+
+            draft = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
+            if args.check:
+                parsed = explainer.parse_draft(draft)
+                output({"ok": True, "title": parsed.doc["title"], "style_warnings": [explainer.format_warning(w) for w in parsed.warnings]})
+                return
+            import httpx
+
+            from .server import session_token
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            store.get("paper", paper_id)
+            try:
+                response = httpx.post(
+                    f"http://127.0.0.1:{args.port}/api/coach/explain/{paper_id}",
+                    headers={"Authorization": "Bearer " + session_token(store)},
+                    json={"draft": draft, "branch_id": args.branch, "replace_id": args.replace, "question": args.question},
+                    timeout=20, trust_env=False,
+                )
+            except httpx.HTTPError:
+                raise ValueError("工作台没有运行。先执行 prc open，再重试；或直接在聊天里用简短文字讲解。") from None
+            if response.is_error:
+                raise ValueError(response.json().get("error", "讲解草稿未保存。"))
+            record = response.json()
+            output({"id": record["id"], "branch_id": record["branch_id"], "title": record["title"], "style_warnings": record["warnings"][:8],
+                    "next": "面板已在工作台打开。聊天里只写一两句要点。" if not record["warnings"] else
+                            f"用更简单的词改写这些行，再用 --replace {record['id']} 重新提交（最多两次）。"})
         elif cmd == "service":
             from .service import manage
 

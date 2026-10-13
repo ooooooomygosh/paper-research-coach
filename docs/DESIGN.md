@@ -89,3 +89,15 @@ Agent Skills规范用于可安装结构；cangjie-skill启发了来源核验、�
 ### 书目核实
 
 文件名与旧卡片只提供检索线索。新建 Zotero 父条目前，把 PDF 首页的正式题名与注册元数据匹配，逐位保存作者；DOI 可能属于资助项目或参考文献，因此不能单独作为匹配依据。核实结果绑定 PDF 版本并记录来源。已存在的同内容附件优先复用；待核实文件保留本地，不阻断其他条目。OpenAlex 凭证使用系统钥匙串，网络错误不会保存含查询参数的 URL。参考 [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/) 和 [OpenAlex API](https://help.openalex.org/api/)。
+
+## 讲解面板：一个问题一页，主线不动
+
+具体问题不适合挤进聊天。教练为它写一份短 Markdown 草稿，服务端把草稿解析成带类型的 JSON（`explainer.py`），浏览器只负责画（`frontend/src/explainer/`）。这样做有三个理由：语法只有一份实现，教练拿到的是带行号和正确示例的报错，不必手写 HTML、CSS 或 SVG；草稿里的任何文字都不会被当作 HTML 注入页面，也不会被执行；同一份 JSON 可以在面板和独立窗口里复用。
+
+一个分支是读者的一个问题加上它的追问，每次回答是一页（`coach_explainers` 表）。分支和主线的关系由服务端守住：`prc_explain` 在继续主线的回合里被拒绝；插话回合本来就不能完成步骤或改写待答问题；面板里的追问带 `branch_id`，在同一线程里接着讲。主线的返回点（步骤、待答问题）在每页创建时被记录下来，用来在面板顶部提醒读者主线停在哪里；“回到主线”只是关面板，因为主线状态从来没有动过。
+
+草稿语法和写作检查改写自 MIT 许可的 *Answer me with HTML*（署名见 [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](THIRD_PARTY_ANSWER_ME_WITH_HTML.md)）。我们没有引入它的 Node 命令行：工作台是 Python，用户机器上不一定有 Node，而且讲解要和主线共享同一份会话与权限。
+
+## 打开与更新
+
+目标是“一行安装、一个词打开、一键更新”。`prc` 不带命令就是 `prc open`；`prc shortcut` 生成桌面启动图标。更新只信任一个来源：本项目的发布。`updater.py` 取最新发布（含预发布），要求同一发布里的 `SHA256SUMS` 与安装包一致，用当前环境的 pip（uv 创建的环境没有 pip，就用 `uv pip`）安装，刷新 `prc install-skill` 复制过的 Skill，再让运行中的工作台自己重启：旧服务派生一个 `relaunch` 小进程，等自己退出后在同一端口启动新版本。界面里的按钮走同一条路径。检查每天最多一次，匿名，可关闭。Claude Code 插件安装的 Skill 由插件市场更新，我们不去覆盖它。

@@ -14,6 +14,23 @@ from filelock import FileLock
 from .server import session_token
 
 
+def spawn(module, *args):
+    """Run a module detached from this terminal, so it outlives the command that started it."""
+    flags = {"start_new_session": True} if sys.platform != "win32" else {"creationflags": 0x00000008 | 0x00000200}
+    return subprocess.Popen(
+        [sys.executable, "-m", module, *args],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **flags,
+    )
+
+
+def spawn_service(store, port):
+    return spawn("paper_research_coach.cli", "--data-dir", str(store.root), "serve", "--no-open", "--port", str(port))
+
+
+def spawn_relaunch(store, port, wait_pid):
+    return spawn("paper_research_coach.relaunch", "--data-dir", str(store.root), "--port", str(port), "--wait-pid", str(wait_pid))
+
+
 def open_workbench(store, port=8765, paper_id="", conversation_id="", new=False):
     if not 1024 <= port <= 65535:
         raise ValueError("请选择有效的工作台端口。")
@@ -56,23 +73,7 @@ def open_workbench(store, port=8765, paper_id="", conversation_id="", new=False)
             return True
 
         if not running():
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    "-m",
-                    "paper_research_coach.cli",
-                    "--data-dir",
-                    str(store.root),
-                    "serve",
-                    "--no-open",
-                    "--port",
-                    str(port),
-                ],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+            spawn_service(store, port)
             deadline = time.monotonic() + 10
             while not running():
                 if time.monotonic() >= deadline:

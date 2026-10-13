@@ -6,6 +6,10 @@ This guide describes the current source. Installed behavior depends on the downl
 
 ## Reading and continuity
 
+Type `prc` (the same as `prc open`) to start or reuse the loopback service and authenticate the browser. For a double-click launcher, `prc shortcut` puts an icon on your Desktop (macOS, Windows, Linux).
+
+**Updating**: when a newer version exists the library page shows a notice and the “⋯” button in the reading toolbar gets a small dot; press 更新并重启 (update and restart), or run `prc update`. It verifies the SHA-256, installs, refreshes Skill copies made by `prc install-skill`, and restarts a running workbench on the new version. The check runs at most once a day, anonymously; `PRC_NO_UPDATE_CHECK=1` turns it off.
+
 Use `prc open` to start or reuse the loopback service and authenticate the browser. Each new browser needs its own launch authentication. Never share the token-bearing launch URL. macOS users can also use the repository’s `scripts/open-workbench.command` after installation.
 
 The library starts collapsed. Wide layouts give the source most of the space, with a draggable split; narrow layouts stack the panes. PDF position, zoom and scroll state are scoped to the paper and version. Page-number edits commit on Enter or blur; Escape cancels the draft. Immersive mode uses Cmd / Ctrl + Shift + Enter. Escape dismisses the topmost surface before leaving the reading mode.
@@ -19,9 +23,22 @@ Automatic initialization is capped at 3000 characters, and ordinary per-turn pos
 - **Where you are**: the coach title is the current step (“step n/8 · name”) above a thin progress line; click it to open the route and evidence receipts.
 - **Advance**: the small button beside the line reads **开始跟读** (start), then **继续主线** (continue), or **回答并继续主线** while you have typed something.
 - **Answer**: a pending question shows as one “待答” line above the message box; type the answer and press Enter.
-- **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline.
+- **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline. Concrete questions and technical details are answered in the **explainer panel** (below).
 - **Nothing to configure**: answer versus detour is inferred (a selection is a detour; a reply to a pending question without a selection is an answer) and a small line under the box says where Enter will go. Ask for a hint, a direct explanation or a challenge in your own words. Region selections attach the page image automatically, and the coach can view any page itself.
 - **Getting the most out of it**: answer each step in a sentence before reading the feedback; state the contribution and your own next step in your words; park unfamiliar terms that do not block the current judgment. See [The reading method](METHOD.en.md).
+
+### The explainer panel (a branch)
+
+Ask a concrete question (a concept, mechanism, equation, how to read a figure, a flow, a comparison, an implementation detail) and the coach opens an **explainer panel** beside the PDF instead of writing a wall of chat text:
+
+- **Content**: the conclusion first, then flow charts, sequence diagrams, trees, timelines, tables (✓ ✗ badges) and callouts that draw the relations. The workbench draws them; the coach writes only content, and any text in a draft is shown as text and never executed.
+- **Follow-ups**: ask at the bottom of the panel; each follow-up is a new page of the same question (numbered tabs at the top). A decision the coach asks (`ask`) can be clicked, then “按这个选择继续” sends it.
+- **Back to the mainline**: **回到主线** at the top right (or Esc) closes the panel and focuses the message box; the mainline stays on its step and pending question, and is never advanced while the panel is open. A small line at the top reminds you where the mainline paused.
+- **New window**: the pop-out icon opens the same page in its own browser window, for a second screen; you can follow up there too, and “回到主线” closes it.
+- **History**: each explanation leaves a “讲解 · title” button in the chat; press it to reopen. Reloading never pops an old explanation open.
+- **Not every question gets a panel**: a one-word gloss or a one-sentence yes/no stays in chat, and mainline turns (continue, answer) stay ordinary conversation.
+- **From Claude Code**: `prc explain --paper ID --file draft.md` (`--check` only validates). The workbench must be running.
+- **Wording**: every reply follows plain-writing rules (short sentences, answer first, one word one meaning). Drafts are checked and may produce warnings; the check never refuses a draft. Rules: [style.md](../skills/paper-research-coach/references/style.md); sources and license: [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](THIRD_PARTY_ANSWER_ME_WITH_HTML.md).
 
 Use secondary tools for the full route with evidence receipts, model connection, notes and evidence. Direct questions and explicit explanations do not require a complete reading route or translated PDF. Eight dimensions represent coverage, not measured mastery. Note consent and local performance-recording consent remain separate; AI explanations and Continue clicks do not demonstrate independent understanding.
 

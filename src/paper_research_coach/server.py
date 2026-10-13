@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import secrets
+import subprocess
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
@@ -22,6 +25,7 @@ from .translation import (
     TranslationRequest,
     TranslationSettings,
 )
+from . import updater
 from .vault import VaultSync
 from .zotero import ZoteroSync
 
@@ -98,6 +102,9 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     app.state.coach = coach
     app.state.translation = translation
     app.state.vault = vault
+    app.state.server = None  # the uvicorn.Server, set by `prc serve`; lets the app restart itself
+    app.state.port = 8765
+    app.state.update_job = {"state": "idle", "message": ""}
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -368,6 +375,64 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     @app.get("/api/coach/conversation/{paper_id}")
     def coach_conversation(paper_id: str, conversation_id: str = ""):
         return coach.snapshot(paper_id, conversation_id)
+
+    @app.get("/api/coach/explainers/{paper_id}")
+    def coach_explainers(paper_id: str):
+        return {"data": coach.explainer_list(paper_id)}
+
+    @app.get("/api/coach/explainer/{explainer_id}")
+    def coach_explainer(explainer_id: str):
+        return coach.explainer(explainer_id)
+
+    @app.post("/api/coach/explain/{paper_id}")
+    async def coach_explain(paper_id: str, request: Request):
+        data = await request.json()
+        return coach.explain_external(
+            paper_id, str(data.get("draft", "")), branch_id=str(data.get("branch_id", "")),
+            replace_id=str(data.get("replace_id", "")), question=str(data.get("question", "")),
+        )
+
+    def restart_self():
+        """Start a new service after this one exits, so a new version takes over on the same port."""
+        from .launcher import spawn_relaunch
+
+        server = app.state.server
+        if server is None:
+            return False
+        spawn_relaunch(store, app.state.port, os.getpid())
+        server.should_exit = True
+        return True
+
+    @app.get("/api/update")
+    def update_status():
+        return {**updater.check(store), "job": dict(app.state.update_job)}
+
+    @app.post("/api/update/apply")
+    def update_apply():
+        job = app.state.update_job
+        if job["state"] in ("running", "restarting"):
+            return dict(job)
+        if not updater.check(store).get("available"):
+            raise ValueError("已经是最新版本。")
+        job.update(state="running", message="正在下载并安装新版本…")
+
+        def work():
+            try:
+                result = updater.apply(store)
+            except (updater.UpdateError, OSError, subprocess.SubprocessError) as exc:
+                job.update(state="error", message=str(exc) if isinstance(exc, updater.UpdateError) else "更新没有完成，请稍后重试，或运行 prc update 查看原因。")
+                return
+            job.update(state="restarting", message=f"已更新到 {result.get('to', '')}，正在重新启动…")
+            if not restart_self():
+                job.update(state="done", message="已更新。请重新运行 prc open。")
+
+        threading.Thread(target=work, daemon=True).start()
+        return dict(job)
+
+    @app.post("/api/system/restart")
+    def system_restart():
+        threading.Timer(0.3, restart_self).start()
+        return {"restarting": app.state.server is not None}
 
     @app.post("/api/coach/send/{paper_id}")
     async def coach_send(paper_id: str, body: Send):

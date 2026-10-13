@@ -74,8 +74,8 @@ A highlight is the paper's words, a note is yours. Kept marks are never discusse
 </td>
 <td width="33%" valign="top">
 
-**🧭 Detour and come back**<br>
-The eight-step route is an evidence map, not a syllabus. After a local question, the return point is still where you left it.
+**🧭 Explainer panel, one click back to the mainline**<br>
+Ask a concrete question and a panel opens beside the paper: figures, tables and short sentences, with follow-ups. Press “回到主线” (back to the mainline) and the mainline is exactly where it was.
 
 </td>
 </tr>
@@ -112,9 +112,53 @@ Install the Skill for coaching in your agent, or run the local workbench to read
 </tr>
 </table>
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/branch-dark.webp">
+  <img src="docs/images/branch.webp" alt="Explainer panel: the PDF on the left, and on the right a panel answering a concrete question with a flow chart, a table and a callout; a “back to the mainline” button sits at the top right.">
+</picture>
+
+<p align="center"><sub>The explainer panel: synthetic paper and a labelled scripted explanation, not live model output · press “回到主线” and the mainline stays where it was</sub></p>
+
 ## Quick start
 
-### Option 1: Claude Code (recommended)
+| You want | Use |
+|---|---|
+| **Read the paper and discuss it side by side** (recommended) | [Option 1: the workbench](#option-1-the-workbench-one-line-install-three-steps) |
+| AI-guided reading inside Claude Code or Codex only | [Option 2: the Skill only](#option-2-the-skill-only) |
+
+### Option 1: the workbench, one-line install, three steps
+
+**1. Install.** Paste one line in a terminal.
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/scripts/install.sh | sh
+```
+
+```powershell
+# Windows PowerShell (not yet run on real Windows; if it fails, use the manual steps in the quick start)
+irm https://raw.githubusercontent.com/ooooooomygosh/paper-research-coach/main/scripts/install.ps1 | iex
+```
+
+The script finds the newest release, **verifies its SHA-256**, and installs it into its own environment: with [uv](https://docs.astral.sh/uv/) if you have it (uv can fetch Python too), else pipx, else `python -m venv`. No admin rights, no change to your library or shell configuration. Read it first if you like: [install.sh](scripts/install.sh).
+
+**2. Open.** Type `prc`. The browser opens the workbench; with no papers yet you see the welcome page. For a double-click launcher later, run `prc shortcut` and an icon appears on your Desktop.
+
+**3. Read.** Import a PDF → press “开始跟读” (start reading) or select a passage and press “讨论这处” (discuss this). The AI coach uses your local Codex CLI, signed in once; without it, reading, marking and notes still work. To try first: `prc-demo` (a three-page synthetic paper that does not touch your library).
+
+### Staying current
+
+| What you use | How it updates |
+|---|---|
+| **The workbench** | When a newer version exists, the library page shows a quiet notice and the “⋯” button in the reading toolbar gets a small dot (no pop-ups while you read). Press **更新并重启** (update and restart); it takes about half a minute and the page reloads itself. Or run `prc update` in a terminal. |
+| **The Skill inside the workbench** | It ships in the same package, so it updates with the workbench. |
+| **A Skill installed separately** | Claude Code plugin: turn on auto-update for the marketplace, or run `/plugin marketplace update paper-research-coach` (menu names depend on your Claude Code version). Installed with `npx skills add`: run the same command again. Copied by `prc install-skill`: `prc update` refreshes it too. |
+
+At most once a day the workbench makes **one anonymous request** to GitHub's releases API to look for a newer version. It sends no papers, notes or identity. Turn it off with the environment variable `PRC_NO_UPDATE_CHECK=1`. An update installs only a package published by this project, and only after it matches the `SHA256SUMS` published in the same release.
+
+### Option 2: the Skill only
+
+**Claude Code (recommended)**
 
 ```text
 /plugin marketplace add ooooooomygosh/paper-research-coach
@@ -123,7 +167,7 @@ Install the Skill for coaching in your agent, or run the local workbench to read
 
 Attach a paper and ask: **“Guide my reading of this paper. Start with the authors' key observation.”** It uses your host's existing model; no Python, Node.js, Zotero or separate API key from this project is needed.
 
-### Option 2: Codex, Pi and other hosts
+**Codex, Pi and other hosts**
 
 ```bash
 npx skills add ooooooomygosh/paper-research-coach
@@ -132,7 +176,7 @@ npx skills add ooooooomygosh/paper-research-coach
 <details>
 <summary>Without npx: install the Skill by hand</summary>
 
-Download `paper-research-coach-skill-*.zip` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) and extract the **complete folder** into your host's skill directory:
+Download `paper-research-coach-skill-*.zip` from the top entry on [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases) and extract the **complete folder** into your host's skill directory:
 
 | Host | User-level directory |
 |---|---|
@@ -144,18 +188,18 @@ Keep `references` and `assets`, not just `SKILL.md`. Format compatibility is not
 
 </details>
 
-### Option 3: the local workbench
+With the workbench installed, the Skill in Claude Code can attach to the same paper's reading progress through `prc` and open the explainer panel in the workbench.
 
-Requires **Python 3.10+**. Download the `.whl` from [Releases](https://github.com/ooooooomygosh/paper-research-coach/releases), then in the download directory:
+<details>
+<summary>Uninstall, manual install, troubleshooting</summary>
 
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-python -m pip install "./paper_research_coach-<version>-py3-none-any.whl"   # use the actual filename
-prc open        # open your library
-prc-demo        # or try a three-page synthetic paper first; your library is untouched
-```
+- **Uninstall**: `uv tool uninstall paper-research-coach` (pipx: `pipx uninstall paper-research-coach`; venv: delete `~/.paper-research-coach` and `~/.local/bin/prc`). Your library is not deleted; `prc doctor` shows where it is.
+- **Manual install, source installs, Windows details**: see the [Quick start](docs/QUICKSTART.md).
+- **`prc` not found**: open a new terminal; if that fails, run the full path printed at the end of the install script.
+- **Browser did not open**: `prc` prints the address; or run `prc` again.
+- **AI not connected**: sign in to your local Codex CLI, then press “重新连接” (reconnect) in the conversation.
 
-Then: **import one PDF → select one passage → ask your current question.** The wheel already includes the interface; Node.js is only for source development. The workbench's AI conversation uses a locally authenticated Codex CLI; reading, marking and notes work without it. Windows, source installs and troubleshooting: [Quick start](docs/QUICKSTART.md).
+</details>
 
 ## What a turn looks like
 
@@ -176,6 +220,7 @@ Then: **import one PDF → select one passage → ask your current question.** T
 ## Privacy and limits
 
 - Papers and reading records are stored locally and the service binds to loopback. **Local storage does not mean offline AI**: using the coach or translation sends relevant content to the configured model provider.
+- The update check makes at most one anonymous request a day to GitHub's releases API, carrying no papers, notes or identity; turn it off with `PRC_NO_UPDATE_CHECK=1`. An update installs only a package published by this project that matches its SHA-256.
 - Zotero writes require your authorization. Never share the launch link, which carries an access credential. See [Data and access boundaries](docs/SECURITY.md).
 - There is no human learning-effect claim, no full Safari / iPad / Pencil certification and no guaranteed OCR for scanned PDFs. Zotero items with several attachments currently use the first PDF. See [Testing](docs/TESTING.md) and [Review](docs/FINAL-REVIEW.md).
 

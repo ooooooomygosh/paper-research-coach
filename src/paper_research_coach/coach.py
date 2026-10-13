@@ -21,6 +21,7 @@ from filelock import FileLock, Timeout
 from . import __version__, reading
 from .coaching_context import dialogue_excerpt, note_excerpt
 from .coaching_request import Send
+from . import explainer as explainers
 from .models import Anchor, LearningEvidence, now, uid
 from .runtime_prompt import RUNTIME_VERSION, bootstrap, brief_context, turn_input
 from .store import Conflict, Store
@@ -280,10 +281,18 @@ TOOLS = [
                     "sources",
                     "reading-flow",
                     "questions",
+                    "branch",
+                    "style",
                 ],
             }
         },
         ["name"],
+    ),
+    tool(
+        "prc_explain",
+        "Open a branch explainer panel beside the reading for a concrete question or technical detail. Write a short Markdown draft (3 to 6 panels, conclusion first); the workbench draws it, so never write HTML, CSS or SVG. Components as fenced blocks: flow, sequence, tree, timeline, callout, ask, kv; plus Markdown tables and $math$. Read references/branch.md first. Write plain, short sentences. Returns line-numbered errors to fix, or style warnings to rewrite (replace_id, at most twice).",
+        {"draft": {"type": "string", "maxLength": 16000}, "replace_id": TEXT},
+        ["draft"],
     ),
     tool(
         "prc_next_action",
@@ -370,6 +379,8 @@ class Coach:
             CREATE TABLE IF NOT EXISTS coach_messages(position INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE, conversation_id TEXT, data TEXT);
             CREATE INDEX IF NOT EXISTS coach_by_conversation ON coach_messages(conversation_id,position);
             CREATE TABLE IF NOT EXISTS coach_operations(id TEXT PRIMARY KEY, payload TEXT, result TEXT);
+            CREATE TABLE IF NOT EXISTS coach_explainers(id TEXT PRIMARY KEY, paper_id TEXT, branch_id TEXT, data TEXT);
+            CREATE INDEX IF NOT EXISTS coach_explainers_by_paper ON coach_explainers(paper_id,branch_id);
             CREATE TABLE IF NOT EXISTS coach_paper_bindings(paper_id TEXT PRIMARY KEY, conversation_id TEXT UNIQUE NOT NULL, thread_id TEXT UNIQUE, creation_state TEXT NOT NULL DEFAULT 'ready', cwd TEXT NOT NULL DEFAULT '');
             """)
             # A service restart must not silently resubmit an expensive turn.
@@ -689,6 +700,7 @@ class Coach:
         cid = conversation["id"]
         if cid in self.active:
             raise Conflict("教练正在回复。可以先停止，再发送新消息。")
+        self.branch_title(paper_id, body.branch_id)  # a follow-up needs an existing branch of this paper
         message = {
             "id": uid(),
             "conversation_id": cid,
@@ -779,6 +791,8 @@ class Coach:
             "intent": body.intent,
             "read_pages": set(),
             "flow_advanced": False,
+            "explains": 0,
+            "branch_id": body.branch_id,
             "source_version": paper["source_version"],
         }
         self.active[cid] = state
@@ -839,7 +853,12 @@ class Coach:
                 options["model"] = body.model or config["model"]
             await self.native_thread(conversation, options)
             source_changed = bool(conversation.get("source_version") and conversation["source_version"] != paper["source_version"])
-            inputs, prefix_length = turn_input(body, source_changed=source_changed, flow=reading.snapshot(session, paper))
+            inputs, prefix_length = turn_input(
+                body,
+                source_changed=source_changed,
+                flow=reading.snapshot(session, paper),
+                branch_title=self.branch_title(pid, body.branch_id),
+            )
             conversation["source_version"] = paper["source_version"]
             answer["context_scope"] = {"page_index": body.context_page_index(), "notes_included": 0, "notes_total": len(self.store.list("note", pid)), "history_messages_included": 0, "automatic_characters": prefix_length, "retrieval_on_demand": True}
             if body.page_image:
@@ -963,11 +982,15 @@ class Coach:
                 "sources",
                 "reading-flow",
                 "questions",
+                "branch",
+                "style",
             ]:
                 raise ValueError("Unknown skill resource")
             return {
                 "text": (skill_root() / f"references/{args['name']}.md").read_text()
             }
+        if name == "prc_explain":
+            return self.explain_tool(state, pid, args, call_id)
         mutations = []
         if name == "prc_record_learning_evidence":
             session = self.store.list("session", pid)[0]
@@ -1098,6 +1121,130 @@ class Coach:
             state["answer"]["actions"].append(action)
             self.save_message(state["answer"])
         return result
+
+    # ------------------------------------------------------------ branch explainers
+    def explainer(self, explainer_id, paper_id=""):
+        with self.store.connect() as db:
+            row = db.execute("SELECT data FROM coach_explainers WHERE id=?", (explainer_id,)).fetchone()
+        if not row or (paper_id and json.loads(row[0])["paper_id"] != paper_id):
+            raise KeyError("讲解页不存在")
+        return json.loads(row[0])
+
+    def explainer_list(self, paper_id):
+        self.store.get("paper", paper_id)
+        with self.store.connect() as db:
+            rows = db.execute("SELECT data FROM coach_explainers WHERE paper_id=? ORDER BY rowid", (paper_id,)).fetchall()
+        return [
+            {k: d.get(k) for k in ("id", "branch_id", "seq", "title", "question", "created_at", "updated_at", "return_point")}
+            for d in (json.loads(r[0]) for r in rows)
+        ]
+
+    def branch_title(self, paper_id, branch_id):
+        if not branch_id:
+            return ""
+        try:
+            return self.explainer(branch_id, paper_id)["title"][:40]
+        except KeyError:
+            raise ValueError("这个分支已不存在，请从主线重新提问。") from None
+
+    def save_explainer(self, paper_id, conversation_id, draft_text, *, explainer_id="", message_id="", branch_id="",
+                       replace_id="", anchor=None, question="", origin="coach"):
+        """Validate a draft and store it; raises DraftError (a ValueError) the author can fix."""
+        paper = self.store.get("paper", paper_id)
+        draft = explainers.parse_draft(draft_text)
+        session = self.store.list("session", paper_id)[0]
+        flow = reading.snapshot(session, paper)
+        point = {
+            "status": flow["status"], "step": flow["current"], "label": flow["label"],
+            "pending_question": session.get("pending_question", "")[:250],
+            "next_action": session.get("next_action", "")[:250],
+        }
+        record = {
+            "paper_id": paper_id, "conversation_id": conversation_id, "message_id": message_id,
+            "title": draft.doc["title"], "source": draft_text, "doc": draft.doc,
+            "warnings": [explainers.format_warning(w) for w in draft.warnings],
+            "anchor": anchor, "question": question[:500], "return_point": point, "origin": origin,
+            "updated_at": now(),
+        }
+        if replace_id:
+            old = self.explainer(replace_id, paper_id)
+            record.update(id=old["id"], branch_id=old["branch_id"], seq=old["seq"], created_at=old["created_at"],
+                          anchor=old.get("anchor"), question=old.get("question", ""), message_id=old.get("message_id", ""),
+                          conversation_id=old["conversation_id"])
+        else:
+            if branch_id:
+                self.explainer(branch_id, paper_id)
+                with self.store.connect() as db:
+                    seq = 1 + max(json.loads(r[0])["seq"] for r in db.execute(
+                        "SELECT data FROM coach_explainers WHERE paper_id=? AND branch_id=?", (paper_id, branch_id)))
+            else:
+                seq = 1
+            new_id = explainer_id or uid()
+            record.update(id=new_id, branch_id=branch_id or new_id, seq=seq, created_at=now())
+        with self.store.connect() as db:
+            db.execute(
+                "INSERT INTO coach_explainers(id,paper_id,branch_id,data) VALUES (?,?,?,?) "
+                "ON CONFLICT(id) DO UPDATE SET data=excluded.data",
+                (record["id"], paper_id, record["branch_id"], json.dumps(record, ensure_ascii=False)),
+            )
+        return record
+
+    @staticmethod
+    def explainer_action(record):
+        # rev lets an open panel notice a replaced page; the label is what the chat shows.
+        return {"kind": "explainer", "id": record["id"], "branch_id": record["branch_id"],
+                "label": "讲解 · " + record["title"][:40], "rev": record["updated_at"]}
+
+    def explain_tool(self, state, pid, args, call_id):
+        if state["intent"] == "follow":
+            raise ValueError("主线继续用普通对话讲解；只有读者提出具体问题时才打开讲解面板。")
+        if state["explains"] >= 3:
+            raise ValueError("本轮已调用讲解面板 3 次。保留最后一版，在聊天里说明。")
+        state["explains"] += 1
+        explainer_id = hashlib.sha256((state["answer"]["id"] + call_id).encode()).hexdigest()[:32]
+        message = state["message"]
+        record = self.save_explainer(
+            pid, state["conversation"]["id"], args["draft"], explainer_id=explainer_id, message_id=state["answer"]["id"],
+            branch_id=state.get("branch_id", ""), replace_id=args.get("replace_id", ""),
+            anchor=message.get("anchor"), question=message.get("content", ""),
+        )
+        actions = state["answer"]["actions"]
+        existing = next((a for a in actions if a.get("id") == record["id"]), None)
+        if existing:
+            existing["rev"] = record["updated_at"]
+        else:
+            actions.append(self.explainer_action(record))
+        self.save_message(state["answer"])
+        result = {"id": record["id"], "title": record["title"], "opened": True}
+        if record["warnings"]:
+            result["style_warnings"] = record["warnings"][:8]
+            result["next"] = ("Rewrite the flagged lines in plainer words, then call prc_explain again with "
+                              f"replace_id={record['id']}. Do this at most twice; keep the last page.")
+        else:
+            result["next"] = "The panel is open. In chat, write one or two plain sentences with the key point; do not repeat the page."
+        return result
+
+    def explain_external(self, paper_id, draft_text, branch_id="", replace_id="", question="", anchor=None):
+        """Open a branch from the CLI or another host: the chat gets a one-line pointer."""
+        conversation = self.conversation(self.binding(paper_id)["conversation_id"])
+        message_id = uid()
+        record = self.save_explainer(
+            paper_id, conversation["id"], draft_text, message_id=message_id, branch_id=branch_id,
+            replace_id=replace_id, question=question, anchor=anchor, origin="cli",
+        )
+        if not replace_id:
+            self.save_message({
+                "id": message_id, "conversation_id": conversation["id"], "role": "assistant",
+                "content": "已打开讲解面板：" + record["title"], "created_at": now(), "status": "completed",
+                "intent": "detour", "actions": [self.explainer_action(record)], "error": "",
+            })
+        else:
+            message = next((m for m in self.messages(record["conversation_id"]) if m["id"] == record["message_id"]), None)
+            for action in (message or {}).get("actions", []):
+                if action.get("id") == record["id"]:
+                    action["rev"] = record["updated_at"]
+                    self.save_message(message)
+        return record
 
     def record_page(self, state, result):
         if result["source_version"] != state.get("source_version"):

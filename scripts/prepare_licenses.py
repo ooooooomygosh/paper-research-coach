@@ -7,8 +7,9 @@ folder = root / "src/paper_research_coach/licenses"
 folder.mkdir(exist_ok=True)
 (folder / "NOTICE.txt").write_text(
     "Paper Research Coach bundles PDF.js (Apache-2.0), React and scheduler (MIT), "
-    "Lucide (ISC), and Markdown/math rendering components including react-markdown, "
-    "remark, rehype and KaTeX (MIT). Component and dependency license files are "
+    "Lucide (ISC), dagre (MIT), and Markdown/math rendering components including react-markdown, "
+    "remark, rehype and KaTeX (MIT). The branch explainer adapts draft syntax and writing rules from "
+    "Answer me with HTML (MIT); see answer-me-with-html.txt. Component and dependency license files are "
     "included here. Python dependencies pypdfium2/PDFium and Pillow are installed "
     "from their distributions, which include their own license notices. "
     "The optional BabelDOC 0.6.4 translation component is AGPL-3.0, installed "
@@ -30,3 +31,4 @@ for package_path, metadata in lock["packages"].items():
         shutil.copyfile(license, folder / (package + ".txt"))
 
 shutil.copyfile(root / "docs/BabelDOC-0.6.4-LICENSE.txt", folder / "BabelDOC-0.6.4.txt")
+shutil.copyfile(root / "docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md", folder / "answer-me-with-html.txt")

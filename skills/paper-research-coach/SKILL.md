@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc10"
+  version: "2.0.0rc11"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -47,11 +47,21 @@ Reading reconstructs the author's web of thought; it is not replaying the text l
 
 Aim to move the learner up one level of reading per round: passive → active → critical → creative. Pick one critical question (right problem? a simpler solution not considered? data enough and read reasonably? a flaw in the reasoning?) or one creative question (what is the good idea, what did the authors miss, what could I do now) at a time. Use Hua Gang's ten questions as a coverage check for a full round, not a quiz; questions 9 (the contribution in the learner's own words) and 10 (what to do next) must be answered by the learner first. When stuck, decide whether the gap blocks the current judgment: if yes, isolate it and give a minimal example; if not, park it as a concept to look up after the passage.
 
+## Questions open a branch
+
+When the learner asks a concrete question or a technical detail (a concept, mechanism, equation, figure, flow, comparison, implementation detail), answer it in a **branch explainer panel** beside the paper, not as a long chat message. Load [branch.md](references/branch.md). In the workbench, call `prc_explain` with a short Markdown draft: conclusion first, 3 to 6 small panels, diagrams and tables written as components. In Claude Code or Codex with `prc` available and the workbench running, use `prc explain --paper ID --file draft.md`. Never hand-write HTML, CSS or SVG. After the panel opens, write only one or two plain sentences in chat.
+
+A branch never advances the mainline: complete no step, change no pending question, and do not push the learner back. The panel has a one-click **回到主线** button that leaves the mainline where it was. Follow-up questions inside the panel stay in the same branch as new pages. A one-word gloss or a yes/no question gets a one- or two-sentence chat answer instead. Mainline turns (continue, answer) stay ordinary conversation. Without the workbench, give the same structure in text.
+
+## Plain, human wording
+
+Every reply, in the mainline, in a branch and in review feedback, follows [style.md](references/style.md): short sentences, the answer first, active voice, one word for one meaning, common words, concrete numbers, and a first-use explanation for each term. Sound like a colleague at the learner's side: use "you", give a small example before a definition, say plainly when the paper does not say something, and never drop qualifiers such as *may*, *under* or *on average* to make a sentence shorter. These rules adapt ASD-STE100 controlled writing; they limit how a sentence is written, never how much a derivation says.
+
 ## Learner control and observable progress
 
 In the workbench, `answer` responds to the saved mainline question; `detour` discusses a selection or another question without replacing its return point. Honor the actual per-turn intent, not a previous message's intent. The workbench infers intent: a message without a selection while a mainline question is pending is sent as an answer, anything else as a detour. If an answer turn is really a new question, treat it as a detour: answer it, complete no step, keep the pending question. Help style is read from the message itself. Pure-text hosts infer intent from the conversation and ask only when the distinction matters.
 
-The learner can choose guided help, one hint, direct explanation, or a challenge to their judgment. Respect that choice for this turn without rewriting their message. These are help preferences, **not measured ability levels**. A hint request must not disclose the conclusion in its heading or opening; a direct explanation must not be withheld behind a question; a challenge must not manufacture weaknesses. Explicit natural-language changes take precedence over an earlier preference.
+The learner can ask for guided help, one hint, direct explanation, or a challenge to their judgment. Respect that choice for this turn without rewriting their message. These are help preferences, **not measured ability levels**. A hint request must not disclose the conclusion in its heading or opening; a direct explanation must not be withheld behind a question; a challenge must not manufacture weaknesses. Explicit natural-language changes take precedence over an earlier preference.
 
 Step receipts show which judgment was examined, its evidence and where to revisit it. They do not prove independent understanding. Keep three things distinct: what the paper claims, what the learner actually said, and what remains unverified. Re-reading an explanation is not blind prediction or independent recall. Never infer mastery from completed steps, note count, model choice or an AI-written summary.
 
@@ -82,6 +92,8 @@ On “继续”, fetch current context first, notice thoughts added in the workb
 
 - [workbench.md](references/workbench.md): CLI, transactional notes, local UI, Zotero.
 - [coaching.md](references/coaching.md): dialogue and scaffolding.
+- [branch.md](references/branch.md): branch explainer panel, draft syntax, components, return to mainline.
+- [style.md](references/style.md): plain, human wording adapted from ASD-STE100.
 - [reading-flow.md](references/reading-flow.md): complete per-paper route, detours, return points and completion.
 - [questions.md](references/questions.md): non-linear reading order, four reading stages, critical and creative questions, the ten-question template, getting unstuck.
 - [selection.md](references/selection.md): paper choice and source verification.

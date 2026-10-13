@@ -1,6 +1,6 @@
 {
   "name": "paper-research-coach-ui",
-  "version": "2.0.0-rc.10",
+  "version": "2.0.0-rc.11",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^3.1.1",
     "katex": "^0.18.9",
     "lucide-react": "^0.468.0",
     "pdfjs-dist": "^6.3.289",
