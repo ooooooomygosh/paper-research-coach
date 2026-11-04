@@ -398,6 +398,10 @@ class Store:
                 "paper", p, p["revision"], origin="source-version", connection=db
             )
 
+    def latest_seq(self) -> int:
+        with self.connect() as db:
+            return db.execute("SELECT COALESCE(MAX(seq),0) FROM history").fetchone()[0]
+
     def events(self, since=0):
         with self.connect() as db:
             return [

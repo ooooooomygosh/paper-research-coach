@@ -109,3 +109,27 @@ def test_legacy_anchor_serialization_does_not_change_send_fingerprints(anchor):
     serialized = body.fingerprint_data()['anchor']
     assert 'rendition' not in serialized
     assert json.loads(json.dumps(serialized['rects'])) == anchor['rects']
+
+
+def test_the_inspection_cache_holds_a_whole_library_of_translations(tmp_path):
+    """The overview is polled every few seconds; each finished translation is two files. It must not re-read them all each time."""
+    from pypdf import PdfWriter
+
+    from paper_research_coach.renditions import _inspect, inspect_pdf
+
+    _inspect.cache_clear()
+    paths = []
+    for i in range(60):  # thirty finished translations: a mono and a dual file each
+        writer = PdfWriter()
+        writer.add_blank_page(width=200 + i, height=300)
+        path = tmp_path / f"t{i}.pdf"
+        writer.write(path)
+        paths.append(path)
+    for path in paths:
+        inspect_pdf(path)
+    before = _inspect.cache_info()
+    for path in paths:
+        inspect_pdf(path)
+    after = _inspect.cache_info()
+    assert after.misses == before.misses, "the second pass re-read files that had not changed"
+    assert after.hits - before.hits == len(paths)

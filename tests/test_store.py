@@ -316,3 +316,21 @@ def test_replacing_the_pdf_marks_anchors_stale_but_keeps_what_was_already_discus
     # Real new words still reopen the discussion.
     store.put("note", after | {"content": "my doubt, rewritten"}, after["revision"])
     assert store.get("note", "n1")["discussed"] is False
+
+
+def test_a_new_event_stream_starts_at_the_end_of_history_not_at_the_beginning(store, paper):
+    from paper_research_coach.server import events_start
+
+    for i in range(5):
+        note = store.put("note", {"id": f"n{i}", "paper_id": paper["id"], "content": f"thought {i}"})
+    end = store.latest_seq()
+    assert end >= 5
+    # A page that has just loaded already read the state: it must not replay every old change.
+    assert events_start(store, None, None) == end
+    # A reconnecting EventSource says where it stopped; an explicit position is honoured, never skipped past.
+    assert events_start(store, None, "3") == 3
+    assert events_start(store, 2, None) == 2
+    assert events_start(store, 2, "7") == 7
+    assert events_start(store, None, "not a number") == end
+    assert store.events(end) == []
+    assert [e["id"] for e in store.events(end - 1)] == [note["id"]]

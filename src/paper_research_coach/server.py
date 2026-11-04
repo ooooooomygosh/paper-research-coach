@@ -70,6 +70,22 @@ def session_token(store: Store):
     return token
 
 
+def events_start(store: Store, since: int | None, last_event_id: str | None) -> int:
+    """Where an event stream begins.
+
+    A page that has just loaded already read the current state, so a new connection starts at the end:
+    replaying the whole history sent thousands of change events, each one a full refresh. A reconnecting
+    EventSource sends Last-Event-ID and continues from there, and an explicit position is never skipped past.
+    """
+    try:
+        seen = int(last_event_id) if last_event_id else None
+    except ValueError:
+        seen = None
+    if since is None and seen is None:
+        return store.latest_seq()
+    return max(since or 0, seen or 0)
+
+
 def same_token(given: str, expected: str) -> bool:
     """Constant-time comparison that also accepts non-ASCII text (compare_digest raises on it)."""
     return bool(expected) and secrets.compare_digest(given.encode("utf-8", "replace"), expected.encode("utf-8", "replace"))
@@ -644,16 +660,13 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         return FileResponse(path, filename=path.name)
 
     @app.get("/api/events")
-    async def events(request: Request, since: int = 0):
-        try:
-            since = max(since, int(request.headers.get("last-event-id", "0")))
-        except ValueError:
-            pass
+    async def events(request: Request, since: int | None = None):
+        start = await asyncio.to_thread(events_start, store, since, request.headers.get("last-event-id"))
 
         async def stream():
             app.state.viewers += 1
             try:
-                async for chunk in rows_since(since):
+                async for chunk in rows_since(start):
                     yield chunk
             finally:
                 left()
@@ -664,6 +677,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                 if rows:
                     cursor = rows[-1]["seq"]
                     yield f"id: {cursor}\ndata: {json.dumps(rows)}\n\n"
+                    if len(rows) >= 200:
+                        continue  # a full batch: more is waiting, do not make it wait a second
                 else:
                     yield ": keepalive\n\n"
                 await asyncio.sleep(1)
