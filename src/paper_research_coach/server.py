@@ -490,6 +490,12 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             raise ValueError("需要 page_index（整数）和 quotes（列表）。")
         return await asyncio.to_thread(coach.show_external, paper_id, data["page_index"], [str(q) for q in quotes], str(data.get("note", "")))
 
+    @app.get("/api/map/{paper_id}")
+    async def paper_map_of(paper_id: str):
+        from . import paper_map
+
+        return await asyncio.to_thread(paper_map.get, store, paper_id)
+
     @app.get("/api/find/{paper_id}")
     async def find_text(paper_id: str, q: str):
         from . import locate

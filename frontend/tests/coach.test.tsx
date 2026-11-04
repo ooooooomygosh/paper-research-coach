@@ -879,3 +879,41 @@ it("opening an old read-only conversation does not move the PDF to its first mar
   });
   expect(onFocus).not.toHaveBeenCalled();
 });
+
+// ---- the input box says what the coach is given each turn ----
+it("always shows which page (and, when known, which section) is sent with the next message, even with nothing selected", async () => {
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    if (path === "map/p") return { outline: [{ title: "1 Introduction", page_index: 0, depth: 0 }, { title: "2 Method", page_index: 1, depth: 0 }] };
+    return {};
+  });
+  view({ page: 1 });
+  const chips = await screen.findByText("PDF 第 2 页");
+  expect(chips.closest(".coach-context-chips")!.hasAttribute("hidden")).toBe(false);
+  expect(await screen.findByText("1 Introduction → 2 Method")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "移除对话选区" })).toBeNull();
+});
+
+it("shows only the page when the paper's structure is not known, and stays quiet if the map cannot be read", async () => {
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    if (path === "map/p") throw new Error("not available");
+    return {};
+  });
+  view({ page: 0 });
+  expect(await screen.findByText("PDF 第 1 页")).toBeTruthy();
+  expect(document.querySelector(".coach-section-chip")).toBeNull();
+});
+
+it("does not offer to send anything from an old read-only conversation", async () => {
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, read_only: true };
+    return {};
+  });
+  view({ page: 0 });
+  await screen.findByText("已连接本机 CLI");
+  await waitFor(() => expect(document.querySelector(".coach-context-chips")?.hasAttribute("hidden")).toBe(true));
+});

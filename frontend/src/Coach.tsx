@@ -1,3 +1,4 @@
+import { sectionChip, type PaperMap } from "./paper-map";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -159,6 +160,19 @@ export default function CoachPanel({
   latestFocus.current = onFocus;
   const currentAnchor = useRef(anchor);
   currentAnchor.current = anchor;
+  // The paper's headings, found automatically on the server. Only a hint about where the page sits: if it
+  // cannot be read the chips simply show the page.
+  const [paperMap, setPaperMap] = useState<PaperMap>(null);
+  useEffect(() => {
+    let live = true;
+    setPaperMap(null);
+    api("map/" + paper.id)
+      .then((m) => live && setPaperMap(m))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [paper.id, paper.source_version]);
   // Intent and help style are inferred, never configured: a selection is a
   // detour, a reply to a pending mainline question is an answer, and the coach
   // reads requests such as "just explain" from the message itself.
@@ -1296,8 +1310,12 @@ export default function CoachPanel({
             确认上次发送 · 使用相同编号恢复
           </button>
         )}
-        <div className="coach-context-chips" hidden={!anchor}>
+        <div className="coach-context-chips" hidden={snapshot.read_only}>
           <span>PDF 第 {(anchor?.page_index ?? page) + 1} 页</span>
+          {(() => {
+            const where = sectionChip(paperMap, anchor?.page_index ?? page);
+            return where && <span className="coach-section-chip" title={where.title}>{where.text}</span>;
+          })()}
           {anchor && (
             <div>
               <button className="anchor-label" onClick={() => onLocate(anchor)}>
