@@ -137,7 +137,10 @@ export default function PdfReader({
   const programmatic = useRef<number | null>(null);
   /** The page we last reported from scrolling. */
   const reported = useRef(page);
-  const [fromScroll, setFromScroll] = useState(false);
+  // The page the reader last scrolled onto. Whether the current page came from scrolling is worked out
+  // while rendering, from this and `page`, so both always arrive together. (As separate state, the
+  // first jump after a scroll was still told "this was a scroll" and could not be undone.)
+  const scrolledTo = useRef(-1);
 
   useEffect(() => {
     try {
@@ -254,7 +257,7 @@ export default function PdfReader({
     if (!doc || loadedKey.current !== docKey || placed.current !== docKey) return;
     if (page === reported.current) return;
     reported.current = page;
-    setFromScroll(false);
+    scrolledTo.current = -1;
     const saved = pending.current;
     if (saved && saved.page === page) {
       scrollToPage(page, saved);
@@ -294,7 +297,7 @@ export default function PdfReader({
       const current = pageAt(box.scrollTop - origin.top + box.clientHeight * READING_LINE);
       if (current !== reported.current) {
         reported.current = current;
-        setFromScroll(true);
+        scrolledTo.current = current;
         setPage(current, "scroll");
       }
       save(current);
@@ -471,7 +474,7 @@ export default function PdfReader({
         doc={doc}
         sourceKey={paper.id + ":" + paper.source_version}
         page={page}
-        fromScroll={fromScroll}
+        fromScroll={scrolledTo.current === page}
         onNavigate={(p) => jump(p)}
         onSearch={setSearchTerm}
       />
@@ -511,8 +514,11 @@ export default function PdfReader({
       tabIndex={0}
       aria-label="PDF 阅读器"
       onKeyDown={(e) => {
-        if (e.target instanceof HTMLElement && e.target.closest("input,textarea,select,button,[contenteditable=true]")) return;
-        if (e.key === "Escape") setRegion(false);
+        const target = e.target instanceof HTMLElement ? e.target : null;
+        // Escape leaves rectangle selection from anywhere except a text field (which has its own Escape),
+        // including the toolbar button that started it and still has the focus.
+        if (e.key === "Escape" && !target?.closest("input,textarea,select,[contenteditable=true]")) setRegion(false);
+        if (target?.closest("input,textarea,select,button,[contenteditable=true]")) return;
         if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
         if (e.key === "ArrowLeft" && page > 0) {
           e.preventDefault();

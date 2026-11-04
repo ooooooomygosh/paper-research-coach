@@ -32,7 +32,14 @@ export default function QuestLog({ flow, quests, onClose, onOpenQuest, onPage, o
   onJourney?: () => void;
 }) {
   const root = useRef<HTMLElement>(null);
-  useEffect(() => root.current?.focus(), []);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    root.current?.focus();
+    // Closing puts the keyboard back where the reader was, not on the page body.
+    return () => {
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
   const steps: { id: string; label: string }[] = flow?.steps || [];
   const completed: Record<string, any> = Object.fromEntries((flow?.completed || []).map((c: any) => [c.step, c]));
   const active = flow?.status === "active" || flow?.status === "completed";

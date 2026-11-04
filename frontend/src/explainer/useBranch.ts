@@ -24,6 +24,7 @@ export function useBranch(paper: Row, branchId: string, firstPageId = "") {
           (p: ExplainerSummary) => p.branch_id === branchId,
         );
         if (!alive.current) return;
+        setError(""); // a later load that works replaces an earlier failure
         const fresh = list.filter((p) => known.current[p.id] !== p.updated_at);
         const added = list.filter((p) => !(p.id in known.current));
         setPages(list);
@@ -83,8 +84,11 @@ export function useBranch(paper: Row, branchId: string, firstPageId = "") {
     };
   }, [paper.id, branchId, load]);
 
+  const sending = useRef(false);
   const ask = useCallback(
     async (text: string, page = 0) => {
+      if (sending.current) return false; // a second Enter before the first request returns
+      sending.current = true;
       setError("");
       try {
         await api("coach/send/" + paper.id, {
@@ -106,6 +110,8 @@ export function useBranch(paper: Row, branchId: string, firstPageId = "") {
       } catch (e) {
         setError(String(e instanceof Error ? e.message : e));
         return false;
+      } finally {
+        sending.current = false;
       }
     },
     [paper.id, paper.source_version, conversationId, branchId],

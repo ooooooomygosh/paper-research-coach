@@ -7,6 +7,7 @@ import {
   History,
   Link2,
 } from "lucide-react";
+import Dialog from "./Dialog";
 import { api, put, id, anchorQuote, isBareMark, location, sameAnchor, ApiError, type Row } from "./api";
 export default function Notes({
   paper,
@@ -432,20 +433,18 @@ export default function Notes({
         )}
       </div>
       {history && (
-        <div className="modal-backdrop" onClick={() => setHistory(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>每次修订都保留</h2>
-            {history.map((h) => (
-              <article className="note-card" key={h.seq}>
-                <b>
-                  版本 {h.revision} · {new Date(h.created_at).toLocaleString()}
-                </b>
-                <p className="preserve">{h.data.content}</p>
-              </article>
-            ))}
-            <button onClick={() => setHistory(null)}>关闭</button>
-          </div>
-        </div>
+        <Dialog label="修订记录" onClose={() => setHistory(null)}>
+          <h2>每次修订都保留</h2>
+          {history.map((h) => (
+            <article className="note-card" key={h.seq}>
+              <b>
+                版本 {h.revision} · {new Date(h.created_at).toLocaleString()}
+              </b>
+              <p className="preserve">{h.data.content}</p>
+            </article>
+          ))}
+          <button onClick={() => setHistory(null)}>关闭</button>
+        </Dialog>
       )}
     </aside>
   );
