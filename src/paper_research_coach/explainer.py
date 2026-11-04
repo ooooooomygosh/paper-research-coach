@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 MAX_DRAFT = 16000
 MAX_PANELS = 8
 MAX_COMPONENTS = 12
+MAX_NESTING = 12  # quote and list markers on one line; real explanations use 3 or 4
 COMPONENTS = ("flow", "sequence", "tree", "timeline", "callout", "ask", "kv")
 
 EXAMPLES = {
@@ -40,6 +41,27 @@ class DraftError(ValueError):
         if component in EXAMPLES:
             text += "\nCorrect example:\n" + EXAMPLES[component]
         super().__init__(text)
+
+
+MARKER = re.compile(r"^(?:>[ \t]?|[-*+][ \t]+|\d{1,9}[.)][ \t]+)")
+
+
+def nesting_depth(text: str) -> int:
+    """The most quote/list markers stacked at the start of one line (the browser nests as deep as the text says)."""
+    deepest = 0
+    for raw in text.split("\n"):
+        rest, depth = raw[:4000].lstrip(), 0
+        while (m := MARKER.match(rest)):
+            depth += 1
+            rest = rest[m.end():].lstrip()
+        deepest = max(deepest, depth)
+    return deepest
+
+
+def check_nesting(text: str, line: int, component: str = "") -> None:
+    depth = nesting_depth(text)
+    if depth > MAX_NESTING:
+        raise DraftError(f"the Markdown nests {depth} levels deep (max {MAX_NESTING}); flatten the list or quote", line, component)
 
 
 @dataclass
@@ -84,6 +106,7 @@ def parse_draft(text: str) -> Draft:
         nonlocal md, md_line
         body = "\n".join(md).strip("\n")
         if body.strip():
+            check_nesting(body, md_line)
             current.append({"type": "md", "text": body, "line": md_line})
         md = []
 
@@ -299,6 +322,8 @@ def _sequence(args, body, first):
                     add(p.strip())
         elif m := re.match(r"^note\s+([^:：]+)[:：]\s*(.+)$", t, re.I):
             over = [s.strip() for s in re.split(r"[,，]", m.group(1)) if s.strip()]
+            if not over:
+                raise DraftError("a note must name the participants it sits over, as in note A, B: text", line, "sequence")
             for p in over:
                 add(p)
             steps.append({"kind": "note", "over": over, "text": m.group(2).strip()})
@@ -364,6 +389,7 @@ def _callout(args, body, first):
     title = " ".join(rest) if word in kinds else args.strip()
     if not title and not body.strip():
         raise DraftError("callout needs a title or a body", first, "callout")
+    check_nesting(body, first, "callout")
     return {"kind": kind, "title": title, "text": body.strip(), "bodyLine": first}
 
 

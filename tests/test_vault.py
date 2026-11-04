@@ -248,3 +248,62 @@ def test_manual_scan_works_while_automatic_sync_is_paused(tmp_path, store, pdf):
     assert v.run(manual=True)["last_scan"] != "paused"
     assert not v.state()["enabled"]
     assert store.get("paper", paper["id"])["source_version"]
+
+
+def test_one_unreadable_card_does_not_stop_the_rest_of_the_scan(tmp_path, store, pdf):
+    from pypdf import PdfWriter
+
+    v, root, paper = setup(tmp_path, store, pdf)
+    cards = root / "01_论文卡片"
+    cards.mkdir()
+    big = cards / "full-text-dump.md"
+    big.write_text("---\n原文PDF路径: paper.pdf\n---\n" + "x" * 250_000)  # larger than a note may be
+    stable(big)
+    note = store.put("note", dict(paper_id=paper["id"], content="reader words"))
+    writer = PdfWriter()
+    writer.add_blank_page(width=777, height=800)
+    writer.write(root / "second.pdf")
+    stable(root / "second.pdf")
+
+    state = v.run()
+
+    assert len(store.list("paper")) == 2  # the new PDF is still imported
+    assert list((root / MANAGED / paper["id"]).glob(f"{note['id']}-r1.md"))  # and the reader's note is still exported
+    assert state["state"] == "attention"
+    assert "论文卡" in state["message"] and "full-text-dump" in state["message"]  # the reader is told which card
+
+
+def test_one_paper_that_cannot_bind_does_not_starve_the_papers_after_it(tmp_path, store):
+    from pypdf import PdfWriter
+
+    from paper_research_coach.zotero import SyncError
+
+    root = tmp_path / "vault"
+    root.mkdir()
+    for i in range(3):
+        writer = PdfWriter()
+        writer.add_blank_page(width=600 + i, height=800)
+        writer.write(root / f"p{i}.pdf")
+        stable(root / f"p{i}.pdf")
+    v = VaultSync(store)
+    v.configure(root)
+    v.run()
+    papers = sorted(store.list("paper"), key=lambda p: p["id"])
+    tried = []
+
+    class Zotero:
+        def probe(self):
+            return "instance"
+
+        def bind_local_paper(self, paper, *_):
+            tried.append(paper["id"])
+            if paper["id"] == papers[0]["id"]:  # a lasting, per-paper condition
+                raise SyncError("同一 PDF 对应多个 Zotero 条目，请先在 Zotero 合并重复条目。")
+
+    v.zotero = Zotero()
+    v.configure(root, "collection", "instance")
+    state = v.run()
+
+    assert set(tried) == {p["id"] for p in papers}  # every paper was attempted, not only those before the failure
+    assert state["state"] == "attention"
+    assert "同一 PDF 对应多个 Zotero 条目" in state["message"]

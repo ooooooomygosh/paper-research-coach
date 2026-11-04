@@ -39,6 +39,13 @@ def normalize(text: str) -> tuple[str, list[int]]:
             elif raw in "\r\n  ":
                 gap = (gap[0], True)
             continue
+        if gap is None and out and unicodedata.category(raw) == "Mn":
+            # A letter plus a combining accent ("e" + U+0301) reads as the composed letter a quote
+            # would use ("é"); the match keeps pointing at the base letter in the source.
+            composed = unicodedata.normalize("NFKC", out[-1] + raw)
+            if len(composed) == 1:
+                out[-1] = composed.lower()
+                continue
         chars = unicodedata.normalize("NFKC", _SAME.get(raw, raw)).lower()
         if gap is not None:
             # "observa-\ntions" reads as "observations"; any other gap is one space.
@@ -139,6 +146,30 @@ def page_quotes(store, paper_id: str, page_index: int, quotes: list[str]) -> dic
             "has_text": bool(text.strip()), "found": found, "missing": missing}
 
 
+def _spans(text: str, target: str, limit: int) -> list[tuple[int, int]]:
+    """Up to `limit` spans of `text` (source indices) that read as `target`.
+
+    Like match(): if the plain comparison finds nothing, compare again without spaces and hyphens,
+    so a compound split by a line break ("self-" / "attention") is found as it can be shown.
+    """
+    flat, where = normalize(text)
+
+    def find(haystack: str, index: list[int], needle: str) -> list[tuple[int, int]]:
+        spans, at = [], haystack.find(needle)
+        while at >= 0 and len(spans) < limit:
+            spans.append((index[at], index[at + len(needle) - 1] + 1))
+            at = haystack.find(needle, at + len(needle))
+        return spans
+
+    spans = find(flat, where, target)
+    if not spans:
+        squeezed, index = _squeeze(flat, where)
+        needle, _ = _squeeze(target, list(range(len(target))))
+        if len(needle) >= 2:
+            spans = find(squeezed, index, needle)
+    return spans
+
+
 def search(store, paper_id: str, query: str, limit: int = 12, per_page: int = 3) -> dict:
     """Pages whose text contains `query` (same normalization), with short snippets."""
     paper = _open(store, paper_id)
@@ -164,15 +195,10 @@ def search(store, paper_id: str, query: str, limit: int = 12, per_page: int = 3)
                     if not text.strip():
                         empty += 1
                         continue
-                    flat, where = normalize(text)
-                    at, on_page = flat.find(target), 0
-                    while at >= 0 and on_page < per_page and len(hits) < limit:
-                        start, end = where[at], where[at + len(target) - 1] + 1
+                    for start, end in _spans(text, target, min(per_page, limit - len(hits))):
                         before = " ".join(text[max(0, start - 90):start].split())
                         after = " ".join(text[end:end + 140].split())
                         hits.append({"page_index": index, "snippet": ("…" if start > 90 else "") + before + " [" + " ".join(text[start:end].split()) + "] " + after + "…"})
-                        on_page += 1
-                        at = flat.find(target, at + len(target))
                     if len(hits) >= limit:
                         break
         except (RuntimeError, OSError):

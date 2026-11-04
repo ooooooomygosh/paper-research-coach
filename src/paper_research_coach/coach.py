@@ -554,6 +554,43 @@ class Coach:
         self.store.set_setting("active-paper", paper_id)
         return data
 
+    async def reconnect(self):
+        """The reader chose to reconnect: drop the connection, then settle any creation whose outcome was lost.
+
+        A thread/start that timed out leaves a paper "creating". Sending again stays cautious on purpose
+        (it never starts a second thread on a guess), but then nothing could ever clear the state, although the
+        message says to reconnect. Reconnecting is that explicit step: if Codex now lists no thread for the
+        paper's folder, nothing was created and the paper may start one. One thread is resumed on the next
+        send, and several are never guessed between.
+        """
+        await self.rpc.close()
+        self.resumed.clear()
+        with self.store.connect() as db:
+            stuck = db.execute(
+                "SELECT paper_id,cwd FROM coach_paper_bindings WHERE creation_state='creating' AND thread_id IS NULL"
+            ).fetchall()
+        if not stuck:
+            return
+        try:
+            await self.rpc.start()
+            for paper_id, cwd in stuck:
+                found, cursor = [], None
+                for _ in range(100):
+                    page = await self.rpc.call("thread/list", {"cwd": cwd, "limit": 100, "cursor": cursor})
+                    found.extend(page.get("data", []))
+                    cursor = page.get("nextCursor")
+                    if not cursor:
+                        break
+                if not found:
+                    with self.store.connect() as db:
+                        db.execute(
+                            "UPDATE coach_paper_bindings SET creation_state='ready' "
+                            "WHERE paper_id=? AND creation_state='creating' AND thread_id IS NULL",
+                            (paper_id,),
+                        )
+        except ValueError:
+            return  # Codex is not reachable: status() reports it, and the binding stays as it was
+
     @asynccontextmanager
     async def paper_lock(self, paper_id):
         async with self.paper_locks.setdefault(paper_id, asyncio.Lock()):

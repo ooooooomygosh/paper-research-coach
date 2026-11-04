@@ -258,3 +258,61 @@ def test_a_kept_highlight_is_paper_text_not_a_pending_thought(store, paper, anch
     thought = store.put("note", dict(paper_id=paper["id"], content="Is the budget really matched?",
                                      anchor=quoted))
     assert [n["id"] for n in store.context(paper["id"])["pending_thoughts"]] == [thought["id"]]
+
+
+def test_importing_the_same_pdf_at_once_creates_one_paper(store, pdf):
+    """A double click, an upload during a vault scan, or two clients must not each create a paper."""
+    import threading
+
+    gate = threading.Barrier(6)
+    ids, errors = [], []
+
+    def add():
+        gate.wait()
+        try:
+            ids.append(store.add_paper("same file", str(pdf))["id"])
+        except Exception as exc:  # noqa: BLE001 - reported by the assertion below
+            errors.append(exc)
+
+    threads = [threading.Thread(target=add) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors, errors
+    assert len(set(ids)) == 1
+    assert len(store.list("paper")) == 1
+    assert len(store.list("session")) == 1
+
+
+def test_replacing_the_pdf_marks_anchors_stale_but_keeps_what_was_already_discussed(store, tmp_path):
+    """New words on a note return it to the discussion queue; a stale anchor alone is not new words."""
+    from reportlab.pdfgen import canvas
+
+    def make(name, text):
+        path = tmp_path / name
+        c = canvas.Canvas(str(path))
+        c.drawString(60, 700, text)
+        c.showPage()
+        c.save()
+        return path
+
+    first, second = make("a.pdf", "version A"), make("b.pdf", "version B")
+    paper = store.add_paper("t", str(first))
+    anchor = {
+        "paper_id": paper["id"], "source_version": paper["source_version"], "page_index": 0,
+        "quote": "version", "rects": [[60, 695, 120, 710]], "status": "verified",
+    }
+    note = store.put("note", {"id": "n1", "paper_id": paper["id"], "content": "my doubt about the baseline", "anchor": anchor})
+    store.put("note", note | {"discussed": True}, note["revision"])  # the coach discussed it with the reader
+    assert store.context(paper["id"])["pending_thoughts"] == []
+
+    store.replace_source(paper["id"], str(second))
+
+    after = store.get("note", "n1")
+    assert after["anchor"]["status"] == "stale"
+    assert after["discussed"] is True
+    assert store.context(paper["id"])["pending_thoughts"] == []
+    # Real new words still reopen the discussion.
+    store.put("note", after | {"content": "my doubt, rewritten"}, after["revision"])
+    assert store.get("note", "n1")["discussed"] is False

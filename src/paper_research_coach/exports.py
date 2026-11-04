@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import csv
 import io
 import json
@@ -238,6 +239,9 @@ def export(
 ):
     if kind != "comparison" and not paper_id:
         raise ValueError("Choose a paper")
+    if paper_id and not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", paper_id):
+        # The id becomes part of a file name inside exports/: it must not carry a path.
+        raise ValueError("Invalid paper id")
     folder = store.root / "exports"
     folder.mkdir(exist_ok=True)
     from .models import uid
