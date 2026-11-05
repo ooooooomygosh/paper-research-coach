@@ -1,0 +1,141 @@
+{
+ "title": "为什么要 8 个头",
+ "subtitle": "Attention Is All You Need · 3.2.2 节（PDF 第 5 页）",
+ "lang": "zh",
+ "lead": [
+  {
+   "type": "md",
+   "text": "先说结论：一个头只能算出一种加权平均。8 个头各看一个 64 维子空间，模型可以**同时**注意不同位置、不同种类的信息。总计算量和一个 512 维的头差不多。",
+   "line": 5
+  }
+ ],
+ "panels": [
+  {
+   "title": "一次多头注意力",
+   "blocks": [
+    {
+     "dir": "LR",
+     "nodes": [
+      {
+       "id": "Q, K, V",
+       "label": "Q, K, V",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "8 组投影",
+       "label": "8 组投影",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "8 个注意力头",
+       "label": "8 个注意力头",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "Concat",
+       "label": "Concat",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "线性层",
+       "label": "线性层",
+       "shape": "rect",
+       "hi": true
+      },
+      {
+       "id": "输出 512 维",
+       "label": "输出 512 维",
+       "shape": "round",
+       "hi": false
+      }
+     ],
+     "edges": [
+      {
+       "from": "Q, K, V",
+       "to": "8 组投影",
+       "dashed": false,
+       "label": "每组 64 维"
+      },
+      {
+       "from": "8 组投影",
+       "to": "8 个注意力头",
+       "dashed": false,
+       "label": "并行"
+      },
+      {
+       "from": "8 个注意力头",
+       "to": "Concat",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "Concat",
+       "to": "线性层",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "线性层",
+       "to": "输出 512 维",
+       "dashed": false,
+       "label": ""
+      }
+     ],
+     "groups": [],
+     "type": "flow",
+     "line": 8
+    }
+   ],
+   "span": 2,
+   "meta": "",
+   "bare": false
+  },
+  {
+   "title": "几个数",
+   "blocks": [
+    {
+     "cols": 2,
+     "cells": [
+      {
+       "key": "头数 h",
+       "value": "8",
+       "wide": false
+      },
+      {
+       "key": "每个头的维度",
+       "value": "512 ÷ 8 = 64",
+       "wide": false
+      },
+      {
+       "key": "总计算量",
+       "value": "与一个 512 维的头相近",
+       "wide": false
+      }
+     ],
+     "type": "kv",
+     "line": 17
+    }
+   ],
+   "span": 1,
+   "meta": "基础模型",
+   "bare": false
+  },
+  {
+   "title": "一个头和八个头",
+   "blocks": [
+    {
+     "type": "md",
+     "text": "| | 一个头 | 八个头 |\n|---|---|---|\n| 能看的信息 | warn 平均后混在一起 | ok 每个头看一种关系 |\n| 计算量 | 512 维一次 | ok 8 次 64 维，相近 |",
+     "line": 24
+    }
+   ],
+   "span": 1,
+   "meta": "",
+   "bare": false
+  }
+ ]
+}

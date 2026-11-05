@@ -1,0 +1,1559 @@
+import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  ArrowUp,
+  Square,
+  MessageCircle,
+  MapPin,
+  RefreshCw,
+  X,
+  Plus,
+  Maximize2,
+  Minimize2,
+  ChevronDown,
+  ChevronUp,
+  ScrollText,
+  Network,
+} from "lucide-react";
+import BranchPanel from "./explainer/BranchPanel";
+import MainlineFigure from "./explainer/MainlineFigure";
+import ExplainerCard from "./explainer/ExplainerCard";
+import QuestCard, { linkMarks, marksOf } from "./QuestCard";
+import QuestLog, { sideQuestsOf, type SideQuest } from "./QuestLog";
+import JourneyTree from "./JourneyTree";
+import QuestControls from "./explainer/QuestControls";
+import type { ExplainerSummary, Quest } from "./explainer/types";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+// CommonMark ignores **加粗：**正文 when a closing ** follows CJK punctuation.
+import remarkCjkFriendly from "remark-cjk-friendly";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import {
+  api,
+  ApiError,
+  id,
+  location,
+  sameAnchor,
+  anchorFor,
+  anchorQuote,
+  type Row,
+} from "./api";
+import {
+  contextPage,
+  imageMatchesPage,
+  replyIntent,
+  helpLabels,
+  type HelpMode,
+} from "./reading-context";
+
+type Message = {
+  id: string;
+  role: string;
+  content: string;
+  status: string;
+  error?: string;
+  anchor?: any;
+  imported?: boolean;
+  actions?: any[];
+  connection_notice?: string;
+  intent?: string;
+  help_mode?: HelpMode;
+  /** The mainline chapter this exchange belongs to (for a detour: where the mainline paused). */
+  step?: string;
+  /** The task a mainline reply set, and the chapter it completed. */
+  task?: { question: string; choices?: string[] };
+  completed_step?: { step: string; label: string; takeaway: string; page_index: number };
+  context_scope?: {
+    notes_included: number;
+    notes_total: number;
+    page_index: number | null;
+    history_messages_included: number;
+  };
+};
+type Snapshot = {
+  conversation_id: string;
+  conversations: Row[];
+  messages: Message[];
+  busy: boolean;
+  read_only?: boolean;
+  canonical_conversation_id?: string;
+  thread_id?: string;
+  reading_flow?: any;
+};
+
+function prose(text: string) {
+  return text
+    .replace(/\\\[([\s\S]*?)\\\]/g, "\n$$$$\n$1\n$$$$\n")
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$$");
+}
+
+export default function CoachPanel({
+  paper,
+  context,
+  page,
+  anchor,
+  onClearAnchor,
+  onLocate,
+  onAction,
+  refresh,
+  report,
+  initialConversation = "",
+  toolsContainer,
+  onOpenTools,
+  onFocus,
+}: {
+  paper: Row;
+  context: any;
+  page: number;
+  anchor: any;
+  onClearAnchor: () => void;
+  onLocate: (a: any) => void;
+  onAction: (kind: string) => void;
+  refresh: () => void;
+  report: (s: string) => void;
+  initialConversation?: string;
+  toolsContainer?: HTMLElement | null;
+  onOpenTools?: () => void;
+  /** The coach pointed at sentences in the PDF ("auto" while a turn runs, "restore" on load). */
+  onFocus?: (action: any, how: "auto" | "click" | "restore") => void;
+}) {
+  const key = "prc-chat-draft-" + paper.id;
+  const jobKey = "prc-chat-send-" + paper.id;
+  const [text, setText] = useState(() => localStorage.getItem(key) || "");
+  const [snapshot, setSnapshot] = useState<Snapshot>({
+    conversation_id: "",
+    conversations: [],
+    messages: [],
+    busy: false,
+  });
+  const [chosen, setChosen] = useState(initialConversation);
+  const [status, setStatus] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState(() => !!localStorage.getItem(jobKey));
+  const [model, setModel] = useState(
+    () => localStorage.getItem("prc-coach-model") || "",
+  );
+  const [effort, setEffort] = useState(
+    () => localStorage.getItem("prc-coach-effort") || "",
+  );
+  const [expanded, setExpanded] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [includeImage, setIncludeImage] = useState(false);
+  const [routeOpen, setRouteOpen] = useState(false);
+  // An open branch explainer: a reader's question answered beside the paper.
+  const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
+  // Explainer pages live in the conversation as cards: which ones are open.
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  // The task above the message box is one line; it opens into the full task card.
+  const [taskOpen, setTaskOpen] = useState(false);
+  // Every explainer page of this paper (summaries): side-quest state and the quest log.
+  const [explainerList, setExplainerList] = useState<ExplainerSummary[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
+  const seenExplainers = useRef<Set<string> | null>(null);
+  const seenFocus = useRef<Set<string> | null>(null);
+  const latestFocus = useRef(onFocus);
+  latestFocus.current = onFocus;
+  const currentAnchor = useRef(anchor);
+  currentAnchor.current = anchor;
+  // Intent and help style are inferred, never configured: a selection is a
+  // detour, a reply to a pending mainline question is an answer, and the coach
+  // reads requests such as "just explain" from the message itself.
+  const effectiveIntent = replyIntent(snapshot.reading_flow, anchor, "auto");
+  const canAttachImage = imageMatchesPage(paper, page, anchor);
+  const scroll = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const atBottom = useRef(true);
+  const alive = useRef(true);
+  const currentText = useRef(text);
+  currentText.current = text;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    let disposed = false;
+    const events = new EventSource(
+      "/api/coach/events/" +
+        paper.id +
+        (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
+    );
+    const apply = (s: Snapshot) => {
+      if (!disposed) setSnapshot(s);
+    };
+    events.onmessage = (e) => {
+      try {
+        apply(JSON.parse(e.data));
+      } catch {}
+    };
+    void api(
+      "coach/conversation/" +
+        paper.id +
+        (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
+    )
+      .then(apply)
+      .catch((e) => {
+        if (!disposed) setError(String(e));
+      });
+    // A reconnect always reads durable state; it never resends a model turn.
+    events.onopen = () =>
+      void api(
+        "coach/conversation/" +
+          paper.id +
+          (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
+      )
+        .then(apply)
+        .catch(() => {});
+    return () => {
+      disposed = true;
+      events.close();
+    };
+  }, [paper.id, chosen]);
+  useEffect(() => {
+    let disposed = false;
+    const update = () =>
+      api("coach/status")
+        .then((s) => {
+          if (!disposed) setStatus(s);
+        })
+        .catch(() => {
+          if (!disposed)
+            setStatus({ state: "unavailable", message: "DeepSeek Harness 连接暂不可用" });
+        });
+    void update();
+    const timer = setInterval(
+      () => {
+        void update();
+      },
+      status?.state === "login_required" ? 4000 : 20000,
+    );
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [status?.state]);
+  useEffect(() => {
+    if (atBottom.current && scroll.current)
+      scroll.current.scrollTop = scroll.current.scrollHeight;
+  }, [snapshot.messages]);
+  useEffect(() => {
+    seenExplainers.current = null;
+    seenFocus.current = null;
+    setBranch(null);
+  }, [paper.id]);
+  useEffect(() => {
+    if (!snapshot.conversation_id) return;
+    const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "focus").map((a) => ({ a, m: m.id })));
+    if (seenFocus.current === null) {
+      // On load, show the latest marks without moving the PDF.
+      seenFocus.current = new Set(found.map(({ a }) => a.id));
+      if (found.length) latestFocus.current?.(found[found.length - 1].a, "restore");
+      return;
+    }
+    const fresh = found.filter(({ a }) => !seenFocus.current!.has(a.id));
+    if (!fresh.length) return;
+    const jumped = new Set(found.filter(({ a }) => seenFocus.current!.has(a.id)).map(({ m }) => m));
+    fresh.forEach(({ a }) => seenFocus.current!.add(a.id));
+    // One automatic jump per coach reply: the first place it points at. Later ones wait for a click.
+    const first = fresh.find(({ m }) => !jumped.has(m));
+    if (first) latestFocus.current?.(first.a, "auto");
+  }, [snapshot.messages, snapshot.conversation_id]);
+  useEffect(() => {
+    if (snapshot.read_only || !snapshot.conversation_id) return;
+    const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer"));
+    if (seenExplainers.current === null) {
+      // The first look at a paper only learns what exists; old branches never pop open on reload.
+      seenExplainers.current = new Set(found.map((a) => a.id));
+      return;
+    }
+    const fresh = found.filter((a) => !seenExplainers.current!.has(a.id) && !a.mainline);
+    found.forEach((a) => seenExplainers.current!.add(a.id));
+    if (fresh.length) {
+      // A new page opens in place, in the conversation; older pages of the same question fold up.
+      const last = fresh[fresh.length - 1];
+      setOpenCards((open) => {
+        const next = { ...open };
+        for (const a of found) if (a.branch_id === last.branch_id) next[a.id] = false;
+        next[last.id] = true;
+        return next;
+      });
+      requestAnimationFrame(() =>
+        document.getElementById("xp-card-" + last.id)?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
+      );
+    }
+  }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
+  const explainerSignature = snapshot.messages
+    .flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer").map((a) => a.id + ":" + (a.rev || "")))
+    .join(",");
+  useEffect(() => {
+    let live = true;
+    if (!explainerSignature && !logOpen) {
+      setExplainerList([]);
+      return;
+    }
+    api("coach/explainers/" + paper.id)
+      .then((r) => live && setExplainerList(r.data || []))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [paper.id, explainerSignature, logOpen]);
+  const questByBranch: Record<string, Quest | undefined> = Object.fromEntries(
+    explainerList.filter((p) => p.id === p.branch_id).map((p) => [p.id, p.quest]),
+  );
+  const latestPage: Record<string, string> = {};
+  for (const p of explainerList) if (p.origin !== "mainline") latestPage[p.branch_id] = p.id;
+  const saveQuest = (branchId: string, quest: Quest) =>
+    setExplainerList((list) => list.map((p) => (p.id === branchId ? { ...p, quest } : p)));
+  const openQuest = (q: SideQuest) => {
+    const target = latestPage[q.id] || q.id;
+    setLogOpen(false);
+    if (!document.getElementById("xp-card-" + target)) {
+      // A page from another conversation or the CLI: open it beside the reading instead.
+      setBranch({ branchId: q.id, pageId: target });
+      return;
+    }
+    setOpenCards((open) => ({ ...open, [target]: true }));
+    requestAnimationFrame(() => document.getElementById("xp-card-" + target)?.scrollIntoView?.({ block: "start", behavior: "smooth" }));
+  };
+  useEffect(() => {
+    setIncludeImage(
+      !!anchor?.rects?.length &&
+        !anchor?.quote &&
+        imageMatchesPage(paper, page, anchor),
+    );
+  }, [anchor, page, paper.id, paper.source_version, chosen]);
+  // Grow with the draft up to a bounded height, so long answers stay visible.
+  useLayoutEffect(() => {
+    const t = composer.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = Math.min(t.scrollHeight + 2, 260) + "px";
+  }, [text]);
+  function change(value: string) {
+    setText(value);
+    localStorage.setItem(key, value);
+  }
+  function pageImage() {
+    const canvas = document.querySelector<HTMLCanvasElement>(
+      `.pdf-page[data-paper-id="${paper.id}"][data-source-version="${paper.source_version}"][data-page-index="${page}"] canvas`,
+    );
+    if (!canvas) throw new Error("当前页还未打开。稍后重试，或取消附上图表。");
+    const image = document.createElement("canvas");
+    const ratio = Math.min(1, 1400 / canvas.width);
+    image.width = Math.round(canvas.width * ratio);
+    image.height = Math.round(canvas.height * ratio);
+    image.getContext("2d")?.drawImage(canvas, 0, 0, image.width, image.height);
+    const png = image.toDataURL("image/png");
+    return png.length > 3500000 ? image.toDataURL("image/jpeg", 0.85) : png;
+  }
+  async function send(
+    content = text,
+    retry = false,
+    intent = effectiveIntent as string,
+    branchId = "",
+  ) {
+    if (
+      snapshot.read_only ||
+      status?.state !== "ready" ||
+      sending ||
+      connecting ||
+      snapshot.busy ||
+      (!retry && intent !== "follow" && !content.trim())
+    )
+      return;
+    if (pending && !retry) {
+      setError("上次发送的结果还未确认。先点击确认上次发送，可避免重复提问。");
+      return;
+    }
+    let body: any;
+    try {
+      if (!retry && intent !== "follow" && includeImage && !canAttachImage)
+        throw new Error("图表与选区不在同一页，请先回到选区位置。");
+      body = retry
+        ? JSON.parse(localStorage.getItem(jobKey) || "null")
+        : {
+            operation_id: id(),
+            conversation_id: snapshot.conversation_id,
+            content,
+            intent,
+            anchor: intent === "follow" ? null : anchor,
+            page_index:
+              intent === "follow" ? page : contextPage(paper, page, anchor),
+            source_version: paper.source_version,
+            help_mode: "guided",
+            model,
+            effort,
+            page_image: intent !== "follow" && includeImage ? pageImage() : "",
+            branch_id: branchId,
+          };
+      if (!body) return;
+      // Persist the exact request before crossing the network.
+      localStorage.setItem(jobKey, JSON.stringify(body));
+      setPending(true);
+      setSending(true);
+      setError("");
+      atBottom.current = true;
+      const result = await api("coach/send/" + paper.id, body);
+      localStorage.removeItem(jobKey);
+      if (!alive.current) return;
+      setPending(false);
+      setChosen(result.conversation_id);
+      if (currentText.current === body.content) change("");
+      // Do not clear a newer selection made while the request was in flight.
+      if (body.anchor && sameAnchor(currentAnchor.current, body.anchor)) {
+        onClearAnchor();
+        setIncludeImage(false);
+      }
+      setSnapshot(
+        await api(
+          "coach/conversation/" +
+            paper.id +
+            "?conversation_id=" +
+            result.conversation_id,
+        ),
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+        localStorage.removeItem(jobKey);
+        if (alive.current) setPending(false);
+      }
+      if (alive.current) setError(String(e));
+    } finally {
+      if (alive.current) setSending(false);
+    }
+  }
+  async function chooseConversation(conversationId: string, fresh = false) {
+    if (snapshot.busy || pending || connecting || sending) return;
+    setConnecting(true);
+    setError("");
+    try {
+      const c = fresh
+        ? await api("coach/connect/" + paper.id, { new: true })
+        : { id: conversationId };
+      if (!c.id || c.id === snapshot.canonical_conversation_id)
+        await api("coach/active", {
+          paper_id: paper.id,
+          conversation_id: c.id,
+        });
+      const next = await api(
+        "coach/conversation/" +
+          paper.id +
+          "?conversation_id=" +
+          encodeURIComponent(c.id),
+      );
+      if (alive.current) {
+        setSnapshot(next);
+        setChosen(c.id);
+        atBottom.current = true;
+      }
+    } catch (e) {
+      if (alive.current) setError(String(e));
+    } finally {
+      if (alive.current) setConnecting(false);
+    }
+  }
+  const currentModel = status?.models?.find(
+    (m: any) => m.model === (model || status.model),
+  );
+  const notesSaved = new Set((context.notes || []).map((n: Row) => n.id));
+  const learning = Object.entries(
+    context.session?.[0]?.support_evidence || {},
+  ) as [string, any][];
+  const abilities: Record<string, string> = {
+    contribution: "贡献判断",
+    mechanism: "机制解释",
+    evidence: "证据解读",
+    test: "检验设计",
+    comparison: "文献比较",
+  };
+  const assistance: Record<string, string> = {
+    model: "示范后作答",
+    guided: "共同完成",
+    "prompt-only": "提示后作答",
+    independent: "本次独立作答",
+  };
+  const flow = snapshot.reading_flow;
+  const flowDone = flow?.status === "completed";
+  const flowStarted = flow?.status === "active";
+  const stepIndex = (flow?.steps || []).findIndex((s: any) => s.id === flow?.current);
+  const stepNumber = `${stepIndex >= 0 ? stepIndex + 1 : (flow?.completed?.length || 0) + 1}/${flow?.steps?.length || 8}`;
+  const unavailable =
+    status?.state !== "ready" ||
+    snapshot.busy ||
+    pending ||
+    connecting ||
+    sending;
+  const statusLabel =
+    status?.state === "ready"
+      ? "已连接"
+      : status?.state === "login_required"
+        ? "需要登录"
+        : status?.state === "unavailable"
+          ? "未连接"
+          : "连接中";
+  const returnToMainline = () => {
+    setBranch(null);
+    requestAnimationFrame(() => composer.current?.focus());
+  };
+  const openWindow = (branchId: string, pageId: string) =>
+    window.open(
+      `/#branch=${encodeURIComponent(branchId)}&page=${encodeURIComponent(pageId)}&paper=${encodeURIComponent(paper.id)}`,
+      "prc-branch-" + branchId,
+      "popup=yes,width=900,height=900",
+    );
+  const popoutBranch = () => {
+    if (!branch) return;
+    openWindow(branch.branchId, branch.pageId);
+    setBranch(null);
+  };
+  // The places the coach's latest reply pointed at: the task card's "look here".
+  const lastFocus = (() => {
+    for (let i = snapshot.messages.length - 1; i >= 0; i--) {
+      const m = snapshot.messages[i];
+      if (m.role !== "assistant") continue;
+      return (m.actions || []).filter((a) => a.kind === "focus");
+    }
+    return [] as any[];
+  })();
+  const ask = (content: string) => void send(content, false, "answer");
+  const reconnect = async () => {
+    try {
+      setStatus(await api("coach/reconnect", {}));
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+  // A mainline reply is drawn as a quest card; its chapter comes from the step saved with it.
+  const questOf = (m: Message) => {
+    if (m.role !== "assistant" || !m.step || (m.intent !== "follow" && m.intent !== "answer")) return null;
+    const steps = flow?.steps || [];
+    const i = steps.findIndex((x: any) => x.id === m.step);
+    return i < 0 ? null : { chapter: i + 1, total: steps.length, label: steps[i].label as string };
+  };
+  // Only the reply that set the task still waiting for an answer offers the task's buttons.
+  const currentTaskMessage = (() => {
+    if (!flowStarted || !flow?.pending_question) return "";
+    for (let i = snapshot.messages.length - 1; i >= 0; i--) {
+      const m = snapshot.messages[i];
+      if (m.task) return m.task.question === flow.pending_question ? m.id : "";
+    }
+    return "";
+  })();
+  const coachMarkdown = (m: Message) => {
+    const marks = marksOf(m.actions || []);
+    return (
+      <Markdown
+        remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+          a: ({ href, children, ...props }) => {
+            if (href?.startsWith("#mark-")) {
+              const mark = marks.find((x) => x.n === Number(href.slice(6)));
+              return mark ? (
+                <button type="button" className="mark-ref" title={mark.quote} onClick={() => onFocus?.(mark.action, "click")}>{children}</button>
+              ) : <>{children}</>;
+            }
+            return <a {...props} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+          },
+        }}
+      >
+        {marks.length ? linkMarks(prose(m.content)) : prose(m.content)}
+      </Markdown>
+    );
+  };
+  const sideQuests = sideQuestsOf(explainerList);
+  const questLogButton = (
+    <button type="button" className="quest-log-open" aria-expanded={logOpen} title="主线章节和所有支线" onClick={() => setLogOpen(!logOpen)}>
+      <ScrollText size={14} />
+      任务日志{sideQuests.length ? ` · 支线 ${sideQuests.length}` : ""}
+    </button>
+  );
+  const sessionTools = (
+    <>
+      <div className="coach-session-row">
+        <select
+          title="仅列出这篇论文的阅读对话"
+          aria-label="当前阅读对话"
+          value={snapshot.conversation_id}
+          disabled={snapshot.busy || pending || connecting || sending}
+          onChange={(e) => void chooseConversation(e.target.value)}
+        >
+          {!snapshot.conversations.length && (
+            <option value="">从新对话开始</option>
+          )}
+          {snapshot.conversations.map((c, index: number) => (
+            <option key={c.id} value={c.id}>
+              {c.title} ·{" "}
+              {new Date(c.created_at).toLocaleString(undefined, {
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              · #{index + 1}
+            </option>
+          ))}
+        </select>
+      </div>
+    </>
+  );
+  const mainlineLabel = text.trim()
+    ? "回答并继续主线"
+    : flowDone
+      ? "回顾阅读总结"
+      : flowStarted
+        ? "继续主线"
+        : "开始跟读";
+  const route = (
+    <div className="coach-route" aria-label="八步阅读路线">
+      <p>
+        {flowDone
+          ? "八步都已核查。回到复习队列巩固，也可以继续讨论新问题。"
+          : flowStarted
+            ? flow?.return_action || flow?.goal
+            : "目标 → 贡献 → 设定 → 机制 → 证据 → 边界 → 启发 → 回忆。每轮只推进一步；随时可以选中原文插话，主线停在原处。"}
+      </p>
+      {flow?.needs_recheck && <p>PDF 已换版，主线会从新版本重新核查。</p>}
+      <ol>
+        {(flow?.steps || []).map((step: any) => {
+          const receipt = flow?.completed?.find((c: any) => c.step === step.id);
+          return (
+            <li
+              key={step.id}
+              aria-current={
+                flowStarted && flow?.current === step.id ? "step" : undefined
+              }
+            >
+              {receipt ? "✓ " : ""}
+              {step.label}
+              {receipt?.takeaway && <p className="reading-takeaway">{receipt.takeaway}</p>}
+              {receipt && (
+                <details className="reading-receipt">
+                  <summary>核查依据</summary>
+                  <p>{receipt.evidence}</p>
+                  {flow.source_version === paper.source_version &&
+                    Number.isInteger(receipt.page_index) &&
+                    receipt.page_index >= 0 &&
+                    receipt.page_index < paper.page_count && (
+                      <button
+                        onClick={() =>
+                          onLocate(anchorFor(paper, receipt.page_index))
+                        }
+                      >
+                        查看 PDF 第 {receipt.page_index + 1} 页
+                      </button>
+                    )}
+                </details>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {flowDone && (
+        <div className="paper-card-done">
+          <b>这篇论文卡</b>
+          <p className="small muted">八步的收获连起来，就是这篇论文的复盘。</p>
+          <button onClick={() => onAction("export")}>导出阅读记录</button>
+        </div>
+      )}
+      <p className="small muted">核查进度不是掌握度；独立理解要靠不看答案的回忆来检验。</p>
+    </div>
+  );
+  const learningSummary = (
+    <>
+      {!!learning.length && (
+        <details className="coach-learning">
+          <summary>本次学习表现 · {learning.length} 项</summary>
+          <p className="small muted">
+            根据实际回答记录，供下次调整帮助；单次表现不等于已掌握。
+          </p>
+          {learning.map(([ability, observation]) => (
+            <article key={ability}>
+              <b>
+                {abilities[ability] || ability} ·{" "}
+                {assistance[observation.assistance]} ·{" "}
+                {
+                  {
+                    supported: "有证据支持",
+                    partial: "还需补充",
+                    revise: "需要修正",
+                  }[observation.judgment as "supported" | "partial" | "revise"]
+                }
+              </b>
+              <blockquote>{observation.answer_quote}</blockquote>
+              <p>{observation.feedback}</p>
+              <details>
+                <summary>判断依据</summary>
+                <p>{observation.criterion}</p>
+              </details>
+              <button
+                disabled={
+                  observation.anchor.source_version !== paper.source_version
+                }
+                onClick={() => onLocate(observation.anchor)}
+              >
+                {observation.anchor.source_version === paper.source_version
+                  ? "核对原文证据"
+                  : "旧版本依据，需重新核实"}
+              </button>
+              <button
+                disabled={snapshot.busy || pending || connecting || sending}
+                onClick={() =>
+                  void chooseConversation(observation.conversation_id)
+                }
+              >
+                查看回答所在对话
+              </button>
+            </article>
+          ))}
+        </details>
+      )}
+    </>
+  );
+  const coachSettings = (
+    <>
+      <details className="coach-options">
+        <summary>阅读设置与连接</summary>
+        <div className="coach-connection">
+          <span
+            className={
+              "status-dot " + (status?.state === "ready" ? "online" : "")
+            }
+          />
+          <span>{status?.message || "正在连接 DeepSeek Harness…"}</span>
+          <button
+            aria-label="重新连接 DeepSeek Harness"
+            title="重新连接 DeepSeek Harness"
+            disabled={snapshot.busy}
+            onClick={() => void reconnect()}
+          >
+            <RefreshCw size={13} />
+          </button>
+        </div>
+        <div className="coach-skill">
+          paper-research-coach ·{" "}
+          {status?.skill_loaded
+            ? "阅读规则已就绪，按需查询资料"
+            : "正在检查 skill"}
+        </div>
+
+        <label>
+          模型
+          <select
+            aria-label="教练模型"
+            value={model}
+            onChange={(e) => {
+              setModel(e.target.value);
+              setEffort("");
+              localStorage.setItem("prc-coach-model", e.target.value);
+              localStorage.removeItem("prc-coach-effort");
+            }}
+          >
+            <option value="">沿用 Harness 账户配置</option>
+            {status?.models?.map((m: any) => (
+              <option key={m.model} value={m.model}>
+                {m.displayName || m.model}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          思考深度
+          <select
+            aria-label="教练思考深度"
+            value={effort}
+            onChange={(e) => {
+              setEffort(e.target.value);
+              localStorage.setItem("prc-coach-effort", e.target.value);
+            }}
+          >
+            <option value="">沿用 Harness 账户配置</option>
+            {currentModel?.supportedReasoningEfforts?.map((r: any) => (
+              <option key={r.reasoningEffort} value={r.reasoningEffort}>
+                {r.reasoningEffort}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="check-label">
+          <input
+            type="checkbox"
+            checked={!!context.session?.[0]?.note_consent}
+            onChange={async (e) => {
+              try {
+                const s = context.session[0];
+                await api("commit", {
+                  mutations: [
+                    {
+                      kind: "session",
+                      data: { ...s, note_consent: e.target.checked },
+                      expected_revision: s.revision,
+                    },
+                  ],
+                });
+                refresh();
+              } catch (err) {
+                setError(String(err));
+              }
+            }}
+          />
+          同时把我的对话原话保存为阅读笔记
+        </label>
+        <p>对话记录始终保留；此选项控制是否额外生成原话笔记。</p>
+        <label className="check-label">
+          <input
+            type="checkbox"
+            checked={!!context.session?.[0]?.learning_consent}
+            onChange={async (e) => {
+              try {
+                const s = context.session[0];
+                await api("commit", {
+                  mutations: [
+                    {
+                      kind: "session",
+                      data: { ...s, learning_consent: e.target.checked },
+                      expected_revision: s.revision,
+                    },
+                  ],
+                });
+                refresh();
+              } catch (err) {
+                setError(String(err));
+              }
+            }}
+          />
+          记录实际回答与学习反馈，帮助下次调整讲解
+        </label>
+        <p>
+          可随时关闭。按具体能力保存最近一次表现，原始回答和历史反馈保留在本机。
+        </p>
+        <p>
+          笔记和断点存于本机。发送时，当前论文的上下文、对话和所选页面会交给 Harness
+          配置的模型提供方；附图会发送整页。Zotero 同步是另一项独立操作。
+        </p>
+      </details>
+    </>
+  );
+  return (
+    <section
+      className={"coach-panel " + (expanded ? "expanded" : "")}
+      aria-label="论文教练对话"
+    >
+      <div className="coach-heading">
+        <div>
+          <MessageCircle size={17} />
+          <button
+            className="coach-step"
+            aria-expanded={routeOpen}
+            title="查看八步路线与核查依据"
+            onClick={() => setRouteOpen(!routeOpen)}
+          >
+            <strong>
+              {flowDone
+                ? "本轮跟读已完成"
+                : flowStarted
+                  ? `第 ${stepNumber} 步 · ${flow.label}`
+                  : "一起读这篇论文"}
+            </strong>
+            <ChevronDown size={14} />
+          </button>
+          <span
+            className="coach-ready"
+            title={
+              status?.skill_loaded
+                ? "本机教练已连接，沿用这篇论文的持久会话"
+                : "正在连接"
+            }
+          >
+            <span
+              className={
+                "status-dot " + (status?.state === "ready" ? "online" : "")
+              }
+            />
+            {statusLabel}
+          </span>
+          {!(flowStarted && !anchor && !snapshot.read_only) && (sideQuests.length > 0 || flowDone) && (
+            <button type="button" className="coach-log-icon" aria-label="任务日志" title="任务日志：主线章节和所有支线" onClick={() => setLogOpen(!logOpen)}>
+              <ScrollText size={15} />
+            </button>
+          )}
+        </div>
+        <button
+          aria-label={
+            onOpenTools
+              ? "教练设置"
+              : expanded
+                ? "收起教练对话"
+                : "展开教练对话"
+          }
+          title={
+            onOpenTools
+              ? "教练设置"
+              : expanded
+                ? "收起教练对话"
+                : "展开教练对话"
+          }
+          onClick={() => (onOpenTools ? onOpenTools() : setExpanded(!expanded))}
+        >
+          {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        </button>
+      </div>
+      <div className="coach-mainline" aria-label="论文跟读主线">
+        <button
+          className="coach-step-inline text-button"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={() => setRouteOpen(!routeOpen)}
+        >
+          {flowStarted ? `${stepNumber} ${flow.label}` : flowDone ? "已完成" : "主线"}
+        </button>
+        <ol className="coach-progress-track" aria-hidden="true">
+          {(flow?.steps || []).map((step: any) => (
+            <li
+              key={step.id}
+              title={step.label}
+              className={
+                flow?.completed?.some((c: any) => c.step === step.id)
+                  ? "done"
+                  : flowStarted && flow?.current === step.id
+                    ? "current"
+                    : ""
+              }
+            />
+          ))}
+        </ol>
+        {/* Once started, the task card below carries the mainline's actions. */}
+        {!flowStarted && (
+          <button
+            className={flowDone ? "coach-continue" : "primary"}
+            disabled={unavailable}
+            onClick={() =>
+              void send(text, false, text.trim() ? "answer" : "follow")
+            }
+          >
+            {mainlineLabel}
+          </button>
+        )}
+      </div>
+      {routeOpen && route}
+      {status?.state === "login_required" && (
+        <div className="coach-login">
+          <p>沿用 DeepSeek Harness 中已登录的账户，即可在这里带读。</p>
+          <button
+            onClick={async () => {
+              try {
+                const r = await api("coach/login", {});
+                window.open(r.authUrl, "_blank", "noopener,noreferrer");
+              } catch (e) {
+                setError(String(e));
+              }
+            }}
+          >
+            登录 DeepSeek
+          </button>
+        </div>
+      )}
+      {toolsContainer ? (
+        createPortal(
+          <div className="coach-tools-content">{sessionTools}</div>,
+          toolsContainer,
+        )
+      ) : (
+        <details className="coach-fallback-tools">
+          <summary>阅读工具</summary>
+          {sessionTools}
+        </details>
+      )}
+      <div
+        className="coach-messages"
+        ref={scroll}
+        onScroll={() => {
+          const e = scroll.current;
+          if (e)
+            atBottom.current =
+              e.scrollHeight - e.scrollTop - e.clientHeight < 90;
+        }}
+        role="log"
+        aria-label="阅读对话记录"
+      >
+        {!snapshot.messages.length && (
+          <div className="coach-welcome">
+            <h3>一边读原文，一边一步步形成判断</h3>
+            <ol className="coach-howto">
+              <li>
+                点上方<b>开始跟读</b>，教练每轮只推进一步、只问一个问题。
+              </li>
+              <li>
+                在下方直接回答或提问即可，系统会判断这是回答当前问题还是插话；想要提示、直接讲解或被反驳，直接说出来。
+              </li>
+              <li>
+                选中原文点<b>讨论这处</b>就能问那一处；主线停在原步骤，点<b>继续主线</b>回来。
+              </li>
+            </ol>
+          </div>
+        )}
+        {snapshot.messages.map((m, index) => m.role === "user" && m.intent === "follow" && !m.error ? (
+          // "Continue" is a click, not something the reader wrote: a small marker, not a bubble.
+          <p key={m.id} className="coach-follow-pill">▶ 继续主线</p>
+        ) : (
+          <article key={m.id} className={"coach-message " + m.role}>
+            <div className="coach-message-label">
+              {m.role === "user"
+                ? m.intent === "follow"
+                  ? "继续跟读"
+                  : "我"
+                : "论文教练"}
+              {m.imported && <span>来自历史对话</span>}
+              {m.role === "user" && m.intent === "answer" && (
+                <span>回答主线</span>
+              )}
+              {m.role === "user" && m.help_mode && m.help_mode !== "guided" && (
+                <span>{helpLabels[m.help_mode]}</span>
+              )}
+              {m.status !== "completed" && (
+                <span className={"coach-status " + m.status}>
+                  {m.status === "queued"
+                    ? "准备回复…"
+                    : m.status === "streaming"
+                      ? "正在回复…"
+                      : m.status === "interrupted"
+                        ? "已停止"
+                        : m.status === "failed"
+                          ? "未完成"
+                          : ""}
+                </span>
+              )}
+            </div>
+            {m.anchor &&
+              !(
+                m.role === "assistant" &&
+                sameAnchor(snapshot.messages[index - 1]?.anchor, m.anchor)
+              ) && (
+                <button
+                  className={
+                    "anchor-label" + (anchorQuote(m.anchor) ? " quoted" : "")
+                  }
+                  title="回到原文位置"
+                  onClick={() => onLocate(m.anchor)}
+                >
+                  <span>
+                    <MapPin size={13} />
+                    {location(m.anchor)}
+                  </span>
+                  {m.role === "user" && anchorQuote(m.anchor) && (
+                    <q>{anchorQuote(m.anchor)}</q>
+                  )}
+                </button>
+              )}
+            {questOf(m) ? (
+              <QuestCard
+                chapter={questOf(m)!.chapter}
+                total={questOf(m)!.total}
+                label={questOf(m)!.label}
+                actions={m.actions || []}
+                onMark={(a) => onFocus?.(a, "click")}
+                completed={m.completed_step || null}
+                finale={m.completed_step?.step === "recall" ? (
+                  <button type="button" className="primary quest-finale" onClick={() => setJourneyOpen(true)}>
+                    <Network size={15} />查看这篇论文的复盘树
+                  </button>
+                ) : null}
+                body={
+                  <div className="coach-prose">
+                    {coachMarkdown(m)}
+                    {!m.content && m.status === "streaming" && (
+                      <span className="coach-thinking">正在核对论文与阅读记录…</span>
+                    )}
+                  </div>
+                }
+                figures={(m.actions || [])
+                  .filter((a) => a.kind === "explainer" && a.mainline)
+                  .map((a) => (
+                    <MainlineFigure key={a.id} id={a.id} rev={a.rev} disabled={unavailable || !!snapshot.read_only}
+                      onAnswer={ask} onOpen={() => openWindow(a.branch_id, a.id)} />
+                  ))}
+                task={m.task && (
+                  <div className="quest-task">
+                    <b>你的任务</b>
+                    <p>{m.task.question}</p>
+                    {m.id === currentTaskMessage ? (
+                      <>
+                        {(m.task.choices || []).length > 1 && (
+                          <div className="task-choices" role="group" aria-label="快速回答">
+                            {(m.task.choices || []).map((c: string) => (
+                              <button key={c} type="button" disabled={unavailable} onClick={() => ask(c)}>{c}</button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="task-actions">
+                          <button type="button" className="primary" disabled={unavailable} onClick={() => composer.current?.focus()}>回答</button>
+                          <button type="button" disabled={unavailable} onClick={() => ask("我先要一个提示：只给一条线索，先别告诉我答案。")}>给我提示</button>
+                          <button type="button" disabled={unavailable} onClick={() => ask("请直接讲给我听，讲完让我用一句话复述。")}>直接讲给我</button>
+                        </div>
+                      </>
+                    ) : (
+                      <small className="muted">已作答</small>
+                    )}
+                  </div>
+                )}
+              />
+            ) : (
+              <div className="coach-prose">
+              {m.connection_notice && (
+                <p className="small muted">{m.connection_notice}</p>
+              )}
+              {m.role === "user" ? (
+                <p className="verbatim">{m.content}</p>
+              ) : (
+                coachMarkdown(m)
+              )}
+              {!m.content && m.status === "streaming" && (
+                <span className="coach-thinking">正在核对论文与阅读记录…</span>
+              )}
+            </div>
+            )}
+            {m.error && <p className="coach-error">{m.error}</p>}
+            {(m.actions || [])
+              .filter((a) => a.kind === "explainer" && !a.mainline)
+              .map((a) => (
+                <div key={a.id} id={"xp-card-" + a.id}>
+                  <ExplainerCard
+                    id={a.id}
+                    rev={a.rev}
+                    branchId={a.branch_id}
+                    paperTitle={paper.title}
+                    expanded={!!openCards[a.id]}
+                    onToggle={(open) => setOpenCards((all) => ({ ...all, [a.id]: open }))}
+                    disabled={unavailable || !!snapshot.read_only}
+                    disabledHint={snapshot.read_only ? "历史对话为只读" : status?.state !== "ready" ? "教练未连接，连上后可以接着问" : "教练正在回复…"}
+                    onAsk={(question, branchId) => void send(question, false, "detour", branchId)}
+                    onEnlarge={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
+                    onPopout={() => openWindow(a.branch_id, a.id)}
+                    quest={questByBranch[a.branch_id]}
+                    questSlot={
+                      !snapshot.read_only && latestPage[a.branch_id] === a.id ? (
+                        <QuestControls
+                          branchId={a.branch_id}
+                          quest={questByBranch[a.branch_id]}
+                          onSaved={(quest) => saveQuest(a.branch_id, quest)}
+                        />
+                      ) : null
+                    }
+                  />
+                </div>
+              ))}
+            {!questOf(m) && (m.actions || [])
+              .filter((a) => a.kind === "explainer" && a.mainline)
+              .map((a) => (
+                <MainlineFigure
+                  key={a.id}
+                  id={a.id}
+                  rev={a.rev}
+                  disabled={unavailable || !!snapshot.read_only}
+                  onAnswer={ask}
+                  onOpen={() => openWindow(a.branch_id, a.id)}
+                />
+              ))}
+            {m.actions?.some((a) => a.kind !== "explainer") ? (
+              <div className="coach-actions">
+                {m.actions!
+                  .filter(
+                    (a, i, all) =>
+                      a.kind !== "explainer" &&
+                      all.findIndex(
+                        (b) => b.id === a.id && b.label === a.label,
+                      ) === i,
+                  )
+                  .map((a) =>
+                    a.kind === "explainer" ? (
+                      <button
+                        key={a.id + a.label}
+                        className="coach-branch-link"
+                        onClick={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
+                      >
+                        {a.label}
+                      </button>
+                    ) : a.kind === "focus" ? (
+                      <button
+                        key={a.id + a.label}
+                        className="coach-focus-link"
+                        title={(a.marks || []).map((m: any) => m.n + ". " + m.quote).join("\n") || a.label}
+                        onClick={() => onFocus?.(a, "click")}
+                      >
+                        {a.label}
+                      </button>
+                    ) : a.kind === "session" ? (
+                      <span className="coach-saved-action" key={a.id + a.label}>
+                        {a.label}
+                      </span>
+                    ) : (
+                      <button
+                        key={a.id + a.label}
+                        onClick={() => {
+                          refresh();
+                          if (a.anchor) onLocate(a.anchor);
+                          else onAction(a.kind);
+                        }}
+                      >
+                        {a.label}
+                      </button>
+                    ),
+                  )}
+              </div>
+            ) : null}
+            {m.context_scope && m.status !== "streaming" && (
+              <details className="coach-source-scope">
+                <summary>发送范围</summary>
+                <p className="small muted">
+                  {m.context_scope.page_index === null
+                    ? "无可用 PDF 正文"
+                    : `PDF 第 ${m.context_scope.page_index + 1} 页`}
+                  、阅读断点，以及 {m.context_scope.notes_included} /{" "}
+                  {m.context_scope.notes_total}{" "}
+                  条笔记的节选。教练可按需回查这篇论文的其他记录；本机原文保持完整。
+                </p>
+              </details>
+            )}
+            {m.content && m.status !== "streaming" && m.intent !== "follow" && (
+              <button
+                className="text-button small"
+                disabled={notesSaved.has("chat-" + m.id)}
+                onClick={async () => {
+                  try {
+                    await api(
+                      "coach/save-message/" +
+                        snapshot.conversation_id +
+                        "/" +
+                        m.id,
+                      {},
+                    );
+                    refresh();
+                    report(
+                      m.role === "user"
+                        ? "原话已保存为笔记"
+                        : "已保存为独立 AI 评论",
+                    );
+                  } catch (e) {
+                    setError(String(e));
+                  }
+                }}
+              >
+                {notesSaved.has("chat-" + m.id)
+                  ? "已在笔记中"
+                  : m.role === "user"
+                    ? "保留为原话笔记"
+                    : "保存 AI 评论"}
+              </button>
+            )}
+          </article>
+        ))}
+      </div>
+      <div className="coach-compose">
+        {toolsContainer ? (
+          createPortal(<div>{learningSummary}</div>, toolsContainer)
+        ) : (
+          <>{learningSummary}</>
+        )}
+        {status?.state === "unavailable" && (
+          <div className="coach-offline" role="status">
+            <p title="使用 DeepSeek Harness 当前登录的账户">
+              AI 带读暂未连接，阅读与笔记照常可用。
+            </p>
+            <button disabled={snapshot.busy} onClick={() => void reconnect()}>
+              <RefreshCw size={13} />
+              重新连接
+            </button>
+          </div>
+        )}
+        {error && (
+          <div className="coach-error" role="alert">
+            {error}
+            <button aria-label="关闭对话提示" onClick={() => setError("")}>
+              <X size={13} />
+            </button>
+          </div>
+        )}
+        {pending && (
+          <button
+            className="coach-retry"
+            disabled={sending || snapshot.busy}
+            onClick={() => void send("", true)}
+          >
+            确认上次发送 · 使用相同编号恢复
+          </button>
+        )}
+        <div className="coach-context-chips" hidden={!anchor}>
+          <span>PDF 第 {(anchor?.page_index ?? page) + 1} 页</span>
+          {anchor && (
+            <div>
+              <button className="anchor-label" onClick={() => onLocate(anchor)}>
+                <MapPin size={12} />
+                {anchorQuote(anchor) ? "已附上选中文字" : "已附上选区"}
+              </button>
+              <button aria-label="移除对话选区" onClick={onClearAnchor}>
+                <X size={12} />
+              </button>
+              <button
+                className="coach-discuss"
+                disabled={snapshot.busy || status?.state !== "ready" || pending}
+                onClick={() =>
+                  void send(
+                    "请解释当前选区，先说明它在论文论证里解决什么问题，再帮我检验一个关键判断。",
+                    false,
+                    "detour",
+                  )
+                }
+              >
+                直接讲这处
+              </button>
+            </div>
+          )}
+        </div>
+        {anchorQuote(anchor) && (
+          <blockquote className="coach-selection">
+            {anchorQuote(anchor)}
+          </blockquote>
+        )}
+        {flowStarted && !anchor && !snapshot.read_only && (
+          <div className={"task-strip" + (taskOpen ? " open" : "")}>
+            <button type="button" className="task-strip-line" aria-expanded={taskOpen} onClick={() => setTaskOpen(!taskOpen)}
+              title={taskOpen ? "收起任务" : "展开任务"}>
+              <span className="task-strip-step">第 {stepNumber.split("/")[0]} 章 · {flow?.label}</span>
+              <span className="task-strip-text">{flow?.pending_question ? "任务：" + flow.pending_question : "下一步：" + (flow?.return_action || flow?.goal || "")}</span>
+              {taskOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
+            {questLogButton}
+          </div>
+        )}
+        {flowStarted && !anchor && !snapshot.read_only && taskOpen && (
+          <TaskCard
+            flow={flow}
+            stepNumber={stepNumber}
+            focus={lastFocus}
+            busy={unavailable}
+            onFocus={(a) => onFocus?.(a, "click")}
+            onChoice={ask}
+            onAnswer={() => composer.current?.focus()}
+            onHint={() => ask("我先要一个提示：只给一条线索，先别告诉我答案。")}
+            onExplain={() => ask("请直接讲给我听，讲完让我用一句话复述。")}
+            onContinue={() => void send("", false, "follow")}
+          />
+        )}
+        {snapshot.read_only && (
+          <button
+            onClick={() =>
+              void chooseConversation(snapshot.canonical_conversation_id || "")
+            }
+          >
+            历史对话为只读 · 返回当前对话
+          </button>
+        )}
+        <textarea
+          disabled={!!snapshot.read_only}
+          aria-label="发给论文教练的消息"
+          placeholder={
+            anchor
+              ? "问问这处原文…"
+              : effectiveIntent === "answer"
+                ? "写下你的回答，或直接提问…"
+                : "提问，或写下你的想法…"
+          }
+          ref={composer}
+          rows={2}
+          value={text}
+          onChange={(e) => change(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter sends, Shift+Enter breaks a line; IME confirmation never sends.
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey &&
+              !e.altKey &&
+              !e.nativeEvent.isComposing &&
+              e.nativeEvent.keyCode !== 229
+            ) {
+              e.preventDefault();
+              // An empty Enter keeps the mainline moving when nothing is waiting for an answer.
+              if (!text.trim() && flowStarted && !anchor && !flow?.pending_question) void send("", false, "follow");
+              else void send();
+            }
+          }}
+        />
+        <div className="coach-compose-footer">
+          <span>
+            {effectiveIntent === "answer"
+              ? "Enter 发送，作为对待答问题的回答"
+              : flowStarted
+                ? `Enter 发送 · 插话，主线停在第 ${stepNumber.split("/")[0]} 步`
+                : "Enter 发送 · Shift + Enter 换行"}
+          </span>
+          {snapshot.busy ? (
+            <button
+              className="coach-stop"
+              onClick={async () => {
+                try {
+                  await api("coach/stop/" + snapshot.conversation_id, {});
+                } catch (e) {
+                  setError(String(e));
+                }
+              }}
+            >
+              <Square size={13} />
+              停止
+            </button>
+          ) : (
+            <button
+              className="primary"
+              aria-label="发送给论文教练"
+              disabled={
+                sending ||
+                connecting ||
+                snapshot.read_only ||
+                !text.trim() ||
+                status?.state !== "ready" ||
+                pending
+              }
+              onClick={() => void send()}
+            >
+              <ArrowUp size={17} />
+            </button>
+          )}
+        </div>
+        {toolsContainer ? (
+          createPortal(
+            <div className="coach-tools-content">{coachSettings}</div>,
+            toolsContainer,
+          )
+        ) : (
+          <>{coachSettings}</>
+        )}
+        {!!context.pending_thoughts?.length && (
+          <button
+            className="coach-discuss"
+            disabled={snapshot.busy || status?.state !== "ready" || pending}
+            onClick={() =>
+              void send(
+                "请讨论我已保存但尚未讨论的笔记，引用我的原话，保留独立的 AI 评论。一次先讨论最关键的一条。",
+                false,
+                "detour",
+              )
+            }
+          >
+            讨论待讨论笔记 · {context.pending_thoughts.length}
+          </button>
+        )}
+      </div>
+      {logOpen && (
+        <QuestLog
+          flow={flow}
+          quests={sideQuests}
+          onClose={() => setLogOpen(false)}
+          onOpenQuest={openQuest}
+          onPage={(i) => onLocate(anchorFor(paper, i))}
+          onJourney={() => {
+            setLogOpen(false);
+            setJourneyOpen(true);
+          }}
+        />
+      )}
+      {journeyOpen && (
+        <JourneyTree
+          paperId={paper.id}
+          onClose={() => setJourneyOpen(false)}
+          onPage={(i) => onLocate(anchorFor(paper, i))}
+          onOpenQuest={(branchId) => {
+            setJourneyOpen(false);
+            const q = sideQuests.find((x) => x.id === branchId);
+            if (q) openQuest(q);
+            else setBranch({ branchId, pageId: branchId });
+          }}
+          onPopout={() => {
+            window.open(`/#journey=${encodeURIComponent(paper.id)}`, "prc-journey-" + paper.id, "popup=yes,width=980,height=960");
+            setJourneyOpen(false);
+          }}
+        />
+      )}
+      {branch && (
+        <BranchPanel
+          key={branch.branchId}
+          paper={paper}
+          branchId={branch.branchId}
+          firstPageId={branch.pageId}
+          page={page}
+          onReturn={returnToMainline}
+          onPopout={popoutBranch}
+          onLocate={onLocate}
+        />
+      )}
+    </section>
+  );
+}
+
+/** The mainline as one small task at a time: where to look, what to do, what counts as done. */
+function TaskCard({ flow, stepNumber, focus, busy, onFocus, onChoice, onAnswer, onHint, onExplain, onContinue }: {
+  flow: any;
+  stepNumber: string;
+  focus: any[];
+  busy: boolean;
+  onFocus: (a: any) => void;
+  onChoice: (text: string) => void;
+  onAnswer: () => void;
+  onHint: () => void;
+  onExplain: () => void;
+  onContinue: () => void;
+}) {
+  const question = flow?.pending_question || "";
+  const choices: string[] = flow?.choices || [];
+  return (
+    <section className="task-card" aria-label="本轮任务">
+      <header>
+        <span className="task-step">第 {stepNumber.split("/")[0]} 步 · {flow?.label}</span>
+        {focus.length > 0 && (
+          <span className="task-look">
+            看这里
+            {focus.map((a) => (
+              <button key={a.id} type="button" title={(a.marks || []).map((m: any) => m.n + ". " + m.quote).join("\n")} onClick={() => onFocus(a)}>
+                {a.label}
+              </button>
+            ))}
+          </span>
+        )}
+      </header>
+      <p className="task-do">
+        <b>{question ? "你的任务" : "下一步"}</b>
+        {question || flow?.return_action || flow?.goal}
+      </p>
+      {flow?.check && (
+        <p className="task-check" title="完成标准">
+          <b>完成</b>
+          {flow.check}
+        </p>
+      )}
+      {question && choices.length > 1 && (
+        <div className="task-choices" role="group" aria-label="快速回答">
+          {choices.map((c) => (
+            <button key={c} type="button" disabled={busy} onClick={() => onChoice(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="task-actions">
+        {question ? (
+          <>
+            <button type="button" className="primary" disabled={busy} onClick={onAnswer}>回答</button>
+            <button type="button" disabled={busy} onClick={onHint}>给我提示</button>
+            <button type="button" disabled={busy} onClick={onExplain}>直接讲给我</button>
+          </>
+        ) : (
+          <button type="button" className="primary" disabled={busy} onClick={onContinue}>继续 · Enter</button>
+        )}
+      </div>
+    </section>
+  );
+}

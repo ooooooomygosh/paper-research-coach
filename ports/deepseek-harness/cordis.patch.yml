@@ -1,0 +1,4 @@
+- insert:
+    - id: paper-research-coach
+      name: '@local/dsh-paper-research-coach'
+      config: {}

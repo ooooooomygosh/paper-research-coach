@@ -1,0 +1,518 @@
+{
+  "schemaVersion": "learn-from-materials/content-review-v1",
+  "pageId": "method-lab-systematic-demo-v1",
+  "learningDepth": "systematic",
+  "reviewedInputs": {
+    "source_map.json": "cb4357f96f4043bd0ed6450be1e022f80df4b4392957c1057b5ec2b6751ed4a1",
+    "full_text.txt": "db9d848346ed1f995101632a624203b0356025db02caf8992fccb0f14395a80b",
+    "summary-ledger.json": "5446b481f902e68d56496ee78704ebb675b32bb41075edf7f95487b5df71fb80",
+    "coverage-audit.json": "82c6d9b3d2d5f04a7d70c64c76c8f7ce6d05dd4f9884752bbd77f68d5b0d0731",
+    "action-rule-ledger.json": "a3ad5acd0de1ff282be003bbefc780106799ab79fd538638f394cc63fb1becfc",
+    "methods.json": "933c93bb46616265a13436bcce783da0994cb2cf751a9b542774746ddc40c115",
+    "methodology.json": "cdb4eb351466f19bfba9bc253f879eb9db7f6434b86a31a0a56409d7a3b2b23f",
+    "page": "0797f737c9c49864eb771baf2dc8a872777167cb20f7ab3fe282d99da096412c"
+  },
+  "unitReviews": [
+    {
+      "unitId": "u01",
+      "status": "completed",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00001"
+      ],
+      "findings": "读回对应页正文、条件及限制；页眉版权不作研究证据。合成样例只验证此材料的映射。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "unitId": "u02",
+      "status": "completed",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "findings": "读回对应页正文、条件及限制；页眉版权不作研究证据。合成样例只验证此材料的映射。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "unitId": "u03",
+      "status": "completed",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "findings": "读回对应页正文、条件及限制；页眉版权不作研究证据。合成样例只验证此材料的映射。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+        }
+      ]
+    }
+  ],
+  "claimReviews": [
+    {
+      "claimId": "claim-001",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-002",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-003",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-004",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-005",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-006",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-007",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-008",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-009",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-010",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-011",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-012",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-013",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-014",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-015",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-016",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-017",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-018",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-019",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-020",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-021",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-022",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-023",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-024",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "claimId": "claim-025",
+      "status": "supported",
+      "note": "逐项核对中英文改写与对应页的条件及限制；不新增实证断言。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    }
+  ],
+  "ruleReviews": [
+    {
+      "ruleId": "r-map",
+      "status": "supported",
+      "note": "读回该规则的源条件、行动与限制。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00001",
+          "quote": "When the scope is unclear, draw a problem map first"
+        }
+      ]
+    },
+    {
+      "ruleId": "r-evidence",
+      "status": "supported",
+      "note": "读回该规则的源条件、行动与限制。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "When confidence in a claim is low, gather relevant evidence"
+        }
+      ]
+    },
+    {
+      "ruleId": "r-test",
+      "status": "supported",
+      "note": "读回该规则的源条件、行动与限制。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "When discussion stalls,\n\ndesign a small test"
+        }
+      ]
+    },
+    {
+      "ruleId": "r-pause",
+      "status": "supported",
+      "note": "读回该规则的源条件、行动与限制。",
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "When relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    }
+  ],
+  "enumeratedLists": {
+    "status": "searched",
+    "sourceIds": [
+      "src-451aaf991057-pdf_page-00001",
+      "src-451aaf991057-pdf_page-00002",
+      "src-451aaf991057-pdf_page-00003"
+    ],
+    "note": "核对三个编号工具标题，按原顺序保留为 u01、u02、u03；正文无额外封闭数量清单。",
+    "lists": [
+      {
+        "id": "tool-heading-1",
+        "unitId": "u01",
+        "expectedCount": 1,
+        "countNote": "该页只有一个编号工具标题；三页整体顺序也已核对。",
+        "countEvidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00001",
+            "quote": "1. Problem map"
+          }
+        ],
+        "items": [
+          {
+            "id": "tool-1",
+            "order": 1,
+            "evidence": [
+              {
+                "kind": "text",
+                "sourceId": "src-451aaf991057-pdf_page-00001",
+                "quote": "1. Problem map"
+              }
+            ],
+            "claimIds": [
+              "claim-002"
+            ],
+            "disposition": "retained",
+            "reason": "对应内容单元的关键框架保留该工具。"
+          }
+        ]
+      },
+      {
+        "id": "tool-heading-2",
+        "unitId": "u02",
+        "expectedCount": 1,
+        "countNote": "该页只有一个编号工具标题；三页整体顺序也已核对。",
+        "countEvidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00002",
+            "quote": "2. Evidence chain"
+          }
+        ],
+        "items": [
+          {
+            "id": "tool-2",
+            "order": 1,
+            "evidence": [
+              {
+                "kind": "text",
+                "sourceId": "src-451aaf991057-pdf_page-00002",
+                "quote": "2. Evidence chain"
+              }
+            ],
+            "claimIds": [
+              "claim-009"
+            ],
+            "disposition": "retained",
+            "reason": "对应内容单元的关键框架保留该工具。"
+          }
+        ]
+      },
+      {
+        "id": "tool-heading-3",
+        "unitId": "u03",
+        "expectedCount": 1,
+        "countNote": "该页只有一个编号工具标题；三页整体顺序也已核对。",
+        "countEvidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "3. Action loop"
+          }
+        ],
+        "items": [
+          {
+            "id": "tool-3",
+            "order": 1,
+            "evidence": [
+              {
+                "kind": "text",
+                "sourceId": "src-451aaf991057-pdf_page-00003",
+                "quote": "3. Action loop"
+              }
+            ],
+            "claimIds": [
+              "claim-016"
+            ],
+            "disposition": "retained",
+            "reason": "对应内容单元的关键框架保留该工具。"
+          }
+        ]
+      }
+    ]
+  }
+}

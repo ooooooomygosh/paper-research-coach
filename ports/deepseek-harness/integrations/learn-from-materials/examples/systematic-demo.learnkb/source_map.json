@@ -1,0 +1,29 @@
+[
+  {
+    "source_id": "src-451aaf991057-pdf_page-00001",
+    "source_file": "examples/method-lab-synthetic.pdf",
+    "locator_type": "pdf_page",
+    "content_sha256": "7e0a8bf0f046fd67fbf54aea04ed367527b36b98ebea7517d429efc87a55f7a6",
+    "start_char": 240,
+    "end_char": 690,
+    "pdf_page": 1
+  },
+  {
+    "source_id": "src-451aaf991057-pdf_page-00002",
+    "source_file": "examples/method-lab-synthetic.pdf",
+    "locator_type": "pdf_page",
+    "content_sha256": "31a046cfaa51ec1fb726fe5db573a0ee4d99eb87f9d9c5047e8a6de584a36347",
+    "start_char": 691,
+    "end_char": 1161,
+    "pdf_page": 2
+  },
+  {
+    "source_id": "src-451aaf991057-pdf_page-00003",
+    "source_file": "examples/method-lab-synthetic.pdf",
+    "locator_type": "pdf_page",
+    "content_sha256": "e0a75e2cb7ff59c23924cf4255c374490062330d058c42ba83e844b8ee0a06e8",
+    "start_char": 1162,
+    "end_char": 1943,
+    "pdf_page": 3
+  }
+]

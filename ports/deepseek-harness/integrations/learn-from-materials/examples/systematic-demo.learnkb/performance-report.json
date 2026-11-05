@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "learn-from-materials/performance-report-v1",
+  "sizeTier": "small",
+  "sourceCount": 1,
+  "pagesOrSlides": 3,
+  "characters": 1944,
+  "estimatedTokens": 325,
+  "durationSeconds": 0.193379,
+  "cache": {
+    "enabled": true,
+    "hits": 0,
+    "misses": 1
+  },
+  "peakMemoryBytes": null,
+  "note": "Token count is an estimate; peak memory is null unless measured by an external benchmark runner.",
+  "sources": [
+    {
+      "filename": "method-lab-synthetic.pdf",
+      "durationSeconds": 0.190472,
+      "reusedFromCache": false,
+      "characters": 1704,
+      "estimatedTokens": 316
+    }
+  ]
+}

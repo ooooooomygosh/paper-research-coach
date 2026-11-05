@@ -1,0 +1,17 @@
+Microsoft C/C++ runtime libraries
+
+The Python runtime directory contains unmodified, digitally signed Microsoft
+x64 C/C++ runtime libraries (14.50.35719.0). They provide application-local
+dependencies for the interpreter and native Python extensions, including
+ONNX Runtime. They are proprietary Microsoft components and are not relicensed
+under the workbench's MIT license or BabelDOC's AGPL license.
+
+Copyright Microsoft Corporation. All rights reserved.
+Microsoft's applicable distribution and license terms continue to apply.
+Deployment documentation and license references:
+https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files
+https://learn.microsoft.com/en-us/cpp/windows/determining-which-dlls-to-redistribute
+https://visualstudio.microsoft.com/license-terms/
+
+These copies stay inside this plugin's Python directory; the plugin installer
+does not replace Windows system libraries.

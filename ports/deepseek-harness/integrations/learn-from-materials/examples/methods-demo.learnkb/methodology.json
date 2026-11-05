@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "learn-from-materials/methodology-v1",
+  "id": "method-lab-whole",
+  "version": "1.0.0",
+  "language": "en",
+  "status": "ready",
+  "structure": "process",
+  "title": "Frame the problem, test a claim, revise from results",
+  "problem": "How can the three complementary tools help choose a useful next action?",
+  "outcome": "A scoped problem, a checked claim and an informative small test.",
+  "evidence": "synthesis",
+  "note": "A synthetic teaching example. The main path is one analytical planning order, not a mandatory sequence stated by the source. Conditions and feedback may change the appropriate next tool.",
+  "entryNodes": [
+    "m-map"
+  ],
+  "mainPath": [
+    "m-map",
+    "m-evidence",
+    "m-test"
+  ],
+  "nodes": [
+    {
+      "id": "m-map",
+      "title": "Frame the problem",
+      "role": "action",
+      "input": "Problem description and current constraints.",
+      "action": "Record the boundary, stakeholders, constraints and an observable success criterion.",
+      "output": "An explicit scope and criterion.",
+      "check": "Check that the criterion is observable and the boundary is explicit.",
+      "unitIds": [
+        "u01"
+      ],
+      "methodIds": [
+        "f-map",
+        "r-map"
+      ],
+      "evidence": "material",
+      "sources": [
+        {
+          "source": "methods-demo.txt · Lines 3-4",
+          "sourceIds": [
+            "src-e3be302578cd-document-00001"
+          ],
+          "quote": "When the scope is unclear, draw a problem map first"
+        }
+      ]
+    },
+    {
+      "id": "m-evidence",
+      "title": "Check the claim",
+      "role": "action",
+      "input": "A claim and its supporting observations.",
+      "action": "Separate observations from explanations and seek competing explanations and counterevidence.",
+      "output": "A traceable claim with its remaining uncertainty.",
+      "check": "Do not treat one observation as proof.",
+      "unitIds": [
+        "u02"
+      ],
+      "methodIds": [
+        "f-evidence",
+        "r-evidence"
+      ],
+      "evidence": "material",
+      "sources": [
+        {
+          "source": "methods-demo.txt · Lines 6-7",
+          "sourceIds": [
+            "src-e3be302578cd-document-00001"
+          ],
+          "quote": "Separate observations from explanations."
+        }
+      ]
+    },
+    {
+      "id": "m-test",
+      "title": "Run a small informative test",
+      "role": "action",
+      "input": "An important assumption and a prediction.",
+      "action": "Run a low-cost test, compare its result with the prediction and revise the assumption before scaling.",
+      "output": "New information for the next decision.",
+      "check": "Compare result and prediction before scaling.",
+      "unitIds": [
+        "u03"
+      ],
+      "methodIds": [
+        "f-action",
+        "r-test"
+      ],
+      "evidence": "material",
+      "sources": [
+        {
+          "source": "methods-demo.txt · Lines 9-10",
+          "sourceIds": [
+            "src-e3be302578cd-document-00001"
+          ],
+          "quote": "The result can update the evidence chain"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-map-evidence",
+      "from": "m-map",
+      "to": "m-evidence",
+      "kind": "main",
+      "condition": "The boundary and criterion are explicit.",
+      "handoff": "Relevant observations and the criterion.",
+      "why": "An analytical planning order: scope can focus evidence gathering; the source does not mandate this sequence.",
+      "evidence": "inference",
+      "source": "methods-demo.txt · Lines 3-7"
+    },
+    {
+      "id": "e-evidence-test",
+      "from": "m-evidence",
+      "to": "m-test",
+      "kind": "main",
+      "condition": "An important assumption can be tested at low cost.",
+      "handoff": "The assumption and its prediction.",
+      "why": "An analytical planning order: the claim identifies what the small test can examine.",
+      "evidence": "inference",
+      "source": "methods-demo.txt · Lines 6-10"
+    },
+    {
+      "id": "e-direct-test",
+      "from": "m-map",
+      "to": "m-test",
+      "kind": "branch",
+      "condition": "Discussion stalls and a small informative test is feasible.",
+      "handoff": "The scoped problem and an important assumption.",
+      "why": "The source proposes a small test when discussion stalls; the branch is a conditional analytical placement.",
+      "evidence": "inference",
+      "source": "methods-demo.txt · Lines 9-10"
+    },
+    {
+      "id": "e-return-evidence",
+      "from": "m-test",
+      "to": "m-evidence",
+      "kind": "feedback",
+      "condition": "Results differ from the prediction: revise the claim.",
+      "handoff": "The new observations from the test.",
+      "why": "The source says the result can update the evidence chain.",
+      "evidence": "material",
+      "source": "methods-demo.txt · Lines 9-10"
+    },
+    {
+      "id": "e-return-map",
+      "from": "m-test",
+      "to": "m-map",
+      "kind": "feedback",
+      "condition": "Constraints change: revisit the problem boundary.",
+      "handoff": "The changed constraints.",
+      "why": "The source says changed constraints can send the reader back to the problem map.",
+      "evidence": "material",
+      "source": "methods-demo.txt · Lines 9-10"
+    }
+  ],
+  "coverage": [
+    {
+      "unitId": "u01",
+      "nodeIds": [
+        "m-map"
+      ],
+      "role": "core",
+      "reason": "The node retains the corresponding synthetic source method and its original evidence."
+    },
+    {
+      "unitId": "u02",
+      "nodeIds": [
+        "m-evidence"
+      ],
+      "role": "core",
+      "reason": "The node retains the corresponding synthetic source method and its original evidence."
+    },
+    {
+      "unitId": "u03",
+      "nodeIds": [
+        "m-test"
+      ],
+      "role": "core",
+      "reason": "The node retains the corresponding synthetic source method and its original evidence."
+    }
+  ],
+  "constraints": [
+    {
+      "text": "These complementary tools do not guarantee success; order and suitability depend on the problem and evidence.",
+      "evidence": "material",
+      "source": "methods-demo.txt · Lines 12"
+    }
+  ]
+}

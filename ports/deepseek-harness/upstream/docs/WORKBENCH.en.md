@@ -1,0 +1,147 @@
+# Workbench guide
+
+[Home](../README.en.md) · [Quick start](QUICKSTART.md) · [中文](WORKBENCH.md)
+
+This guide describes the current source. Installed behavior depends on the downloaded version. Historical host and Zotero verification is recorded in [Testing](TESTING.md), not newly certified by this polish pass. Everything below is optional after basic installation.
+
+## Reading and continuity
+
+Type `prc` (the same as `prc open`) to start or reuse the loopback service and authenticate the browser. For a double-click launcher, `prc shortcut` puts an icon on your Desktop (macOS, Windows, Linux).
+
+**Updates are automatic**: while it runs, the workbench checks at most once a day, anonymously, verifies the SHA-256 and installs a new version in the background. It switches over when nobody is reading (no page open, no coach reply running); with a page open, the library and “⋯” say the new version is ready and 重新载入 (reload) takes about 5 seconds. `prc` also replaces an older running workbench. Skill copies made by `prc install-skill` are brought to the running version at every start. By hand: `prc update`. To turn it off: Settings → 版本与更新, or `PRC_NO_AUTO_UPDATE=1` (no automatic installs) / `PRC_NO_UPDATE_CHECK=1` (no checks either).
+
+Use `prc open` to start or reuse the loopback service and authenticate the browser. Each new browser needs its own launch authentication. Never share the token-bearing launch URL. macOS users can also use the repository’s `scripts/open-workbench.command` after installation.
+
+The library starts collapsed. Wide layouts give the source most of the space, with a draggable split; narrow layouts stack the panes. PDF position, zoom and scroll state are scoped to the paper and version. Page-number edits commit on Enter or blur; Escape cancels the draft. Immersive mode uses Cmd / Ctrl + Shift + Enter. Escape dismisses the topmost surface before leaving the reading mode.
+
+Each paper has one durable local conversation and native Codex thread, reused across refresh, service restart and model changes. Earlier conversations remain read-only history under the coach tools. `prc open --paper PAPER_ID` and `prc coach send --file message.txt --wait` resume the same binding; the compatibility `--new` flag does not create another thread. Uncertain creation is reconciled before retrying.
+
+Automatic initialization is capped at 3000 characters, and ordinary per-turn position guidance at 300 characters; mainline turns also carry a short, code-generated method card for the current step. Exact learner messages, explicitly attached selections and images are kept separately. Whole pages, all notes and duplicate histories are not automatically resent every turn; source tools retrieve what is needed.
+
+### Mainline and detours
+
+- **Where you are**: the coach title is the current step (“step n/8 · name”) above a thin progress line; click it to open the route and evidence receipts.
+- **Start**: **开始跟读** beside the progress line. The eight steps are the eight mainline chapters.
+- **The mainline quest card**: each mainline reply is a card: “mainline · chapter n/8”, **看这里** (look here: the marked quotes with their pages; one click turns the PDF there), the coach's words (①②③ in the text are clickable too), at most one small figure, and **你的任务** (your task). Predictions and choices have one-tap answers; buttons are **回答** (answer, focuses the box), **给我提示** (a hint) and **直接讲给我** (explain it). When a chapter is done, the card ends with “chapter n done · takeaway: …”.
+- **The task strip**: one line above the message box with the current chapter and task; it opens into the full task (where to look, what counts as done), and **任务日志** (quest log) sits on its right. With nothing pending, Enter in an empty box continues the mainline.
+- **The coach shows you the source**: when the coach points at a page, the PDF turns there and the sentences to read are numbered ①②③ (a different colour from your own marks). A small chip offers **回到第 M 页** (back to page M) and **不要自动翻页** (stop turning pages for me; turn it back on in the tools drawer). At most one automatic jump per reply; reloading never jumps.
+- **A small figure in the mainline**: for a mechanism, a flow or evidence, a reply can carry a figure you can expand or pop out; choices inside it are sent as answers to the current question.
+- **Takeaways**: each finished step adds one sentence in your words to the route; after eight steps they form the paper card, which you can export.
+- **Answer**: with a pending question, type the answer and press Enter.
+- **Detour**: select text or a region and choose **讨论这处**, or **直接讲这处** for a one-click explanation. A detour never advances or resets the mainline. Concrete questions and technical details open a **side quest** answered by one explainer page (below).
+- **Nothing to configure**: answer versus detour is inferred (a selection is a detour; a reply to a pending question without a selection is an answer) and a small line under the box says where Enter will go. Ask for a hint, a direct explanation or a challenge in your own words. Region selections attach the page image automatically, and the coach can view any page itself.
+- **Getting the most out of it**: answer each step in a sentence before reading the feedback; state the contribution and your own next step in your words; park unfamiliar terms that do not block the current judgment. See [The reading method](METHOD.en.md).
+
+### Side quests and explainer pages
+
+Ask a concrete question (a concept, mechanism, equation, how to read a figure, a flow, a comparison, an implementation detail) and the coach opens a **side quest** instead of writing a wall of chat text: one explainer page, shown as a card in the conversation and opened in place.
+
+- **Content**: a conclusion card, then panels lettered A, B, C: flow charts, sequence diagrams, trees, timelines, tables (✓ ✗ ! badges), formulas and callouts. Wide screens show two columns, and a wide figure spans both. The workbench draws them; the coach writes only content, and any text in a draft is shown as text and never executed.
+- **Fold and unfold**: click the card's title; folded, it is one line (title and conclusion). A new page in the same side quest folds the older ones. Reloading never unfolds an old page.
+- **Follow-ups**: ask at the bottom of the card, or use **追问这一块** (ask about this panel) and **没看懂** (I did not follow) at the top right of one panel. Each follow-up is a new page of the same side quest. A decision the coach asks (`ask`) can be clicked, then “按这个选择继续” sends it.
+- **Ending a side quest**: under the newest page, **我弄懂了** (I get it now; you may write one sentence in your words, kept as written) and **先放一放** (set it aside). Only you end a side quest; the coach never declares it for you. Setting it aside is not a failure: **继续这条支线** reopens it.
+- **Enlarge, pop out, download**: three buttons at the card's top right: enlarge beside the PDF (**回到主线** or Esc closes it and focuses the message box), open in its own window (for a second screen), or download one offline HTML file (static; no follow-ups).
+- **The mainline stays put**: during a side quest the mainline keeps its chapter and pending question.
+- **Not every question gets a side quest**: a one-word gloss or a one-sentence yes/no stays in chat, and mainline turns (continue, answer) open none; they carry at most one small figure inside the reply.
+- **From Claude Code**: `prc explain --paper ID --file draft.md` (`--check` only validates). The workbench must be running.
+
+### Quest log and journey tree
+
+- **Quest log**: from the task strip (or the icon beside the coach title). The eight chapters with their state (not started, in progress, done) and takeaways, and under each the side quests asked during it (in progress, understood, set aside). Click a side quest to go back to its page, or a page number to turn the PDF there.
+- **Journey tree**: **复盘树** in the quest log, or **查看这篇论文的复盘树** when chapter 8 is done. The root is the paper and the core judgment you wrote in chapter 6; the trunk is the eight chapters; under each chapter are the marked passages, the tasks with your verbatim answers, the first sentence of the coach's reply, the takeaway, side quests, notes, research ideas and review questions (filed by the chapter that was current when you wrote them; anything from before the mainline goes under “主线之外”). Fold it, open it in its own window (`#journey=PAPER_ID`), or download it as offline HTML.
+- **Records only**: the tree is not a new model summary, invents no answers and gives no scores. The Markdown paper card export carries the same content in a “主线与支线” section.
+- **Wording**: every reply follows plain-writing rules (short sentences, answer first, one word one meaning). Drafts are checked and may produce warnings; the check never refuses a draft. Rules: [style.md](../skills/paper-research-coach/references/style.md); sources and license: [THIRD_PARTY_ANSWER_ME_WITH_HTML.md](THIRD_PARTY_ANSWER_ME_WITH_HTML.md).
+
+Use secondary tools for the full route with evidence receipts, model connection, notes and evidence. Direct questions and explicit explanations do not require a complete reading route or translated PDF. Eight dimensions represent coverage, not measured mastery. Note consent and local performance-recording consent remain separate; AI explanations and Continue clicks do not demonstrate independent understanding.
+
+## PDF scrolling, zoom and annotations
+
+All pages sit in one column; scroll to read. The page box shows the page under the reading line; typing a page, ←/→ and the previous/next buttons scroll to that page's top. Only pages near the screen are drawn, so long papers stay fast. Links inside the paper (references like [12], Figure 3, sections) jump when clicked, and “返回位置” (back) returns; external links open in a new tab. Text search highlights the matching words on the page.
+
+Pinch on a trackpad or touchscreen, or hold Ctrl and scroll, to zoom the whole document around the gesture position (25%–400%). Ordinary scrolling stays native. A frosted toolbar provides zoom, fit width, previous/next page and direct page entry, region selection and download; it becomes horizontal below the page on narrow screens.
+
+Select text or a region, then keep the mark or write a note. Chinese and bilingual annotations persist on their exact PDF layout across reloads. They are scoped to the translation job and file hash, so regenerated layouts cannot silently reuse old coordinates. Existing notes remain available.
+
+The toolbar downloads the current PDF with native highlights, rectangles and note contents embedded in a separate copy. Original files are preserved. Source-aligned passages can still be discussed as original evidence; unmapped translated selections can be saved as notes.
+
+## Optional bilingual translation
+
+Choose the translation model and reasoning effort independently of the coach, using the existing Codex login. The configured default is GPT-6-Luna / low; use the actual available-model list. Each task snapshots its model and languages.
+
+Default concurrency is two papers and four model requests globally, adjustable to 1–4 papers and 1–8 requests. Browser sessions share one backend queue. Batch selection supports bibliographic search and reuses existing current-version tasks or translations. Closing the browser does not stop the queue; the computer and service must remain running.
+
+Mono and bilingual PDFs are readable as soon as generated, before sentence alignment finishes. Paragraph mappings can serve selection help during alignment; reliable sentence mappings refine it later. Discussing translated material attaches the original source anchor. **Original selections can be discussed before any translation exists.**
+
+Use the pinned BabelDOC 0.6.4 component in an independent Python 3.12 environment. Install [uv](https://docs.astral.sh/uv/) and substitute the data directory reported by `prc doctor`:
+
+```bash
+uv venv --python 3.12 "/path/to/prc-data/babeldoc-env"
+uv pip install --python "/path/to/prc-data/babeldoc-env/bin/python" "BabelDOC==0.6.4"
+```
+
+On Windows the interpreter is `babeldoc-env/Scripts/python.exe`. An existing environment can be selected with `PRC_BABELDOC_PYTHON` before service startup. The base workbench still supports Python 3.10+; component limits and licenses are in [Third-party translation](THIRD_PARTY_TRANSLATION.md). A valid Codex login/model entitlement is required, but no separate model key is configured here.
+
+The initial translation downloads upstream layout, font and tokenizer resources, then caches them. Jobs and cache entries distinguish source version, model, languages and component version. Restart resumes pending tasks; PDFs already generated are reused. Explicitly stopped jobs remain stopped. Replacement source versions archive old translations rather than presenting them as current. Automatic translation writeback to Zotero, cross-device job synchronization and a separate model API backend are not provided.
+
+## Optional Zotero 10 connection
+
+Enable local application communication in Zotero, choose a personal-library collection in the workbench and grant access in **Zotero’s own prompt**. Persistent synchronization needs persistent permission; one-time approval is not a permanent grant.
+
+Bibliographic data and attachments come from Zotero. Notes, highlights and editable text annotations support round trips within the documented scope. The first PDF attachment is currently selected: verify the source when items have multiple attachments. This PR does not add an attachment chooser. Downloaded source PDFs remain read-only.
+
+Concurrent changes preserve both versions and require resolution. Deletions require confirmation; papers and attachments are not automatically deleted. Source replacement marks old anchors for rechecking. Unlocated thoughts are linked notes; verified regions can become native annotations. Offline changes save locally before retrying synchronization.
+
+The Zotero authorization key can access editable libraries; the application separately restricts operations to its selected collection. Keys are held in the OS credential store or process memory, not exports or source. See [Testing](TESTING.md) for actual integration coverage and remaining limitations.
+
+## Optional OneDrive / Obsidian directory
+
+First choose and authorize a Zotero collection. Configure the local literature directory in settings or run:
+
+```bash
+prc vault configure --path /path/to/literature
+prc vault scan
+prc vault status
+prc service install
+```
+
+The macOS login service pauses during sleep or logout. Other platforms can run `prc serve`. Directory and Zotero polling default to ten minutes, with manual refresh in reading tools. `prc service status` inspects the service and `prc service stop` stops it.
+
+PDF discovery deduplicates by bytes, reuses matching Zotero attachments and preserves their collections. New files are linked, not moved. Ambiguous duplicates require attention. Existing `01_论文卡片` metadata (`原文PDF路径` / `原文PDF`) is read as external source material without rewriting templates or Obsidian configuration; an AI-completed review is not learner mastery.
+
+New notes and editable Zotero notes export into `06_PRC阅读记录/<paper-id>/` as append-only revision files. Edits can be read back and concurrent revisions remain conflicts. New Markdown initially has unconfirmed external authorship. A missing or deleted source does not delete workbench records. Annotation coordinates are only written to byte-identical PDFs.
+
+SQLite, credentials and queues stay in the application data directory. Only exported notes go into the selected folder for OneDrive synchronization. Conversations and review responses are not claimed to be live cross-device state.
+
+Before creating Zotero bibliographic items, the workbench checks the PDF title and queries Crossref, arXiv and optional OpenAlex, retaining author order. Unresolved metadata remains local and queued for review, rather than creating an empty-author item. Queries send the DOI/title, not the PDF. Use `prc metadata openalex-key`, `prc metadata resolve --paper PAPER_ID --refresh`, and `prc metadata status` for configuration and inspection.
+
+## Notes, review and export
+
+Thoughts, conversations, ideas, progress and original review answers save locally first. Synchronization requires the relevant connection and authorization. Answer retrieval-practice questions before requesting feedback; the default 1 / 3 / 7 / 14-day intervals are adjustable and do not send system notifications.
+
+```bash
+prc doctor
+prc import /path/to/paper.pdf --title "Paper title" --goal "What must I judge?"
+prc list
+prc context PAPER_ID
+prc resume PAPER_ID
+prc text PAPER_ID 0
+prc commit /path/to/transaction.json
+prc history NOTE_ID
+prc replace-source PAPER_ID /path/to/new-version.pdf
+prc import-markdown PAPER_ID /path/to/notes.md
+prc export paper --paper PAPER_ID
+prc export ideas --paper PAPER_ID
+prc export talk --paper PAPER_ID
+prc export comparison
+prc export pdf --paper PAPER_ID
+```
+
+`text` uses zero-based physical PDF page indices. Transactions use JSON files or stdin, operation IDs and revision checks; do not interpolate learner wording into shell commands. Exports include Markdown paper/idea cards, presentation outlines, comparison CSV and a separate annotated PDF. Unlocated or old-version notes remain in the cards without being painted onto an incorrect source.
+
+## Development and boundaries
+
+See [Quick start](QUICKSTART.md), [Contributing](../CONTRIBUTING.md) and [Showcase](SHOWCASE.md). `prc-demo` is temporary: export anything you need to keep before exiting. `python scripts/package_release.py` builds the Skill ZIP, wheel and source sdist in `dist/`. Successful main verification creates a prerelease for a new package version; existing artifacts are kept immutable.
+
+SQLite is authoritative; Markdown/CSV are exports. Local storage does not mean offline AI. Consult [Security](SECURITY.md) for backups and access boundaries. Passing software tests is not a learning-effect result: see the [Human trial protocol](HUMAN-TRIAL.md) and [Review](FINAL-REVIEW.md). Original code and documentation use [MIT](../LICENSE); third-party resources retain their licenses and [attribution](SOURCES.md).
+
+Switch between original, Chinese and bilingual PDFs directly in the frosted toolbar. Unavailable translations stay disabled; manage generation under More reading tools → Translation.

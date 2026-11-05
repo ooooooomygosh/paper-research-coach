@@ -1,0 +1,510 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+from platformdirs import user_data_path
+
+from . import __version__
+from .exports import export, import_markdown
+from .store import Store
+
+
+def _restart_running_service(store, port) -> bool:
+    """Ask a running workbench to restart itself with the newly installed code."""
+    import httpx
+
+    from .server import session_token
+
+    try:
+        response = httpx.post(
+            f"http://127.0.0.1:{port}/api/system/restart",
+            headers={"Authorization": "Bearer " + session_token(store)}, timeout=5, trust_env=False,
+        )
+        return response.is_success and bool(response.json().get("restarting"))
+    except (httpx.HTTPError, ValueError):
+        return False
+
+
+def output(value):
+    print(json.dumps(value, ensure_ascii=False, indent=2))
+
+
+def parser():
+    p = argparse.ArgumentParser(
+        prog="prc", description="Paper Research Coach — 本地论文阅读与笔记"
+    )
+    p.add_argument("--version", action="version", version=f"prc {__version__}")
+    p.add_argument(
+        "--data-dir",
+        default=os.environ.get("PRC_DATA_DIR")
+        or str(user_data_path("paper-research-coach")),
+    )
+    # No command at all means "open the workbench": `prc` is the one thing to remember.
+    sub = p.add_subparsers(dest="command")
+    sub.add_parser("doctor")
+    sub.add_parser("list")
+    imp = sub.add_parser("import", help="导入 PDF 或论文书目")
+    imp.add_argument("path", nargs="?", default="")
+    imp.add_argument("--title", required=True)
+    imp.add_argument("--goal", default="")
+    imp.add_argument("--type", default="empirical", dest="paper_type")
+    for cmd in ("context", "resume"):
+        c = sub.add_parser(cmd)
+        c.add_argument("paper_id", nargs="?")
+        c.add_argument("--since", type=int, default=0)
+    c = sub.add_parser("commit", help="从 JSON 文件或标准输入提交事务")
+    c.add_argument("file", nargs="?", default="-")
+    t = sub.add_parser("text")
+    t.add_argument("paper_id")
+    t.add_argument("page_index", type=int, help="PDF 页索引，从 0 开始")
+    h = sub.add_parser("history")
+    h.add_argument("record_id")
+    r = sub.add_parser("replace-source")
+    r.add_argument("paper_id")
+    r.add_argument("path")
+    m = sub.add_parser("import-markdown")
+    m.add_argument("paper_id")
+    m.add_argument("path")
+    e = sub.add_parser("export")
+    e.add_argument("kind", choices=["paper", "ideas", "talk", "comparison", "pdf"])
+    e.add_argument("--paper", dest="paper_id")
+    e.add_argument("--output")
+    s = sub.add_parser("serve")
+    s.add_argument("--port", type=int, default=8765)
+    s.add_argument("--no-open", action="store_true")
+    s.add_argument("--paper", dest="paper_id", help="启动链接绑定这篇论文")
+    opening = sub.add_parser("open", help="在浏览器打开工作台，自动复用或启动本机服务")
+    opening.add_argument("--port", type=int, default=8765)
+    opening.add_argument("--paper", dest="paper_id", default="")
+    opening.add_argument("--conversation", default="", help="继续这篇论文已保存的对话")
+    opening.add_argument("--new", action="store_true", help="兼容旧参数：沿用当前论文的持久对话")
+    coach = sub.add_parser("coach", help="连接工作台与 Codex CLI 阅读对话")
+    coach.add_argument("action", choices=["status", "connect", "send"])
+    coach.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    coach.add_argument("--thread", default="", help="复用已绑定当前论文的原生阅读会话")
+    coach.add_argument("--port", type=int, default=8765)
+    coach.add_argument("--no-open", action="store_true")
+    coach.add_argument("--new", action="store_true")
+    coach.add_argument("--file", default="-", help="发送消息的 UTF-8 文件，默认标准输入")
+    coach.add_argument("--wait", action="store_true", help="等待并输出完整回复")
+    intent = coach.add_mutually_exclusive_group()
+    intent.add_argument("--follow", action="store_true", help="直接继续当前论文的既定跟读主线，无须输入 prompt")
+    intent.add_argument("--answer", action="store_true", help="把输入作为主线问题的回答；默认消息是插话")
+    up = sub.add_parser("update", help="更新到最新版本（工作台与已安装的 Skill），并重启正在运行的工作台")
+    up.add_argument("--check", action="store_true", help="只检查有没有新版本")
+    up.add_argument("--port", type=int, default=8765)
+    sub.add_parser("shortcut", help="在桌面创建双击即可打开工作台的启动图标")
+    ex = sub.add_parser("explain", help="把一份短 Markdown 草稿打开为工作台里的讲解面板（分支）")
+    ex.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    ex.add_argument("--file", default="-", help="草稿文件，默认标准输入")
+    ex.add_argument("--branch", default="", help="继续这个讲解分支（填它第一页的 id）")
+    ex.add_argument("--replace", default="", help="替换一页讲解（重写风格警告时使用）")
+    ex.add_argument("--question", default="", help="这页回答的读者问题")
+    ex.add_argument("--port", type=int, default=8765)
+    ex.add_argument("--check", action="store_true", help="只检查草稿，不打开面板")
+    fd = sub.add_parser("find", help="在论文正文里查找一个短语，返回页码和片段（不需要工作台运行）")
+    fd.add_argument("query")
+    fd.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    sh = sub.add_parser("show", help="让工作台翻到某页并标出 1–3 句原文（需要工作台正在运行）")
+    sh.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    sh.add_argument("--page", type=int, required=True, help="PDF 页索引，从 0 开始")
+    sh.add_argument("--quote", action="append", required=True, help="逐字复制的原文；可重复，最多 3 句")
+    sh.add_argument("--note", default="", help="几个字，说明为什么看这里")
+    sh.add_argument("--port", type=int, default=8765)
+    z = sub.add_parser("sync")
+    z.add_argument(
+        "action",
+        choices=[
+            "status",
+            "collections",
+            "configure",
+            "authorize",
+            "run",
+            "conflicts",
+            "resolve",
+        ],
+        default="status",
+        nargs="?",
+    )
+    z.add_argument("--server")
+    z.add_argument("--collection")
+    z.add_argument("--conflict")
+    z.add_argument("--choice", choices=["local", "remote"])
+    v = sub.add_parser("vault", help="连接 OneDrive / Obsidian 文献目录")
+    v.add_argument(
+        "action", choices=["status", "configure", "scan", "conflicts", "resolve"]
+    )
+    v.add_argument("--path")
+    v.add_argument("--conflict")
+    v.add_argument("--choice", choices=["file", "local", "both"])
+    bg = sub.add_parser("service", help="macOS 登录后持续运行工作台与目录同步")
+    bg.add_argument("action", choices=["install", "status", "stop"])
+    bg.add_argument("--port", type=int, default=8765)
+    meta = sub.add_parser("metadata", help="核实 PDF 书目或设置 OpenAlex（不上传全文）")
+    meta.add_argument("action", choices=["status", "resolve", "openalex-key"])
+    meta.add_argument("--paper")
+    meta.add_argument("--refresh", action="store_true")
+    i = sub.add_parser("install-skill", help="把 Skill 复制到 Codex / Claude Code / pi；工作台每次启动会让这些副本跟上新版本")
+    i.add_argument("--host", choices=["codex", "claude", "pi"])
+    i.add_argument("--force", action="store_true")
+    i.add_argument("--sync", action="store_true", help="只更新已经装过的副本，让它们与当前版本一致")
+    return p
+
+
+def main():
+    args = parser().parse_args()
+    if not args.command:
+        args = parser().parse_args([*sys.argv[1:], "open"])
+    try:
+        if args.command == "install-skill" and args.sync:
+            from .updater import sync_skills
+
+            output({"updated": sync_skills()})
+            return
+        if args.command == "install-skill":
+            if not args.host:
+                raise ValueError("用 --host codex、--host claude 或 --host pi 指定要装到哪里。")
+            base = {
+                "codex": ".agents/skills",
+                "claude": ".claude/skills",
+                "pi": ".pi/agent/skills",
+            }[args.host]
+            dest = Path.home() / base / "paper-research-coach"
+            src = Path(__file__).parent / "skill"
+            if not src.exists():
+                src = (
+                    Path(__file__).resolve().parents[2]
+                    / "skills"
+                    / "paper-research-coach"
+                )
+            if dest.exists() and not args.force:
+                raise ValueError("Skill 已存在；检查差异后使用 --force 更新。")
+            shutil.copytree(src, dest, dirs_exist_ok=args.force)
+            from .updater import STAMP
+
+            (dest / STAMP).write_text(__version__ + "\n", encoding="utf-8")
+            output(
+                {"installed": str(dest), "next": "在新会话中启用 paper-research-coach"}
+            )
+            return
+        store = Store(args.data_dir)
+        cmd = args.command
+        if cmd == "doctor":
+            from .zotero import ZoteroSync
+
+            try:
+                server = ZoteroSync(store).probe()
+                zotero = {"available": True, "server_id": server}
+            except Exception:
+                zotero = {
+                    "available": False,
+                    "next": "启动 Zotero 10 并在高级设置中启用本地应用通信",
+                }
+            output(
+                {
+                    "python": sys.version.split()[0],
+                    "data_dir": str(store.root),
+                    "frontend": (Path(__file__).parent / "static/index.html").exists(),
+                    "zotero": zotero,
+                    "ai": "工作台连接本机 Codex CLI；纯 skill 模式沿用当前宿主",
+                }
+            )
+        elif cmd == "list":
+            output(store.list("paper"))
+        elif cmd == "import":
+            output(
+                store.add_paper(
+                    args.title, args.path, goal=args.goal, paper_type=args.paper_type
+                )
+            )
+        elif cmd in ("context", "resume"):
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或提供论文 ID。")
+            output(store.context(paper_id, args.since))
+        elif cmd == "commit":
+            payload = (
+                json.load(sys.stdin)
+                if args.file == "-"
+                else json.loads(Path(args.file).read_text())
+            )
+            output(store.commit(payload))
+        elif cmd == "history":
+            output(store.history(args.record_id))
+        elif cmd == "replace-source":
+            output(store.replace_source(args.paper_id, args.path))
+        elif cmd == "import-markdown":
+            output(import_markdown(store, args.paper_id, args.path))
+        elif cmd == "text":
+            from pypdf import PdfReader
+
+            paper = store.get("paper", args.paper_id)
+            if (
+                store.check_source(args.paper_id)["status"] != "current"
+                or not 0 <= args.page_index < paper["page_count"]
+            ):
+                raise ValueError("当前 PDF 不可用，或页索引超出范围。")
+            reader = PdfReader(paper["source_path"])
+            text = reader.pages[args.page_index].extract_text() or ""
+            output(
+                {
+                    "text": text,
+                    "page_index": args.page_index,
+                    "page_label": reader.page_labels[args.page_index],
+                    "source_version": paper["source_version"],
+                    "untrusted_source": True,
+                    "needs_visual_reading": not bool(text.strip()),
+                }
+            )
+        elif cmd == "export":
+            output(export(store, args.kind, args.paper_id, args.output))
+        elif cmd == "open":
+            from .launcher import open_workbench
+
+            output(open_workbench(store, args.port, args.paper_id, args.conversation, args.new))
+        elif cmd == "serve":
+            import uvicorn
+
+            from .server import create_app, session_token
+
+            token = session_token(store)
+            url = f"http://127.0.0.1:{args.port}/#token={token}"
+            if args.paper_id:
+                store.get("paper", args.paper_id)
+                store.set_setting("active-paper", args.paper_id)
+                url += "&paper=" + args.paper_id
+            print(
+                f"本地阅读工作台：http://127.0.0.1:{args.port}/\n通过 prc open 连接已登录的本机工作台。", flush=True
+            )
+            if not args.no_open:
+                import threading
+                import webbrowser
+
+                threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+            app = create_app(store, token)
+            app.state.port = args.port
+            server = uvicorn.Server(
+                uvicorn.Config(app, host="127.0.0.1", port=args.port, access_log=False, timeout_graceful_shutdown=3)
+            )
+            app.state.server = server  # lets an update restart this service
+            server.run()
+        elif cmd == "coach":
+            import httpx
+
+            from .models import uid
+            from .server import session_token
+
+            base = f"http://127.0.0.1:{args.port}"
+            token = session_token(store)
+            with httpx.Client(base_url=base, headers={"Authorization": "Bearer " + token}, timeout=60, trust_env=False) as client:
+                def request(path, body=None):
+                    try:
+                        response = client.get("/api/" + path) if body is None else client.post("/api/" + path, json=body)
+                    except httpx.HTTPError:
+                        raise ValueError("工作台连接不可用，请先运行 prc serve，或确认后台工作台已启动。") from None
+                    if response.is_error:
+                        raise ValueError(response.json().get("error", "工作台未完成此操作。"))
+                    return response.json()
+                if args.action == "status":
+                    output(request("coach/status"))
+                else:
+                    paper_id = args.paper_id or store.setting("active-paper")
+                    if not paper_id:
+                        raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+                    store.get("paper", paper_id)
+                    if args.action == "connect":
+                        conversation = request("coach/connect/" + paper_id, {"thread_id": args.thread, "new": args.new})
+                        url = base + "/#token=" + token + "&paper=" + paper_id + "&conversation=" + conversation["id"]
+                        output({"paper_id": paper_id, "conversation_id": conversation["id"], "thread_id": conversation["thread_id"], "skill": "paper-research-coach", "url": url})
+                        if not args.no_open:
+                            import webbrowser
+                            webbrowser.open(url)
+                    else:
+                        content = "" if args.follow else sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
+                        session = store.list("session", paper_id)
+                        cursor = session[0].get("cursor") if session else None
+                        sent = request("coach/send/" + paper_id, {"operation_id": uid(), "content": content, "intent": "follow" if args.follow else "answer" if args.answer else "detour", "page_index": (cursor or {}).get("page_index") or 0})
+                        if not args.wait:
+                            output(sent)
+                        else:
+                            import time
+                            while True:
+                                state = request("coach/conversation/" + paper_id + "?conversation_id=" + sent["conversation_id"])
+                                answer = next(m for m in state["messages"] if m["id"] == sent["answer_id"])
+                                if answer["status"] not in ("queued", "streaming"):
+                                    output(answer)
+                                    break
+                                time.sleep(.5)
+        elif cmd == "update":
+            from . import updater
+
+            if args.check:
+                output(updater.check(store, force=True))
+                return
+            result = updater.apply(store)
+            if not result["updated"]:
+                print(f"已经是最新版本（{result['current']}）。")
+                return
+            restarted = _restart_running_service(store, args.port)
+            print(f"已更新：{result['from']} → {result['to']}")
+            if result["skills"]:
+                print("已刷新 Skill：" + "、".join(result["skills"]))
+            print(
+                "正在运行的工作台已用新版本重启；刷新浏览器页面即可。"
+                if restarted
+                else "下次运行 prc 就是新版本。"
+            )
+            print("Claude Code 插件安装的 Skill 由插件自己更新：/plugin marketplace update。")
+        elif cmd == "shortcut":
+            from .shortcut import create
+
+            for path in create():
+                print("已创建：" + path)
+            print("双击它就能打开工作台。")
+        elif cmd == "explain":
+            from . import explainer
+
+            draft = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
+            if args.check:
+                parsed = explainer.parse_draft(draft)
+                output({"ok": True, "title": parsed.doc["title"], "style_warnings": [explainer.format_warning(w) for w in parsed.warnings]})
+                return
+            import httpx
+
+            from .server import session_token
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            store.get("paper", paper_id)
+            try:
+                response = httpx.post(
+                    f"http://127.0.0.1:{args.port}/api/coach/explain/{paper_id}",
+                    headers={"Authorization": "Bearer " + session_token(store)},
+                    json={"draft": draft, "branch_id": args.branch, "replace_id": args.replace, "question": args.question},
+                    timeout=20, trust_env=False,
+                )
+            except httpx.HTTPError:
+                raise ValueError("工作台没有运行。先执行 prc open，再重试；或直接在聊天里用简短文字讲解。") from None
+            if response.is_error:
+                raise ValueError(response.json().get("error", "讲解草稿未保存。"))
+            record = response.json()
+            output({"id": record["id"], "branch_id": record["branch_id"], "title": record["title"], "style_warnings": record["warnings"][:8],
+                    "next": "面板已在工作台打开。聊天里只写一两句要点。" if not record["warnings"] else
+                            f"用更简单的词改写这些行，再用 --replace {record['id']} 重新提交（最多两次）。"})
+        elif cmd == "find":
+            from . import locate
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            output(locate.search(store, paper_id, args.query))
+        elif cmd == "show":
+            import httpx
+
+            from .server import session_token
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            store.get("paper", paper_id)
+            try:
+                response = httpx.post(
+                    f"http://127.0.0.1:{args.port}/api/coach/show/{paper_id}",
+                    headers={"Authorization": "Bearer " + session_token(store)},
+                    json={"page_index": args.page, "quotes": args.quote[:3], "note": args.note},
+                    timeout=20, trust_env=False,
+                )
+            except httpx.HTTPError:
+                raise ValueError("工作台没有运行。先执行 prc open，再重试；或在聊天里写出页码和原句。") from None
+            if response.is_error:
+                raise ValueError(response.json().get("error", "没有标出原文。"))
+            output(response.json())
+        elif cmd == "service":
+            from .service import manage
+
+            output(manage(args.action, store, args.port))
+        elif cmd == "metadata":
+            from .metadata import MetadataResolver
+
+            if args.action == "openalex-key":
+                import getpass
+
+                import keyring
+
+                value = getpass.getpass("OpenAlex API key（不回显）：").strip()
+                if not value:
+                    raise ValueError("API key 不能为空")
+                keyring.set_password("paper-research-coach-metadata", "openalex", value)
+                output({"saved": True, "location": "system keyring"})
+            elif args.action == "resolve":
+                if not args.paper:
+                    raise ValueError("指定 --paper 论文 ID")
+                output(
+                    MetadataResolver(store).resolve(
+                        store.get("paper", args.paper), force=args.refresh
+                    )
+                )
+            else:
+                output(
+                    [
+                        {
+                            "paper_id": p["id"],
+                            "title": p["title"],
+                            "bibliography": store.setting(
+                                "bibliography:" + p["id"], {}
+                            ),
+                        }
+                        for p in store.list("paper")
+                    ]
+                )
+        elif cmd == "vault":
+            from .vault import VaultSync
+            from .zotero import ZoteroSync
+
+            sync = ZoteroSync(store)
+            vault = VaultSync(store, sync)
+            if args.action == "configure":
+                output(
+                    vault.configure(
+                        args.path, sync.state()["collection"], sync.state()["server_id"]
+                    )
+                )
+            elif args.action == "scan":
+                output(vault.run())
+            elif args.action == "conflicts":
+                output(vault.conflicts())
+            elif args.action == "resolve":
+                output(vault.resolve(args.conflict, args.choice))
+            else:
+                output(vault.state())
+        elif cmd == "sync":
+            from .zotero import ZoteroSync
+
+            sync = ZoteroSync(store)
+            if args.action == "status":
+                output(sync.state())
+            elif args.action == "collections":
+                output(sync.collections())
+            elif args.action == "configure":
+                output(sync.configure(args.server, args.collection))
+            elif args.action == "authorize":
+                output(sync.authorize(args.server))
+            elif args.action == "run":
+                output(sync.run())
+            elif args.action == "conflicts":
+                output(sync.conflicts())
+            elif args.action == "resolve":
+                output(sync.resolve(args.conflict, args.choice))
+    except (ValueError, KeyError, OSError) as e:
+        print(json.dumps({"error": str(e)}, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

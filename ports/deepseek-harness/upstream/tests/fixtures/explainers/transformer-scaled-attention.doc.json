@@ -1,0 +1,199 @@
+{
+ "title": "为什么要除以 √d_k",
+ "subtitle": "Attention Is All You Need · 3.2.1 节（PDF 第 4 页）",
+ "lang": "zh",
+ "lead": [
+  {
+   "type": "md",
+   "text": "先说结论：维度 d_k 越大，**点积的数值越大**，softmax 会变得非常尖，梯度几乎为零。除以 $\\sqrt{d_k}$ 把点积的方差拉回 1，训练才稳定。",
+   "line": 5
+  }
+ ],
+ "panels": [
+  {
+   "title": "缩放点积注意力怎么算",
+   "blocks": [
+    {
+     "dir": "LR",
+     "nodes": [
+      {
+       "id": "Q",
+       "label": "Q",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "MatMul",
+       "label": "MatMul",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "K",
+       "label": "K",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "Scale ÷√d_k",
+       "label": "Scale ÷√d_k",
+       "shape": "rect",
+       "hi": true
+      },
+      {
+       "id": "Mask",
+       "label": "Mask",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "SoftMax",
+       "label": "SoftMax",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "MatMul₂",
+       "label": "MatMul₂",
+       "shape": "rect",
+       "hi": false
+      },
+      {
+       "id": "V",
+       "label": "V",
+       "shape": "round",
+       "hi": false
+      },
+      {
+       "id": "输出",
+       "label": "输出",
+       "shape": "round",
+       "hi": false
+      }
+     ],
+     "edges": [
+      {
+       "from": "Q",
+       "to": "MatMul",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "K",
+       "to": "MatMul",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "MatMul",
+       "to": "Scale ÷√d_k",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "Scale ÷√d_k",
+       "to": "Mask",
+       "dashed": false,
+       "label": "可选"
+      },
+      {
+       "from": "Mask",
+       "to": "SoftMax",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "SoftMax",
+       "to": "MatMul₂",
+       "dashed": false,
+       "label": "权重"
+      },
+      {
+       "from": "V",
+       "to": "MatMul₂",
+       "dashed": false,
+       "label": ""
+      },
+      {
+       "from": "MatMul₂",
+       "to": "输出",
+       "dashed": false,
+       "label": ""
+      }
+     ],
+     "groups": [],
+     "type": "flow",
+     "line": 8
+    },
+    {
+     "type": "md",
+     "text": "$$\\mathrm{Attention}(Q,K,V)=\\mathrm{softmax}\\!\\left(\\frac{QK^\\top}{\\sqrt{d_k}}\\right)V$$",
+     "line": 18
+    }
+   ],
+   "span": 2,
+   "meta": "图 2 左",
+   "bare": false
+  },
+  {
+   "title": "点积为什么会变大",
+   "blocks": [
+    {
+     "type": "md",
+     "text": "设 q 和 k 的每个分量独立，均值 0，方差 1。\n\n$$q\\cdot k=\\sum_{i=1}^{d_k} q_i k_i,\\quad \\mathrm{Var}(q\\cdot k)=d_k$$",
+     "line": 21
+    },
+    {
+     "kind": "info",
+     "title": "一个数",
+     "text": "基础模型里 d_k = 64，点积的标准差是 8。除以 8 之后，标准差回到 1。",
+     "bodyLine": 26,
+     "type": "callout",
+     "line": 25
+    }
+   ],
+   "span": 1,
+   "meta": "脚注 4",
+   "bare": false
+  },
+  {
+   "title": "缩放前后",
+   "blocks": [
+    {
+     "type": "md",
+     "text": "| | 不缩放 | 除以 √d_k |\n|---|---|---|\n| 点积的标准差 | d_k 的平方根，随维度变大 | 1 |\n| softmax 输出 | no 几乎全给一个位置 | ok 分得开 |\n| 梯度 | no 很小，学得慢 | ok 正常 |",
+     "line": 30
+    }
+   ],
+   "span": 1,
+   "meta": "",
+   "bare": false
+  },
+  {
+   "title": "接下来看哪里",
+   "blocks": [
+    {
+     "question": "下一步先读哪一节？",
+     "options": [
+      {
+       "label": "3.2.2 多头注意力",
+       "note": "同一套计算并行做 8 次",
+       "suggested": true
+      },
+      {
+       "label": "3.5 位置编码",
+       "note": "没有循环，顺序从哪里来",
+       "suggested": false
+      }
+     ],
+     "multi": false,
+     "type": "ask",
+     "line": 37
+    }
+   ],
+   "span": 1,
+   "meta": "",
+   "bare": false
+  }
+ ]
+}

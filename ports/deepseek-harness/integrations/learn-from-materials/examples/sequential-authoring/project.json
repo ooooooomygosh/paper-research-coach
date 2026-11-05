@@ -1,0 +1,652 @@
+{
+  "schemaVersion": "learn-from-materials/authoring-project-v2",
+  "page": {
+    "schemaVersion": "4.3",
+    "meta": {
+      "title": "方法实验室：顺序系统学习示例",
+      "creator": "自编合成材料",
+      "sourceType": "document",
+      "mode": "overview",
+      "pageId": "method-lab-sequential-systematic-v1",
+      "learningDepth": "systematic",
+      "language": "zh-CN",
+      "initialTheme": "warm-paper",
+      "knowledgeBase": "sequential-systematic.learnkb/INDEX.md"
+    },
+    "hero": {
+      "eyebrow": "方法实验室 · 交互学习",
+      "title": "方法实验室：顺序系统学习示例",
+      "lede": "自编的三页材料，演示问题边界、证据判断、小试验及其条件与反馈。",
+      "thesis": "先界定问题，再核查证据，用小试验更新判断；没有证据时暂停结论。"
+    },
+    "relationships": [
+      {
+        "id": "map-rule",
+        "from": "f-map",
+        "to": "r-map",
+        "type": "applies",
+        "explanation": "范围不清楚时，画问题地图使边界与成功标准可用于判断。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+      },
+      {
+        "id": "evidence-rule",
+        "from": "f-evidence",
+        "to": "r-evidence",
+        "type": "applies",
+        "explanation": "寻找反证是检验依据不足的主张的一种方法。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+      },
+      {
+        "id": "action-rule",
+        "from": "f-action",
+        "to": "r-test",
+        "type": "applies",
+        "explanation": "讨论停滞时，有信息价值的小试验开启行动循环。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      },
+      {
+        "id": "feedback-evidence",
+        "from": "f-action",
+        "to": "f-evidence",
+        "type": "feedback",
+        "explanation": "试验结果为证据链提供新的观察。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      },
+      {
+        "id": "feedback-map",
+        "from": "f-action",
+        "to": "f-map",
+        "type": "feedback",
+        "explanation": "约束变化可能需要重新查看问题地图。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      },
+      {
+        "id": "map-evidence",
+        "from": "f-map",
+        "to": "f-evidence",
+        "type": "supports",
+        "explanation": "明确的边界可以帮助聚焦证据收集。这是分析性联系，并非材料规定的必然顺序。",
+        "evidence": "inference",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab · PDF第1–2页"
+      }
+    ],
+    "footer": "自编合成教学材料，按 MIT 许可发布；不是某篇真实论文，也不代表实证研究结论。"
+  },
+  "unitFiles": [
+    "units/u01.json",
+    "units/u02.json",
+    "units/u03.json"
+  ],
+  "coverage": {
+    "sources": [
+      {
+        "filename": "method-lab-synthetic.pdf",
+        "status": "covered",
+        "reason": "逐页核查自编的三页材料并映射至三个内容单元。",
+        "unitIds": [
+          "u01",
+          "u02",
+          "u03"
+        ],
+        "ranges": [
+          {
+            "kind": "pdf_page",
+            "start": 1,
+            "end": 3
+          }
+        ]
+      }
+    ],
+    "finalCheck": {
+      "readToEnd": true,
+      "noEarlyStop": true,
+      "sourceLocatorsChecked": true
+    }
+  },
+  "summaryCheck": {
+    "sourceToSummaryComplete": true,
+    "summaryToSourceComplete": true,
+    "secondPassCompleted": true,
+    "missingClaimIds": [],
+    "orphanSummaryRefs": []
+  },
+  "actionRules": {
+    "independentRules": [
+      {
+        "ruleId": "r-pause",
+        "reason": "证据不足时暂停结论，是独立限制卡片；未另造流程节点。"
+      }
+    ],
+    "independentFrameworks": [],
+    "relationStatus": "mapped",
+    "relationReason": "保留三种工具之间有依据的关系及分析性顺序。",
+    "relationReview": {
+      "framework": [
+        {
+          "type": "applies",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "causes",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "contrasts",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "feedback",
+          "status": "mapped",
+          "edgeIds": [
+            "feedback-evidence",
+            "feedback-map"
+          ],
+          "reason": "自编材料及当前可见图中有对应关系。"
+        },
+        {
+          "type": "parallel",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "part_of",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "prerequisite",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "sequence",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "supports",
+          "status": "mapped",
+          "edgeIds": [
+            "map-evidence"
+          ],
+          "reason": "自编材料及当前可见图中有对应关系。"
+        }
+      ],
+      "methodology": [
+        {
+          "type": "branch",
+          "status": "mapped",
+          "edgeIds": [
+            "e-direct-test"
+          ],
+          "reason": "自编材料及当前可见图中有对应关系。"
+        },
+        {
+          "type": "causes",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "contains",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "contrasts",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "feedback",
+          "status": "mapped",
+          "edgeIds": [
+            "e-return-evidence",
+            "e-return-map"
+          ],
+          "reason": "自编材料及当前可见图中有对应关系。"
+        },
+        {
+          "type": "main",
+          "status": "mapped",
+          "edgeIds": [
+            "e-map-evidence",
+            "e-evidence-test"
+          ],
+          "reason": "自编材料及当前可见图中有对应关系。"
+        },
+        {
+          "type": "parallel",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "prerequisite",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        },
+        {
+          "type": "supports",
+          "status": "unsupported",
+          "edgeIds": [],
+          "reason": "源材料没有规定此类关系，不补造连线。"
+        }
+      ]
+    }
+  },
+  "relations": {
+    "executionMode": "sequential",
+    "integratorId": "/root",
+    "scopes": [
+      {
+        "id": "integration:three-tools",
+        "kind": "integration",
+        "unitIds": [
+          "u01",
+          "u02",
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00001",
+          "src-451aaf991057-pdf_page-00002",
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "status": "searched",
+        "note": "读完三页后核对两条明确反馈及分析性规划联系；原文强调顺序依问题与证据变化，没有强制串行或并列执行承诺。",
+        "candidateIds": [
+          "rc-page-feedback-evidence",
+          "rc-page-feedback-map",
+          "rc-page-map-evidence",
+          "rc-methodology-e-map-evidence",
+          "rc-methodology-e-evidence-test",
+          "rc-methodology-e-direct-test",
+          "rc-methodology-e-return-evidence",
+          "rc-methodology-e-return-map"
+        ]
+      }
+    ],
+    "candidates": [
+      {
+        "id": "rc-page-feedback-evidence",
+        "unitIds": [
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+          }
+        ],
+        "from": "f-action",
+        "to": "f-evidence",
+        "type": "feedback",
+        "condition": "试验产生新的观察时",
+        "handoff": "试验结果进入证据链。",
+        "evidenceKind": "material",
+        "note": "第3页明确写出结果可以更新证据链。"
+      },
+      {
+        "id": "rc-page-feedback-map",
+        "unitIds": [
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+          }
+        ],
+        "from": "f-action",
+        "to": "f-map",
+        "type": "feedback",
+        "condition": "约束变化时",
+        "handoff": "变化的约束返回问题边界。",
+        "evidenceKind": "material",
+        "note": "第3页明确写出 changed constraints can send you back to the problem map。"
+      },
+      {
+        "id": "rc-page-map-evidence",
+        "unitIds": [
+          "u01",
+          "u02"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00001",
+          "src-451aaf991057-pdf_page-00002"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00001",
+            "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+          },
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00002",
+            "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+          }
+        ],
+        "from": "f-map",
+        "to": "f-evidence",
+        "type": "supports",
+        "condition": "问题边界有助于确定相关证据时",
+        "handoff": "问题范围与相关观察。",
+        "evidenceKind": "inference",
+        "note": "跨第1、2页的分析性支持，不是材料强制步骤或因果结论。"
+      },
+      {
+        "id": "rc-methodology-e-map-evidence",
+        "unitIds": [
+          "u01",
+          "u02"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00001",
+          "src-451aaf991057-pdf_page-00002"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00001",
+            "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion. When the scope is unclear, draw a problem map first;\n\notherwise it is difficult to decide which information is relevant."
+          },
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00002",
+            "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+          }
+        ],
+        "from": "m-map",
+        "to": "m-evidence",
+        "type": "main",
+        "condition": "边界和标准已明确时",
+        "handoff": "相关观察与验收标准。",
+        "evidenceKind": "inference",
+        "note": "保留 inference：这是结合两页的规划顺序，不冒充原文规定。"
+      },
+      {
+        "id": "rc-methodology-e-evidence-test",
+        "unitIds": [
+          "u02",
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00002",
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00002",
+            "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+          },
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+          }
+        ],
+        "from": "m-evidence",
+        "to": "m-test",
+        "type": "main",
+        "condition": "重要假设可以用小试验检验时",
+        "handoff": "主张、假设与预测。",
+        "evidenceKind": "inference",
+        "note": "保留 inference：材料描述互补工具，并未强制检验证据后才能试验。"
+      },
+      {
+        "id": "rc-methodology-e-direct-test",
+        "unitIds": [
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+          }
+        ],
+        "from": "m-map",
+        "to": "m-test",
+        "type": "branch",
+        "condition": "讨论停滞且可进行小试验时",
+        "handoff": "问题与待检验假设。",
+        "evidenceKind": "inference",
+        "note": "原文给出停滞时做试验；从地图节点分支的位置明确属于分析性安排。"
+      },
+      {
+        "id": "rc-methodology-e-return-evidence",
+        "unitIds": [
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+          }
+        ],
+        "from": "m-test",
+        "to": "m-evidence",
+        "type": "feedback",
+        "condition": "试验结果带来新的观察时",
+        "handoff": "结果更新证据链。",
+        "evidenceKind": "material",
+        "note": "去掉旧示例额外的结果偏离条件，避免将原文的可更新关系不当缩窄。"
+      },
+      {
+        "id": "rc-methodology-e-return-map",
+        "unitIds": [
+          "u03"
+        ],
+        "sourceIds": [
+          "src-451aaf991057-pdf_page-00003"
+        ],
+        "evidence": [
+          {
+            "kind": "text",
+            "sourceId": "src-451aaf991057-pdf_page-00003",
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+          }
+        ],
+        "from": "m-test",
+        "to": "m-map",
+        "type": "feedback",
+        "condition": "约束变化时",
+        "handoff": "变化后的约束。",
+        "evidenceKind": "material",
+        "note": "反馈终点是问题地图，不将这条关系改为固定线性顺序。"
+      }
+    ],
+    "decisions": [
+      {
+        "candidateId": "rc-page-map-rule",
+        "status": "retained",
+        "reason": "第1页明确给出条件与画图动作，不推成普遍先后顺序。",
+        "targets": [
+          {
+            "graph": "page",
+            "edgeId": "map-rule",
+            "from": "f-map",
+            "to": "r-map"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-page-evidence-rule",
+        "status": "retained",
+        "reason": "第2页明确要求寻找反证而非用一次观察证明主张。",
+        "targets": [
+          {
+            "graph": "page",
+            "edgeId": "evidence-rule",
+            "from": "f-evidence",
+            "to": "r-evidence"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-page-action-rule",
+        "status": "retained",
+        "reason": "第3页明确给出讨论停滞这一触发条件。",
+        "targets": [
+          {
+            "graph": "page",
+            "edgeId": "action-rule",
+            "from": "f-action",
+            "to": "r-test"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-page-feedback-evidence",
+        "status": "retained",
+        "reason": "第3页明确写出结果可以更新证据链。",
+        "targets": [
+          {
+            "graph": "page",
+            "edgeId": "feedback-evidence",
+            "from": "f-action",
+            "to": "f-evidence"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-page-feedback-map",
+        "status": "retained",
+        "reason": "第3页明确写出 changed constraints can send you back to the problem map。",
+        "targets": [
+          {
+            "graph": "page",
+            "edgeId": "feedback-map",
+            "from": "f-action",
+            "to": "f-map"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-page-map-evidence",
+        "status": "retained",
+        "reason": "跨第1、2页的分析性支持，不是材料强制步骤或因果结论。",
+        "targets": [
+          {
+            "graph": "page",
+            "edgeId": "map-evidence",
+            "from": "f-map",
+            "to": "f-evidence"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-methodology-e-map-evidence",
+        "status": "retained",
+        "reason": "保留 inference：这是结合两页的规划顺序，不冒充原文规定。",
+        "targets": [
+          {
+            "graph": "methodology",
+            "edgeId": "e-map-evidence",
+            "from": "m-map",
+            "to": "m-evidence"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-methodology-e-evidence-test",
+        "status": "retained",
+        "reason": "保留 inference：材料描述互补工具，并未强制检验证据后才能试验。",
+        "targets": [
+          {
+            "graph": "methodology",
+            "edgeId": "e-evidence-test",
+            "from": "m-evidence",
+            "to": "m-test"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-methodology-e-direct-test",
+        "status": "retained",
+        "reason": "原文给出停滞时做试验；从地图节点分支的位置明确属于分析性安排。",
+        "targets": [
+          {
+            "graph": "methodology",
+            "edgeId": "e-direct-test",
+            "from": "m-map",
+            "to": "m-test"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-methodology-e-return-evidence",
+        "status": "retained",
+        "reason": "去掉旧示例额外的结果偏离条件，避免将原文的可更新关系不当缩窄。",
+        "targets": [
+          {
+            "graph": "methodology",
+            "edgeId": "e-return-evidence",
+            "from": "m-test",
+            "to": "m-evidence"
+          }
+        ],
+        "detailTargets": []
+      },
+      {
+        "candidateId": "rc-methodology-e-return-map",
+        "status": "retained",
+        "reason": "反馈终点是问题地图，不将这条关系改为固定线性顺序。",
+        "targets": [
+          {
+            "graph": "methodology",
+            "edgeId": "e-return-map",
+            "from": "m-test",
+            "to": "m-map"
+          }
+        ],
+        "detailTargets": []
+      }
+    ],
+    "isolatedFrameworks": []
+  }
+}

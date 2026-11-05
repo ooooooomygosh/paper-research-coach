@@ -1,0 +1,132 @@
+# Changelog
+
+## Unreleased
+
+## 2.0.0rc13
+
+- **Explainer pages live in the conversation.** A concrete question opens a side-quest card in the chat that unfolds in place (older pages of the same question fold up). Pages follow the *Answer me with HTML* layout idea: a conclusion card, then lettered panel cards in a two-column grid; `## Title {span=2 meta="…"}` spans both columns and adds a note in the title bar. Each panel has “追问这一块” and “没看懂” buttons that ask about that panel only, in the same branch. Cards enlarge beside the paper, pop out, or download as one offline HTML file (scripts and controls removed). Wide flow charts turn vertical in narrow columns.
+- **Mainline quest cards.** Each mainline reply is a card: chapter n/8, the marked quotes (click to turn the PDF), the coach's words with clickable ①②③, the inline figure, the task with one-tap answers, and a “chapter done · takeaway” banner. The task card above the message box becomes a one-line strip. Messages now record their chapter (`step`), the task a reply set and the chapter it completed.
+- **Side quests.** Each explainer branch is a side quest. Only the reader ends it: “我弄懂了” with one sentence in their own words (kept verbatim) or “先放一放”; `POST /api/coach/branch/{id}/quest` is reader-only and the model has no tool for it. A rewrite of a page keeps the state.
+- **Quest log and journey tree.** The quest log lists the eight chapters with their takeaways and files each side quest under the chapter where it was asked. `GET /api/coach/journey/{paper}` and the journey tree show the whole reading from saved records only: the paper and the chapter-6 judgment at the root; under each chapter the marked passages, tasks with verbatim answers, the coach's first sentence, takeaways, side quests, and notes, ideas and review questions by the chapter current when written; anything else under “other”. It opens from the quest log, from the chapter-8 card and as its own window (`#journey=PAPER`), downloads as HTML, and the Markdown paper card gains a “主线与支线” section. No points or scores anywhere.
+- **Transformer showcase script.** `scripts/capture_transformer_demo.py` captures the workbench on *Attention Is All You Need* (arXiv:1706.03762, downloaded to a temporary folder, never committed), checks every marked sentence against the PDF, and labels all scripted content. Four Transformer explainer drafts are committed as lint-clean fixtures.
+- Skill: SKILL.md, `branch.md`, `reading-flow.md`, the runtime prompt and the `prc_explain` description describe side quests, the panel layout, the quest log and the journey tree; three new eval scenarios (45 in total). README, WORKBENCH, METHOD, SHOWCASE and the *Answer me with HTML* attribution are updated, with new screenshots.
+
+## 2.0.0rc12
+
+- **The coach shows you the source.** New tools `prc_find` (search the paper's text) and `prc_show` (turn the reader's PDF to a page and number 1 to 3 sentences). Each quote must be on that page word for word (case, spacing and line-break hyphens may differ); an invented quote is refused. Marks have their own colour and numbers ①②③; the PDF jumps once per coach reply, a chip offers one click back to the earlier page and a switch to stop automatic page turns; reloading never jumps. Scanned pages: the reader is taken to the page, nothing is marked. CLI: `prc find`, `prc show`.
+- **The mainline as one small task at a time.** Each step now has where to look, what counts as done, and a depth (skim / understand / reconstruct). The coach is asked to mark the source, set one task (with 2 to 4 one-tap choices for predictions), and when a step is done, save a one-sentence takeaway in the learner's words and give the next step's first task in the same reply. A task card above the message box shows the step, “look here” chips, the task, the completion check, one-tap choices and 回答 / 给我提示 / 直接讲给我 / 继续; an empty Enter continues when nothing waits for an answer. Takeaways appear in the route and form the paper card at the end.
+- **Figures in the mainline.** `prc_explain` gains `place`: `chat` embeds one small figure (1 to 3 panels) inside a mainline reply, one per turn; `panel` keeps the branch panel for concrete questions. The method card asks for figures only after the learner has made any prediction or recall the step asks for.
+- **A scrolling PDF.** All pages scroll in one column (only nearby pages are drawn); the page box follows the reading line; pinch and Ctrl+scroll zoom the whole stack around the gesture; links inside the paper ([12], Figure 3, sections) jump and “返回位置” returns; search hits are highlighted. Scrolling no longer clears a highlighted spot or an open selection. A page that fails to draw no longer hides the others.
+- **Updates without effort.** The running workbench verifies and installs new versions in the background and switches over only when no page is open and no coach reply runs; with a page open it offers a 5-second reload. `prc` replaces an older running workbench. Skill copies made by `prc install-skill` follow the running version at every start (`prc install-skill --sync` by hand; the install scripts run it). Settings has a switch; `PRC_NO_AUTO_UPDATE=1` turns automatic installs off. The real GitHub install and update path was walked against the published rc11.
+- **Fixes from a project review.** The PDF's SHA-256 is reused while the file is unchanged (it was recomputed on nearly every request); the coach event stream builds snapshots off the event loop and without a write lock; only missing records return 404 (a missing request field is 400 and names the field); background Zotero and folder sync log failures and keep running; switching papers shows a loading line instead of the welcome page; the paper menu closes on Escape or an outside click.
+- Reader fixes found while recording the README demo: a saved reading position could pair the previous page with the new scroll offset (a reload landed a page away), and restoring old coach marks scrolled the reader to them; restored marks now stay drawn without moving the page.
+- **README and repository page.** Both READMEs are reorganised around the task loop: the mainline screenshot leads, a reading-loop diagram (`loop*.svg`) and a short animated demo (`demo.webp`, synthetic and scripted) follow, screenshots sit in one gallery, the method's sources fold into a disclosure, and a roadmap lists what may come next. New `CITATION.cff` (GitHub's “Cite this repository”), `CODE_OF_CONDUCT.md`, a 1280×640 social preview and `scripts/readme_art.py` to redraw the diagrams and preview; `bump_version.py` and `validate_skill.py` keep the citation version in step.
+- Skill: SKILL.md, `reading-flow.md`, `branch.md` and `workbench.md` describe pointing at the source, the task structure and mainline figures; six new eval scenarios (42 in total). METHOD gains a table from each source to the workbench action it shaped.
+
+## 2.0.0rc11
+
+- **Explainer panel (a branch).** A concrete question or technical detail is answered beside the paper in a panel, not as a wall of chat text: conclusion first, then flow charts, sequence diagrams, trees, timelines, tables with ✓ ✗ badges and callouts; follow-ups are new numbered pages of the same branch; `ask` decisions are clickable. **回到主线** (or Esc) closes it and returns focus to the message box; the mainline never advances while a panel is open, and the pop-out button opens the same page in its own window. The coach calls `prc_explain`; from Claude Code, `prc explain --paper ID --file draft.md` (`--check` to validate). The server parses the draft into typed JSON and the browser only draws it (raw HTML, scripts, images and `javascript:` links stay inert text). Draft syntax and the writing check adapt MIT-licensed *Answer me with HTML* (see `docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md`).
+- **Plain, human wording on every turn.** New `references/style.md` (short sentences, answer first, active voice, one word one meaning, concrete numbers, first-use term explanations, never dropping qualifiers) adapted from ASD-STE100 ideas, not a certified implementation; the coach's runtime prompt and per-turn card carry it, and drafts get an automatic warning-only check in English and Chinese. New `references/branch.md` explains when to open a panel and how to write a draft; six new eval scenarios cover branches and plain wording.
+- **Open and update without effort.** `prc` alone opens the workbench; `prc shortcut` adds a double-click launcher (macOS, Windows, Linux); `prc update` (and an 更新并重启 button) downloads the newest release, checks its SHA-256 against the release's `SHA256SUMS`, installs it (pip, or uv for uv-made environments), refreshes Skill copies made by `prc install-skill`, and restarts a running workbench on the same port. A quiet notice appears in the library and as a dot on “⋯”; the check is one anonymous request a day and `PRC_NO_UPDATE_CHECK=1` turns it off. One-line installers `scripts/install.sh` (tested against a local stub release) and `scripts/install.ps1` (**not yet run on real Windows**) verify the checksum and install with uv, pipx or venv. Releases now publish `SHA256SUMS`.
+- README rewritten around “one line, three steps” and “staying current” in both languages; Quick start gains uninstall and update notes; `capture_showcase.py` also captures the panel.
+## 2.0.0rc10
+
+- Releases reach readers again: rc10 is the first package since rc9 and includes everything below. `scripts/bump_version.py` sets the version everywhere in one step; `scripts/release_check.py` warns on PRs and fails the main release job when shipped files change under an already-released version. `prc --version` prints the installed version; the READMEs point to the top Releases entry.
+- Quieter reading panel: the coach title is the current step with a thin progress line and a small 继续主线 button; the eight-step route opens only on demand; the pending question is one line above the message box; the offline notice is one line and the per-reply send scope moves below the reply.
+- Nothing to configure per turn: the intent, help-mode and page-image controls are gone. Answer versus detour is inferred and stated under the message box, help style is read from the message, region selections attach the page image, and a selection offers a one-click 直接讲这处.
+- Keep the reading mainline in view: the step track, “第 n/8 步”, the current question and the 开始跟读 / 继续主线 / 回答并继续主线 button move out of the tools drawer into the coach panel; turn intent and help mode sit above the message box; the empty conversation explains how to advance, answer and detour.
+- Make the method reach the model every turn: mainline turns now carry a code-generated card with the current step, its goal, the reading moves for that step (reading order, introduction questions, prediction, critical and creative questions, Hua Gang's questions) and its completion condition; detours say where the mainline paused and how to route a blocking or non-blocking gap. DESIGN.md no longer claims SKILL.md is sent each turn.
+- Explain the reading method: `docs/METHOD.md` (and English) sets out why each practice is there — the passive → active → critical → creative ladder, a non-linear reading order, the seven principles with the researchers' advice, scientific-method and learning-science work behind them, Hua Gang's ten questions mapped onto the eight steps, what it helps with and what it does not promise. Both READMEs gain a short “why read this way” section.
+- Coach with the method, not only cite it: new `references/questions.md` (reading order, Kajiya's five introduction questions, critical and creative questions, the ten-question template, getting unstuck), loaded by the Skill and available to the workbench coach; selection, coaching, notebook and review references gain venue priority, parking non-blocking terms, abstract self-translation, the “never reread” note standard and half-page reviews. Four new eval scenarios cover them.
+- Sources: record the two Zhihu articles (Wang Shuyi; Shum and Hua) as read in full and add the learning-science and scientific-method literature with DOIs.
+- Render PDFs in browsers without the very newest JavaScript APIs: pdf.js 6's modern build calls `Map#getOrInsertComputed` and `Math.sumPrecise`, so every page failed on e.g. Chromium 141. Use the polyfilled legacy build and log swallowed render errors.
+- Add a dark theme that follows the system. Roughly 230 near-duplicate colours became ~20 semantic tokens; light mode is visually unchanged and the PDF page is gently dimmed at night.
+- Conversation: Enter sends and Shift+Enter breaks a line (IME confirmation never sends); the composer grows with the draft; the quoted passage stays visible under the learner's question; replies no longer repeat its location; finished turns are no longer stamped “已保存”; `**加粗：**正文` renders in Chinese replies (remark-cjk-friendly).
+- An unavailable coach now says so (未连接 / 需要登录) with a reconnect action, instead of “连接中” forever; reading, marks and notes stay usable.
+- Annotations: a kept highlight is shown as “原文标记”, not “我的原话”, is no longer counted or sent to the coach as a pending learner thought, and “写下想法” starts a thought at the same place.
+- Install the Skill as a Claude Code plugin (`/plugin marketplace add ooooooomygosh/paper-research-coach`) or with `npx skills add`; name common Chinese requests in the Skill description; check that all release versions agree.
+- Redesign the README in both languages with a light/dark hero screenshot, comparison table, feature grid, three install paths and an FAQ.
+- `npm audit fix` for a new high-severity `source-map-js` advisory that failed the CI audit step; collapse duplicated portal/inline coach JSX.
+
+## 2.0.0rc9
+
+- Move original, Chinese and bilingual PDF view switching into the floating toolbar, with unavailable translations disabled until ready.
+
+## 2.0.0rc8
+
+- Consolidate page navigation, zoom, fit, region selection and annotated downloads in the floating PDF toolbar; remove duplicate controls from the header and reading drawer.
+- Keep direct page entry in the toolbar, with a compact wrapped layout on narrow screens.
+
+## 2.0.0rc7 — PDF gestures and translated annotations
+
+- Add focal-point-preserving trackpad/touch pinch zoom and a compact frosted toolbar for zoom, fit, page navigation, region selection and annotated PDF download. Gestures preview the existing canvas and rasterize once on release.
+- Persist translated selections separately from original-source evidence, scoped to the translation job, layout and PDF content hash. Restore highlights and rectangles in their matching Chinese/bilingual PDF after reload; reject changed files and unrelated layouts.
+- Add explicit mark/note actions for text and regions, preserve preceding drafts when starting a note on a new selection, and export native highlight/rectangle annotations in the selected PDF.
+- Extend browser checks with actual touch input, trackpad zoom/focal position, cross-view annotation persistence and annotated downloads; preserve legacy request fingerprints.
+
+## 2.0.0rc6 — reading polish
+
+- Refine paper surfaces, toolbar grouping, split-handle visibility, focus/hover feedback and restrained dialog/drawer motion; honor reduced motion and keep a direct touch immersion exit.
+- Repair synthetic PDF text extraction with indirect stream objects and allow PDF embedded fonts in CSP. Browser checks now exercise actual passage selection, motion preferences and touch exit.
+- Add a disposable `prc-demo` entrypoint with a synthetic, searchable three-page paper and isolated temporary storage; no automatic model request or authorization.
+- Commit page-number edits on Enter/blur, cancel with Escape, and keep the persisted cursor separate from typing.
+- Use native modal dialogs with explicit keyboard wrapping for import, metadata and reading-task edits; preserve file/title/goal after failed import and support single-PDF drag/drop.
+- Search across bibliographic fields; expose a useful empty state; discuss selected original text without whole-paper translation.
+- Refine local-question and non-native-language coaching without forcing a route or conflating translation with evidence.
+- Reorganize bilingual repository entrypoints, quickstart, detailed guides, review boundaries and contribution/report templates. Add offline documentation checks and a separate synthetic browser/showcase workflow.
+
+### Earlier unreleased work included in this version
+
+- Add searchable batch background translation and bilingual library badges; share a persistent queue across browser sessions and automatically resume pending work after service restart.
+- Run multiple paper workers and multiplex independent Codex translation/alignment requests with configurable global limits (default two papers / four requests). Make finished PDFs readable before alignment completes and reuse saved PDFs on resume.
+- Automatic Zotero and literature-folder checks default to every 10 minutes, with a manual refresh in the reading tools drawer. Index each sync poll's paper list once and limit the translation layout worker's CPU threads.
+- Bind each paper to one durable workbench conversation and native Codex thread; resume across restarts/model changes and reconcile unknown creation without duplicating threads. Keep previous chats as read-only history.
+- Bound initialization and per-turn automatic context, preserving exact user messages while retrieving pages, notes and methods on demand.
+- Add optional BabelDOC 0.6.4 whole-paper translation through separate Codex login connections, independent model settings, resumable cached tasks, mono/dual PDFs and saved sentence/paragraph source mappings.
+- Default to a quiet, resizable PDF/chat reading surface, secondary tools drawer and immersive mode with persistent drafts, selections and viewport position.
+
+## 2.0.0rc5 (release candidate)
+
+- Ground legacy durable text sends in their selected PDF page while preserving retry fingerprints; keep cross-page images rejected.
+- Bound per-paper model context and migration history with explicit excerpt metadata and scoped, paginated original-note/dialogue retrieval; keep database records intact.
+- Add opt-in evidence-backed local learning feedback, linked to exact learner answers and pages actually read. Keep this separate from note consent and mastery certification.
+- Add PDF outline navigation, cancellable text search, and source-scoped reading history. Preserve new selections and drafts across asynchronous actions.
+- Include per-turn intent and help controls, safer note-source rebinding, persistent page annotations, fit-width reading and Chinese IME handling from the reviewed PR.
+- Strengthen contribution, mechanism, competing-explanation and fair-budget checks in the Skill, and retain stopping decisions for irrelevant papers.
+- Build a source distribution alongside the wheel and portable Skill. Derive release tags and package versions from built artifacts.
+- Report the installed runtime version consistently and keep local access tokens out of service startup output.
+
+## 2.0.0rc4 (release candidate)
+
+- Add prompt-free, per-paper guided reading with eight persisted steps. Questions and annotations preserve the mainline return point; completion requires a real recall answer from the current round.
+- Use only paper-research-coach, with natural writing guidance inside the Skill. Add a complete reading-route reference and adapt CLI continuation to the same flow.
+- Scope conversation selection and creation to the current paper; remove global CLI history import and reject cross-paper access.
+- Add `prc open` and a double-click launcher to reuse or start the local service and authenticate external browsers. Accept a complete launch link on the connection page.
+- Render actual PDF pages for the coach through a bounded visual tool, and provide clickable source locations. Preserve original PDF bytes.
+- Fix PDF.js 6 region navigation and keep the note editor open while choosing a position. Correct the discussed-state reset caused by equivalent coordinate representations.
+- Connect Codex CLI, streaming replies, interruption, refresh recovery, shared CLI/web conversations, note comments, research ideas and review actions.
+- Simplify the reading surface with a persistent sidebar toggle, compact coaching controls, and secondary menus for exports, metadata and connection settings. Restore note revisions after AI comments and retain answered review records for coaching feedback.
+- Use translucent exported PDF highlights so linked comments at the same location keep the text and figures readable.
+
+## 2.0.0rc3 (release candidate)
+
+- Show a waiting-for-input message when a PDF location is selected without note text.
+- Complete an interrupted note transaction even when its editor has since been cleared, while preserving the saved original. Added two regression checks; 17 frontend checks pass.
+
+## 2.0.0rc2 (release candidate)
+
+- Resolve arXiv metadata from the exact PDF version, with structured authors and verified arXiv DOI, when registry lookup is incomplete.
+- Preserve earlier-version titles instead of silently substituting metadata from a newer PDF. Added a regression test; 57 backend and 15 frontend checks.
+
+## 2.0.0rc1 (release candidate)
+
+- Rebuilt the incomplete single-file prototype into a complete portable Agent Skill.
+- Added a local PDF reading workbench with exact-word notes, anchors, revision history, sessions, evidence-backed relationships, comparison records, ideas, and adjustable retrieval practice.
+- Added one transactional service used by CLI and HTTP, with operation IDs, optimistic concurrency and source-version checks.
+- Added Zotero 10 native local API synchronization, explicit authorization, instance separation and conflict/deletion resolution.
+- Added OneDrive/Obsidian folder discovery, content-based Zotero binding, append-only Markdown revisions, explicit file conflicts, and a macOS login service.
+- Fixed audit reproductions for autosave races, PDF replacement, rich notes, instance isolation and interrupted imports/exports; added 56 backend and 15 frontend regression tests.
+- Verified core Zotero 10.0.4 round trips and adapted native creation/annotation queries.
+- Added Markdown/CSV/annotated-PDF exports, bundled frontend distribution, synthetic fixtures, behavioral scenarios and a human study protocol.
+
+Verification scope is recorded in docs/TESTING.md. This release does not claim measured educational effectiveness.

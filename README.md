@@ -9,6 +9,8 @@
 本地 PDF 阅读工作台 + 可装进 Claude Code / Codex / Pi 的 AI 带读 Skill。<br>
 教练把你带到原文那一句，一次只给一个小任务，判断留在你自己手里。
 
+**新平台：** 也有 [**DeepSeek Harness（DSH）插件版**](#方式三deepseek-harnessdsh插件windows)（Windows）：把整套工作台内置进 DSH，用 Harness 当前登录的账户读论文，不需要 API Key，也不需要 Codex CLI。
+
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![Release](https://img.shields.io/github/v/release/ooooooomygosh/paper-research-coach?include_prereleases&label=release&color=365c47)](https://github.com/ooooooomygosh/paper-research-coach/releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-526653)](docs/QUICKSTART.md)
@@ -16,7 +18,7 @@
 [![Updates](https://img.shields.io/badge/updates-automatic%20%C2%B7%20SHA--256%20verified-4f7a5f)](#一直用最新版)
 [![License: MIT](https://img.shields.io/badge/license-MIT-526653)](LICENSE)
 
-**简体中文** · [English](README.en.md) · [快速上手](docs/QUICKSTART.md) · [阅读方法论](docs/METHOD.md) · [工作台指南](docs/WORKBENCH.md) · [设计说明](docs/DESIGN.md) · [参与贡献](CONTRIBUTING.md)
+**简体中文** · [English](README.en.md) · [快速上手](docs/QUICKSTART.md) · [阅读方法论](docs/METHOD.md) · [工作台指南](docs/WORKBENCH.md) · [设计说明](docs/DESIGN.md) · [DSH 插件](docs/DEEPSEEK_HARNESS.md) · [参与贡献](CONTRIBUTING.md)
 
 </div>
 
@@ -194,6 +196,7 @@ PDF 与笔记存在你的电脑上；只有你发出的对话会交给你配置�
 |---|---|
 | **边看原文边讨论**（推荐） | [方式一：工作台](#方式一工作台一行安装三步开始) |
 | 只在 Claude Code、Codex 里用 AI 带读 | [方式二：只装 Skill](#方式二只装-skill) |
+| 在 **DeepSeek Harness（DSH）** 里用（Windows） | [方式三：DSH 插件](#方式三deepseek-harnessdsh插件windows) |
 
 ### 方式一：工作台，一行安装，三步开始
 
@@ -269,6 +272,26 @@ npx skills add ooooooomygosh/paper-research-coach
 - **AI 没有连接**：登录本机 Codex CLI，再点对话区的“重新连接”。
 
 </details>
+
+### 方式三：DeepSeek Harness（DSH）插件（Windows）
+
+这是一个**新平台**：把整套工作台内置进 [DeepSeek Harness](docs/DEEPSEEK_HARNESS.md)，直接用 Harness 当前登录的账户读论文，**不需要 API Key，也不需要 Codex CLI**。插件名称仍是 **Paper Research Coach**。
+
+| | |
+|---|---|
+| **适用** | Windows x64 · DeepSeek Harness 0.2.1-rc.5（已验证）。目前**没有 macOS 安装包**；其他 Harness 版本需要重新验证 |
+| **入口** | 装好后，Harness 侧栏的“论文研读” |
+| **账户与模型** | 通过 Harness 登录账户的 `deepseek-account` 调用模型，需要网络和可用的 Harness 账户。只添加材料不会调用模型；点击构建、生成或发送才会 |
+| **保留** | 原版工作台的全部：PDF 阅读、八章主线、任务卡、支线讲解、复盘树、笔记与证据定位、翻译、书库与 Zotero 同步、导出 |
+| **新增** | **知识库学习**（整合 [Learn from Materials](https://github.com/dmoshehun-prog/learn-from-materials)）：导入多份材料并保留来源映射，学概念与方法，做练习、记错题。**交互式讲解**（整合 [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html)）：围绕问题、论文页或知识库生成图文页面，可编辑、换主题、导出 HTML。另外修复了 PDF 文字高亮的重叠方框 |
+| **版本** | 插件 **1.1.0**，基于工作台 **2.0.0rc13**。独立工作台已更新，插件里的快照需要显式移植并重新验证后才会跟上 |
+| **安装** | 安装包 `PRC-DSH-1.1.0-win-x64.zip`（约 476 MiB）**不在 Git 里**，由维护者准备运行库后构建，再发给接收方；仓库现有的 wheel 和 Skill ZIP **不能代替它**。接收方先装好兼容的 Harness 并登录，退出应用后完整解压，运行 `安装.cmd`，重启后点“论文研读”。卸载用同包的 `卸载.cmd`，会保留论文和学习记录 |
+| **数据** | 默认在 `%USERPROFILE%\.dsh\paper-research-coach`（设置了 `DSH_HOME` 则跟随它）。登录凭证由 Harness 管理，不随插件打包 |
+
+> [!NOTE]
+> 这是**第三方适配版，不是 DeepSeek 官方发行**，与上面两种方式分开维护。内置版**关闭**了独立工作台的自动更新；Harness 升级后请重新核对兼容性。逐字引文校验不等于语义完整性，练习答案是模型生成的参考答案，学习进度不代表掌握度。
+
+完整说明：[在 DeepSeek Harness 中使用](docs/DEEPSEEK_HARNESS.md) · 源码与构建：[`ports/deepseek-harness`](ports/deepseek-harness/README.md)
 
 ## 💬 一个典型回合
 

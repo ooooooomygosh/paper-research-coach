@@ -1,0 +1,20 @@
+# Sources and notices
+
+The complete workbench is derived from [Paper Research Coach](https://github.com/ooooooomygosh/paper-research-coach), version 2.0.0rc13, MIT, copyright ooooooomygosh. Its original source, skill, tests and license are in `upstream/`. All changes are available in this source directory.
+
+DeepSeek Harness 0.2.1-rc.5 supplies the account adapter, LLM runtime, application shell and plugin loader. The plugin does not copy account credentials or implement a separate provider login.
+
+The portable Windows interpreter also includes unmodified Microsoft C/C++ runtime DLLs for application-local deployment, so native dependencies can load without borrowing those files from the recipient's system installation. These Microsoft binaries retain their own terms; see `runtime/MSVC-NOTICE.txt` and Python's Windows license notice.
+
+The bundled translation worker uses **BabelDOC 0.6.4**, AGPL-3.0. Its Python source is included under `runtime/python/Lib/site-packages/babeldoc`, its distribution metadata includes its license, and the original license and worker integration notes are preserved under `upstream/docs/`. Full upstream source: https://github.com/funstory-ai/BabelDOC/tree/v0.6.4. The MIT license of the workbench does not relicense BabelDOC. Other Python packages retain their distribution licenses in their `.dist-info` directories.
+
+The explainer syntax and writing checks include MIT-licensed contributions adapted from Answer me with HTML; see `upstream/docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md`. React, PDF.js, KaTeX, Lucide and other frontend dependencies retain their original licenses. Exact frontend dependencies are recorded in `upstream/frontend/package-lock.json`; Python versions are recorded in `runtime/requirements.lock.txt`.
+
+Version 1.1.0 also embeds two fixed source revisions:
+
+- [Learn from Materials](https://github.com/dmoshehun-prog/learn-from-materials), v1.1.0, commit `f8849746d85c5ebe8556fdb8f388783ac7483c8b`, MIT. Original `LICENSE.md` and `NOTICE.md`, extraction scripts, canonical method validators and learning templates are retained in `integrations/learn-from-materials`. `scripts/prc_render_page.py` is a generated adaptation permitting a genuinely empty action-rule set when the canonical method library contains no rules. PRC uses its own real processing/citation report and does not claim that upstream human or independent content review has run.
+- [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html), v0.5.10, commit `406ef8dd72386de1ae2e2b483d40ce9625043e78`, MIT. Original source and `LICENSE` are in `integrations/answer-me-with-html`. `prc-renderer.mjs` is generated from the bundled CLI by exposing the original renderer and math loader, omitting CLI execution, and disabling draft references to arbitrary host image/code files. Original dependency notices remain in the bundle.
+
+PRC's restricted embedded frames relay learning state to the local PRC database and bring questions back to an editable composer. These adaptations use the Harness account bridge; the upstream agent installation and delivery instructions are supplied as source documents and are not activated as separate agents or external services. Personal notes, answers and account data are not included in release archives.
+
+PRC's generated `scripts/extractor/prc_utils.py` retains the upstream extraction/source-map pipeline and uses the existing packaged pypdfium2 engine for PDF text and page boundaries, including CJK CID-font text. Visual content is marked as unverified. The original extractor is retained unchanged; its fallback [PyPDF2 3.0.1](https://pypi.org/project/PyPDF2/3.0.1/), BSD-3-Clause, is also included as Python source with its original distribution license. Versions are recorded in `runtime/requirements.lock.txt`; no parser download is required on the recipient's machine.

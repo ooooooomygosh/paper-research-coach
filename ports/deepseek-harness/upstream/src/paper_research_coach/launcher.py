@@ -1,0 +1,142 @@
+"""Open an authenticated local workbench, reusing its running service."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+import time
+import webbrowser
+from urllib.parse import urlencode
+
+import httpx
+from filelock import FileLock
+
+from .server import session_token
+
+
+def spawn(module, *args):
+    """Run a module detached from this terminal, so it outlives the command that started it."""
+    flags = {"start_new_session": True} if sys.platform != "win32" else {"creationflags": 0x00000008 | 0x00000200}
+    return subprocess.Popen(
+        [sys.executable, "-m", module, *args],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **flags,
+    )
+
+
+def spawn_service(store, port):
+    return spawn("paper_research_coach.cli", "--data-dir", str(store.root), "serve", "--no-open", "--port", str(port))
+
+
+def spawn_relaunch(store, port, wait_pid):
+    return spawn("paper_research_coach.relaunch", "--data-dir", str(store.root), "--port", str(port), "--wait-pid", str(wait_pid))
+
+
+def open_workbench(store, port=8765, paper_id="", conversation_id="", new=False):
+    if not 1024 <= port <= 65535:
+        raise ValueError("请选择有效的工作台端口。")
+    paper_id = paper_id or store.setting("active-paper", "")
+    if paper_id:
+        store.get("paper", paper_id)
+    if (conversation_id or new) and not paper_id:
+        raise ValueError("请先选择论文，再打开这篇论文的对话。")
+    base = f"http://127.0.0.1:{port}"
+    token = session_token(store)
+    with (
+        FileLock(str(store.root / "workbench-open.lock"), timeout=15),
+        httpx.Client(
+            base_url=base,
+            headers={"Authorization": "Bearer " + token},
+            timeout=3,
+            trust_env=False,
+        ) as client,
+    ):
+
+        seen = {}
+
+        def running():
+            try:
+                response = client.get("/api/state")
+            except httpx.ConnectError:
+                return False
+            except httpx.HTTPError:
+                raise ValueError("工作台暂未响应，请稍后重新打开。") from None
+            try:
+                state = response.json()
+            except ValueError:
+                state = {}
+            if (
+                not response.is_success
+                or not isinstance(state, dict)
+                or not isinstance(state.get("papers"), list)
+            ):
+                raise ValueError(
+                    "这个端口正在使用另一处服务，请检查工作台的数据目录与端口。"
+                )
+            seen["version"] = state.get("version", "")
+            return True
+
+        def restart_older():
+            """A workbench started before an update still runs the old code: switch it to this version."""
+            from . import __version__
+            from .updater import is_newer
+
+            if not seen.get("version") or not is_newer(__version__, seen["version"]):
+                return
+            try:
+                restarting = client.post("/api/system/restart").json().get("restarting")
+            except (httpx.HTTPError, ValueError):
+                return
+            if not restarting:
+                return
+            deadline = time.monotonic() + 25
+            while time.monotonic() < deadline:
+                time.sleep(0.4)
+                try:
+                    if running() and seen.get("version") == __version__:
+                        return
+                except ValueError:
+                    pass
+            raise ValueError("新版本的工作台没有按时启动。请稍后重新运行 prc。")
+
+        if running():
+            restart_older()
+        else:
+            spawn_service(store, port)
+            deadline = time.monotonic() + 10
+            while not running():
+                if time.monotonic() >= deadline:
+                    raise ValueError(
+                        "工作台未能启动，请在 Codex 中让教练检查本机服务。"
+                    )
+                time.sleep(0.2)
+
+        def post(path, body):
+            try:
+                response = client.post(path, json=body)
+                result = response.json()
+            except (httpx.HTTPError, ValueError):
+                raise ValueError("工作台连接暂未完成，请重新打开。") from None
+            if not response.is_success:
+                raise ValueError(result.get("error", "阅读对话未能打开。"))
+            return result
+
+        if paper_id:
+            if not conversation_id or new:
+                conversation_id = post(
+                    "/api/coach/connect/" + paper_id, {"new": bool(new)}
+                )["id"]
+            post(
+                "/api/coach/active",
+                {
+                    "paper_id": paper_id,
+                    "conversation_id": conversation_id,
+                },
+            )
+    fragment = {"token": token}
+    if paper_id:
+        fragment.update(paper=paper_id, conversation=conversation_id)
+    if not webbrowser.open(base + "/#" + urlencode(fragment)):
+        raise ValueError(
+            "浏览器未打开。请检查系统默认浏览器，或在 Codex 中打开工作台。"
+        )
+    return {"opened": True, "paper_id": paper_id, "conversation_id": conversation_id}

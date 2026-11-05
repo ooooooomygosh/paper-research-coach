@@ -1,0 +1,9 @@
+# Keep ordinary source files portable while preserving byte-based evidence.
+* text=auto eol=lf
+
+# Review fingerprints and source hashes must survive Windows Git checkouts.
+examples/** -text
+scripts/tests/fixtures/** -text
+
+*.png binary
+*.pdf binary
