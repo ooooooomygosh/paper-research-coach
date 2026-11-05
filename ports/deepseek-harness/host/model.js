@@ -1,6 +1,10 @@
 import {randomUUID} from 'node:crypto';
 
 export const PROVIDER = 'deepseek-account';
+/** Coach defaults: DeepSeek Flash with high reasoning, verified against the
+ * signed-in account's declared efforts before use. */
+export const DEFAULT_MODEL = 'deepseek-flash';
+export const DEFAULT_EFFORT = 'high';
 
 /** Catalog and selection stay in Harness. No account token crosses this seam. */
 export async function modelState(ctx) {
@@ -8,9 +12,20 @@ export async function modelState(ctx) {
   if (!llm) throw new Error('DeepSeek Harness 模型服务未就绪');
   const models = await llm.listModels(PROVIDER);
   const selection = ctx.get('agentDefaultModel')?.currentSelection();
-  const selected = selection?.provider === PROVIDER && models.some(m => m.id === selection.model)
-    ? selection.model : models[0]?.id;
-  return {provider: PROVIDER, model: selected || '', models, signedIn: models.length > 0};
+  // Prefer Flash; only fall back to the agent default when Flash is unavailable.
+  const preferred = models.find(model => model.id === DEFAULT_MODEL)
+    || (selection?.provider === PROVIDER && models.find(model => model.id === selection.model))
+    || models[0];
+  return {provider: PROVIDER, model: preferred?.id || '', models, signedIn: models.length > 0, defaultEffort: DEFAULT_EFFORT};
+}
+
+/** Pick a reasoning effort the selected model actually declares. */
+export function effortFor(state, wanted = DEFAULT_EFFORT) {
+  const model = state.models.find(item => item.id === state.model);
+  const efforts = (model?.supportedReasoningEfforts || model?.reasoning?.efforts || []).map(
+    effort => typeof effort === 'string' ? effort : effort.id || effort.reasoningEffort);
+  if (efforts.includes(wanted)) return wanted;
+  return model?.defaultReasoningEffort || model?.reasoning?.defaultEffort || '';
 }
 
 export function safeFailure(error) {
@@ -56,7 +71,11 @@ export async function* modelStream(ctx, body, signal) {
   const llm = ctx.get('llm');
   const resolved = await llm.resolveModelInfo(PROVIDER, model, signal);
   const efforts = resolved.reasoning?.efforts || [];
-  const requested = efforts.some(e => e.id === body.effort) ? body.effort : undefined;
+  const declared = new Set(efforts.map(item => item.id));
+  // An explicit effort is honoured or dropped; the default only fills the gap.
+  const requested = declared.has(body.effort)
+    ? body.effort
+    : (body.effort ? undefined : (declared.has(DEFAULT_EFFORT) ? DEFAULT_EFFORT : resolved.reasoning?.defaultEffort));
   const prepared = await llm.prepareCall({provider: PROVIDER, model, ...(requested ? {reasoningEffort: requested} : {})}, signal);
   const messages = await normalizeMessages(ctx, body.messages || []);
   yield {type: 'route', provider: PROVIDER, model};

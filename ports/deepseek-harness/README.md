@@ -1,8 +1,8 @@
 # Paper Research Coach · DeepSeek Harness 内置版
 
-Paper Research Coach **1.2.0** 是面向 **DeepSeek Harness 0.2.1-rc.5 / Windows x64** 的内置适配版，从 Harness 侧栏的“论文研读”进入。文献阅读、分析、知识库构建和互动讲解统一调用 Harness 当前登录账户的 `deepseek-account` 模型接口，无需另填 API Key 或启动 Codex CLI。插件名称继续使用 **Paper Research Coach**。
+Paper Research Coach **1.2.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Windows x64 分发包；macOS 走源码构建，见 [`macos/README.md`](macos/README.md)），从 Harness 侧栏的“论文研读”进入。文献阅读、分析、知识库构建和互动讲解统一调用 Harness 当前登录账户的 `deepseek-account` 模型接口，无需另填 API Key 或启动 Codex CLI。插件名称继续使用 **Paper Research Coach**。
 
-这是第三方适配版。当前没有 macOS 安装包，其他 Harness 版本也尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。
+这是第三方适配版。仓库里只发 Windows x64 的安装 ZIP；macOS 不发预打包产物，用 [`macos/install-macos.sh`](macos/install-macos.sh) 从源码构建并注册进 Harness profile，步骤和限制见 [`macos/README.md`](macos/README.md)。两个平台都在 Harness 0.2.1-rc.5 上跑过。已有版本的适配记录见上述平台说明；本次界面改版的验证范围见下文。其他 Harness 版本尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。
 
 ## 功能
 
@@ -12,6 +12,7 @@ Paper Research Coach **1.2.0** 是面向 **DeepSeek Harness 0.2.1-rc.5 / Windows
 - **阅读界面与翻译入口**：顶部集中阅读、知识库、讲解、翻译与显示原文；控件图标有独立 SVG 源文件，按钮和边框取消高光。讲解成品优先显示，修改要求按需展开。翻译面板可操作当前论文和批量后台队列，切换页面不会取消任务；完全退出 Harness 后停止计算，已保存进度可恢复。
 - **标准阅读与可操作讲解**：讲解界面一键导出结合七个阅读环节与本项目方法论的阅读提示；导出本身不调用模型。可另选概念、步骤、比较、参数、证据五类组件，由登录账户生成结构化内容；页内操作在本地运行，带着状态继续提问前仍可编辑。匹配的原文依据保留版本与页码，可定位当前论文。
 - 修复 PDF 文本选区出现大量重叠方框的问题：按行合并、去重；文字采用柔和高亮，手动框选保留边框，浮层避让原文。
+- 教练默认 **DeepSeek Flash + high 思考深度**；模型未声明的档位不会提交，失败时说明具体原因（额度、限流、上下文），并把诊断写进 `~/.dsh/paper-research-coach/logs/`。
 
 学习页基于 [Learn from Materials](https://github.com/dmoshehun-prog/learn-from-materials)，互动页面复用 [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html) 的实际渲染器。固定提交及适配文件见 [integrations/SOURCES.json](integrations/SOURCES.json)，署名和许可证见 [THIRD_PARTY.md](THIRD_PARTY.md)。添加材料本身不发起模型请求；点击构建、生成或发送后才调用账户。
 
@@ -40,6 +41,7 @@ Paper Research Coach **1.2.0** 是面向 **DeepSeek Harness 0.2.1-rc.5 / Windows
 | `integrations/` | 两个项目的固定源码、模板、渲染器与许可 |
 | `distribution/`、`scripts/build_release.py` | 可转发安装包、校验、备份、卸载与恢复 |
 | `runtime/requirements.lock.txt`、`runtime/ASSET-MANIFEST.json` | Python 依赖版本和已验证翻译资源的哈希清单 |
+| `macos/` | macOS 源码构建：`install-macos.sh`、`uninstall-macos.sh`、`import-legacy.sh` 与说明 |
 | `SOURCE_SNAPSHOT.json` | 原项目版本、提交和公开源码文件哈希 |
 
 原仓库与第三方仓库中的 Skill 文档作为随附源码保留；不会自动安装额外代理或服务。后续同步独立工作台需要显式移植并重新验证此快照。
@@ -60,9 +62,7 @@ npm --prefix upstream/frontend run build
 
 验证脚本运行原版及新增 Python 测试、账户桥接与真实渲染器测试、TypeScript 检查、前端测试和构建，不连接账户或安装 Harness。[专用 CI](../../.github/workflows/deepseek-harness.yml) 使用 Windows 运行相同检查。原版 Skill/文档校验仍可在 `upstream/` 中运行。
 
-本次 1.2.0 源码验证：224 项 Python 测试通过、3 项跳过；120 项前端测试、11 项 Node 测试通过，TypeScript 与前端构建通过。Windows 按原验证脚本排除 POSIX 安装脚本测试。新增组件测试使用真实页面渲染器，覆盖滑动参数、步骤、比较、证据揭示、来源换版、历史与导出；账户响应使用合成替身。
-
-1.1.0 曾以合成材料完成登录账户冒烟、桌面交互和真实宿主包的隔离安装/卸载检查。本次改版未重新连接真实账户、安装主程序或发布二进制安装包，也没有 macOS 验证；历史记录不能当作本次原生宿主验收。本仓库不附带个人账户收据、桌面日志或论文。
+已完成的 Windows 1.1.0 验证：209 项 Python 测试通过、7 项跳过；115 项前端测试、7 项 Node 测试通过。另以合成材料完成登录账户冒烟、桌面交互和真实宿主包的隔离安装/卸载检查。这些历史验证不等于本次 CI 已连接账户。macOS 侧的构建与冒烟记录写在 `macos/README.md`，只覆盖 Apple silicon 一台机器，不代表 Windows 分发包等价或已覆盖 Intel Mac；本仓库不附带个人账户收据、桌面日志或论文。
 
 账户冒烟需要自有 Harness 运行时及登录账户，可能消耗账户额度。设置 `DSH_PRC_TEST_REFERENCE_PATH` 为解包后的 `dsh` 目录，再运行 `node scripts/smoke-harness.mjs`；设置 `PRC_LEARNING_TEST=1` 可检查学习工作区。脚本使用单独的测试书库，只发送合成教学材料。不要将该运行时或测试数据提交到仓库。
 
