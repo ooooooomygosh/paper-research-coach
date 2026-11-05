@@ -22,8 +22,9 @@ callout 示例：```callout info 关键判断\n解释条件与边界。\n```
 
 
 class Studio:
-    def __init__(self, store, jobs, account, context):
+    def __init__(self, store, jobs, account, context, sources=None):
         self.store, self.jobs, self.account, self.context = store, jobs, account, context
+        self.sources = sources
 
     def create(self, payload):
         question = str(payload.get("question", "")).strip()

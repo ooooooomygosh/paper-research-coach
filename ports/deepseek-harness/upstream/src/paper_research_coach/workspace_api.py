@@ -19,7 +19,7 @@ class Workspace:
         self.store = WorkspaceStore(papers.root / "workspaces")
         self.jobs = Jobs(self.store)
         self.account = Account(self.store, text_factory, renderer)
-        self.studio = Studio(self.store, self.jobs, self.account, self.context)
+        self.studio = Studio(self.store, self.jobs, self.account, self.context, self.interactive_sources)
         self.learning = None
 
     def state(self):
@@ -36,6 +36,8 @@ class Workspace:
         if source.get("paper_id"):
             paper_id = valid_id(source["paper_id"])
             paper = self.papers.get("paper", paper_id)
+            if source.get("source_version") and source["source_version"] != paper["source_version"]:
+                raise ValueError("所选论文已换版，请重新选择来源。")
             if self.papers.check_source(paper_id)["status"] != "current":
                 raise ValueError("论文 PDF 已变化或不可用，请重新核对来源。")
             page = int(source.get("page_index", 0))
@@ -60,6 +62,21 @@ class Workspace:
                 text = text[:24000] + "\n[本页过长，当前仅提供开头部分。]"
             return f"论文：{paper['title']}，PDF 第 {page + 1} 页\n{text}\n用户选区：{str(source.get('quote', ''))[:4000]}"
         return str(source.get("text", ""))[:24000]
+
+    async def interactive_sources(self, source, question=""):
+        if source.get("paper_id"):
+            paper = self.papers.get("paper", valid_id(source["paper_id"]))
+            page = int(source.get("page_index", 0))
+            label = f"论文：{paper['title']}，PDF 第 {page + 1} 页"
+            # Use only PDF text, not the separately supplied selection or metadata.
+            context = await self.context({**source, "quote": ""}, question)
+            text = context.removeprefix(label + "\n").removesuffix("\n用户选区：").removesuffix("\n[本页过长，当前仅提供开头部分。]")
+            return [{"id": "pdf-page", "label": label, "text": text, "anchor": {
+                "paper_id": paper["id"], "source_version": paper["source_version"], "page_index": page, "status": "verified", "rects": []}}]
+        if source.get("kb_id"):
+            blocks = self.learning.retrieve(source["kb_id"], question, source.get("unit_id"), source.get("version"), source.get("method_id"))
+            return [{"id": block["id"], "label": block["source"], "text": block["text"][:24000]} for block in blocks]
+        return []
 
     def storage(self, kind, item_id, payload):
         if kind not in ("studio", "kb"):
