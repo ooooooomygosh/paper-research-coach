@@ -846,7 +846,7 @@
     "upstream/frontend/src/explainer/useBranch.ts": "6e31735ec1cf3633c197307dc41cd7fce5b2d17d1c96f4d025b811be64f82738",
     "upstream/frontend/src/glyphs.tsx": "949499d37e80ace8fa4d4fea82e36d0791b734ae8f5dae58c0b003264872af06",
     "upstream/frontend/src/harness-entry.ts": "beac25d68769528848690d7dc42c065e86c4f41cb7c7416a49c86532176fe95c",
-    "upstream/frontend/src/harness-refresh.css": "f0bcff547481fb9770984bf1dae64cd813a9036339d3fc6a604e957390ce4ebc",
+    "upstream/frontend/src/harness-refresh.css": "0174a7bffa5e7aca7515994e7977100474f6eddd2cc531a813939762ee14dee7",
     "upstream/frontend/src/highlightGeometry.ts": "28765d2e565444e143ee4a539b40c247f8d091c5ec7ae800aa9c5bebbf7e66e0",
     "upstream/frontend/src/icons/LICENSE.txt": "1e7290b35280a048667bbf0ebabac1c7fd52a75300e8b2946ac165715997f2bc",
     "upstream/frontend/src/icons/arrow-right.svg": "f3b1b1efbd722a51163b271fd971ce80945605988186fe53fd15274168d515f4",
