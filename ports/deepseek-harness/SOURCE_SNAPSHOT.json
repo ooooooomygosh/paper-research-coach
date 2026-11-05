@@ -20,7 +20,7 @@
     "cordis.patch.yml": "a553ebbf74162efcdfd764c8ed17c3a0362235d7e14c02be9d3f50352eccf188",
     "distribution/README.txt": "cb56e79234eba7a5182ccdfc0667d0af2a2e5f66e10fac6d5dd3420dea703cc3",
     "distribution/installer.py": "611e8b5594a93a34a28acf205c9b959777fe358db5d05c44b44f551ad946fb8c",
-    "docs/READING_REDESIGN.md": "801bac11e68b4241418a619bd190dfcac6446ef062c07010ffa05551705aa64e",
+    "docs/READING_REDESIGN.md": "95a20d81096826d08141d6ee9f42d90d3a87186474019e821de52ed2b8362322",
     "host/index.js": "d9e30e34fe5aa89d173872efa43b28286255da807a609c90d56e0c82fec44bee",
     "host/model.js": "4ae4c4561c5c046697046b101cca810cee597b6a858af169030f847e3234471e",
     "host/network.js": "8878010c30cca632f7e979da185717daabd3c8136f21ef4b413736f5d584e406",
