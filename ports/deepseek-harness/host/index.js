@@ -1,13 +1,13 @@
 import {createServer, request as httpRequest} from 'node:http';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {spawn} from 'node:child_process';
-import {existsSync, mkdirSync, readFileSync, realpathSync} from 'node:fs';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync} from 'node:fs';
 import {homedir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createInterface} from 'node:readline';
 import {pipeline} from 'node:stream/promises';
-import {modelState, modelStream, safeFailure} from './model.js';
+import {modelState, modelStream, safeFailure, effortFor} from './model.js';
 import {followWindowsProxy} from './network.js';
 import {renderExplainer} from './studio-renderer.mjs';
 
@@ -55,7 +55,7 @@ function json(res, status, value) {
 }
 
 /** Private model bridge: loopback + ephemeral secret, never exposed to renderer. */
-export function createModelBridge(ctx, secret) {
+export function createModelBridge(ctx, secret, log = () => {}) {
   return createServer(async (req, res) => {
     if (req.headers.origin || !equal(req.headers.authorization, `Bearer ${secret}`)) return json(res, 403, {error: 'Forbidden'});
     const abort = new AbortController();
@@ -71,10 +71,13 @@ export function createModelBridge(ctx, secret) {
           const info = await ctx.get('llm').resolveModelInfo(state.provider, item.id, abort.signal);
           return {model: item.id, displayName: item.name, supportedReasoningEfforts: (info.reasoning?.efforts || []).map(e => ({reasoningEffort: e.id, description: e.name})), defaultReasoningEffort: info.reasoning?.defaultEffort || ''};
         }));
+        // Resolved reasoning levels live in the per-model info, not in listModels.
+        state.effort = effortFor({model: state.model, models: models.map(item => ({id: item.model, supportedReasoningEfforts: item.supportedReasoningEfforts, defaultReasoningEffort: item.defaultReasoningEffort}))});
         return json(res, 200, {...state, models});
       }
       if (req.url !== '/stream' || req.method !== 'POST') return json(res, 404, {error: 'Not found'});
       const body = await jsonBody(req);
+      log(`stream model=${body.model || '-'} effort=${body.effort || '-'} tools=${(body.tools || []).length} messages=${(body.messages || []).length}`);
       res.writeHead(200, {'content-type': 'application/x-ndjson', 'cache-control': 'no-store'});
       for await (const chunk of modelStream(ctx, body, abort.signal)) {
         if (abort.signal.aborted) break;
@@ -83,10 +86,19 @@ export function createModelBridge(ctx, secret) {
       res.end();
     } catch (error) {
       const failure = safeFailure(error);
+      log(`model bridge ${req.url} -> ${failure.code}: ${failure.message}`);
       if (!res.headersSent) json(res, 503, {error: failure.message, code: failure.code});
       else res.end(JSON.stringify({type: 'finish', reason: {kind: abort.signal.aborted ? 'aborted' : 'error', failure}}) + '\n');
     }
   });
+}
+
+function bridgeLog(dataDir, line) {
+  try {
+    const dir = path.join(dataDir, 'logs');
+    mkdirSync(dir, {recursive: true});
+    appendFileSync(path.join(dir, 'bridge.log'), `${new Date().toISOString()} ${line}\n`);
+  } catch { /* diagnostics must never break the turn */ }
 }
 
 export async function apply(ctx, config = {}) {
@@ -102,7 +114,7 @@ export async function apply(ctx, config = {}) {
     if (closing) return Promise.reject(new Error('论文研读正在关闭。'));
     if (startup) return startup;
     startup = (async () => {
-      bridge = createModelBridge(ctx, secret);
+      bridge = createModelBridge(ctx, secret, line => bridgeLog(dataDir, line));
       await new Promise((resolve, reject) => {bridge.once('error', reject); bridge.listen(0, '127.0.0.1', resolve);});
       const executable = resolveInterpreter(packageDir, config);
       if (!executable) throw new Error('论文研读的内置 Python 运行库缺失，请重新安装插件。');
