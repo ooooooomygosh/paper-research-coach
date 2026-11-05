@@ -19,6 +19,21 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // Electron installation paths otherwise make deep dependency paths too long.
 const packageDir = realpathSync(path.dirname(here).replace(/\.asar([\\/])/, '.asar.unpacked$1'));
 
+/** Distribution archives bundle a Windows interpreter under runtime/python; a
+ * POSIX build (macOS/Linux) keeps a virtual environment in runtime/venv. Order
+ * keeps Windows behaviour unchanged and lets config.python override both. */
+export function resolveInterpreter(root, config = {}) {
+  const candidates = [
+    config.python,
+    path.join(root, 'runtime', 'python', 'python.exe'),
+    path.join(root, 'runtime', 'python', 'Scripts', 'python.exe'),
+    path.join(root, 'runtime', 'venv', 'bin', 'python3'),
+    path.join(root, 'runtime', 'venv', 'bin', 'python'),
+    path.join(root, 'runtime', 'python', 'bin', 'python3'),
+  ].filter(Boolean);
+  return candidates.find(candidate => existsSync(candidate));
+}
+
 function equal(a, b) {
   const left = Buffer.from(a || ''), right = Buffer.from(b || '');
   return left.length === right.length && timingSafeEqual(left, right);
@@ -89,10 +104,8 @@ export async function apply(ctx, config = {}) {
     startup = (async () => {
       bridge = createModelBridge(ctx, secret);
       await new Promise((resolve, reject) => {bridge.once('error', reject); bridge.listen(0, '127.0.0.1', resolve);});
-      const python = config.python || path.join(packageDir, 'runtime', 'python', 'python.exe');
-      const fallback = path.join(packageDir, 'runtime', 'python', 'Scripts', 'python.exe');
-      const executable = existsSync(python) ? python : fallback;
-      if (!existsSync(executable)) throw new Error('论文研读的内置 Python 运行库缺失，请重新安装插件。');
+      const executable = resolveInterpreter(packageDir, config);
+      if (!executable) throw new Error('论文研读的内置 Python 运行库缺失，请重新安装插件。');
       child = spawn(executable, ['-X', 'utf8', '-m', 'paper_research_coach.embedded'], {
         cwd: packageDir, windowsHide: true,
         env: {...process.env, NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1', PYTHONPATH: path.join(packageDir, 'upstream', 'src'), PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8', PYTHONUNBUFFERED: '1', PRC_EMBEDDED: '1', PRC_DATA: dataDir, PRC_SESSION_TOKEN: backendToken, DSH_PRC_ASSETS: path.join(packageDir, 'runtime', 'assets'), DSH_PRC_BRIDGE_URL: `http://127.0.0.1:${bridge.address().port}`, DSH_PRC_BRIDGE_TOKEN: secret, PRC_NO_UPDATE_CHECK: '1', PRC_NO_AUTO_UPDATE: '1'},
