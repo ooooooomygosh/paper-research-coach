@@ -2,7 +2,7 @@
 
 Paper Research Coach **1.1.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Windows x64 分发包；macOS 走源码构建，见 [`macos/README.md`](macos/README.md)），从 Harness 侧栏的“论文研读”进入。文献阅读、分析、知识库构建和互动讲解统一调用 Harness 当前登录账户的 `deepseek-account` 模型接口，无需另填 API Key 或启动 Codex CLI。插件名称继续使用 **Paper Research Coach**。
 
-这是第三方适配版。发布用的安装 ZIP 只有 Windows x64；macOS 没有预打包产物，但源码可在本机构建并注册进 Harness profile，步骤和限制见 [`macos/README.md`](macos/README.md)。其他 Harness 版本尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。
+这是第三方适配版。仓库里只发 Windows x64 的安装 ZIP；macOS 不发预打包产物，用 [`macos/install-macos.sh`](macos/install-macos.sh) 从源码构建并注册进 Harness profile，步骤和限制见 [`macos/README.md`](macos/README.md)。两个平台都在 Harness 0.2.1-rc.5 上跑过。其他 Harness 版本尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。
 
 ## 功能
 
@@ -10,6 +10,7 @@ Paper Research Coach **1.1.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Wi
 - **知识库学习**：导入 PDF、DOCX、PPTX、EPUB 和文本材料，提取并映射来源；生成六模块学习页、概念与术语、方法库、练习与错题；保存单元进度、笔记、历史版本，支持有出处的追问、停止/恢复构建及 HTML/Markdown/知识库导出。
 - **交互式讲解**：从问题、论文页或知识库取材，生成包含流程图、时序图、树、公式、表格和问答的互动页面；支持 Markdown 编辑、主题切换、修订、版本保存和离线 HTML 导出。
 - 修复 PDF 文本选区出现大量重叠方框的问题：按行合并、去重；文字采用柔和高亮，手动框选保留边框，浮层避让原文。
+- 教练默认 **DeepSeek Flash + high 思考深度**；模型未声明的档位不会提交，失败时说明具体原因（额度、限流、上下文），并把诊断写进 `~/.dsh/paper-research-coach/logs/`。
 
 学习页基于 [Learn from Materials](https://github.com/dmoshehun-prog/learn-from-materials)，互动页面复用 [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html) 的实际渲染器。固定提交及适配文件见 [integrations/SOURCES.json](integrations/SOURCES.json)，署名和许可证见 [THIRD_PARTY.md](THIRD_PARTY.md)。添加材料本身不发起模型请求；点击构建、生成或发送后才调用账户。
 
