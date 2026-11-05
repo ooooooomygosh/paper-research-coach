@@ -9,7 +9,7 @@
 A local PDF workbench, plus a reading-coach Skill for Claude Code, Codex and Pi.<br>
 The coach takes you to the sentence in the paper, gives you one small task at a time, and leaves the judgment in your hands.
 
-A [DeepSeek Harness plugin port](docs/DEEPSEEK_HARNESS.md#english) also keeps the **Paper Research Coach** name and workbench UI, uses the signed-in Harness account, and adds knowledge-base learning and interactive explanations. Verified on Windows x64 / Harness 0.2.1-rc.5; its installer is built separately from standalone releases. No macOS package is currently provided.
+**A new platform:** there is also a [**DeepSeek Harness (DSH) plugin**](#option-3-the-deepseek-harness-dsh-plugin-windows) (Windows). It builds the whole workbench into DSH and reads papers with the account you are signed in to in Harness: no API key and no Codex CLI.
 
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![Release](https://img.shields.io/github/v/release/ooooooomygosh/paper-research-coach?include_prereleases&label=release&color=365c47)](https://github.com/ooooooomygosh/paper-research-coach/releases)
@@ -18,7 +18,7 @@ A [DeepSeek Harness plugin port](docs/DEEPSEEK_HARNESS.md#english) also keeps th
 [![Updates](https://img.shields.io/badge/updates-automatic%20%C2%B7%20SHA--256%20verified-4f7a5f)](#staying-current)
 [![License: MIT](https://img.shields.io/badge/license-MIT-526653)](LICENSE)
 
-[简体中文](README.md) · **English** · [Quick start](docs/QUICKSTART.md) · [Reading method](docs/METHOD.en.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Design](docs/DESIGN.md) · [Contributing](CONTRIBUTING.md)
+[简体中文](README.md) · **English** · [Quick start](docs/QUICKSTART.md) · [Reading method](docs/METHOD.en.md) · [Workbench guide](docs/WORKBENCH.en.md) · [Design](docs/DESIGN.md) · [DSH plugin](docs/DEEPSEEK_HARNESS.md#english) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -196,6 +196,7 @@ Install the Skill for coaching in your agent, or use the workbench to read and d
 |---|---|
 | **To read and discuss side by side** (recommended) | [Option 1: the workbench](#option-1-the-workbench-one-line-install-three-steps) |
 | AI coaching only, inside Claude Code or Codex | [Option 2: the Skill only](#option-2-the-skill-only) |
+| To use it inside **DeepSeek Harness (DSH)** (Windows) | [Option 3: the DSH plugin](#option-3-the-deepseek-harness-dsh-plugin-windows) |
 
 ### Option 1: the workbench, one-line install, three steps
 
@@ -271,6 +272,26 @@ With the workbench installed, the Skill in Claude Code can attach to the same pa
 - **AI not connected**: sign in to your local Codex CLI, then press “重新连接” (reconnect) in the conversation.
 
 </details>
+
+### Option 3: the DeepSeek Harness (DSH) plugin (Windows)
+
+A **new platform**: the whole workbench built into [DeepSeek Harness](docs/DEEPSEEK_HARNESS.md#english), using the account you are signed in to in Harness. **No API key and no Codex CLI.** The plugin keeps the name **Paper Research Coach**.
+
+| | |
+|---|---|
+| **Works on** | Windows x64 · DeepSeek Harness 0.2.1-rc.5 (verified). There is **no macOS package** yet, and other Harness versions need to be re-verified |
+| **Where** | After install, “论文研读” in the Harness sidebar |
+| **Account and model** | Model calls go through the signed-in Harness account (`deepseek-account`) and need a network and a usable Harness account. Adding material does not call the model; building, generating or sending does |
+| **Kept** | Everything in the original workbench: PDF reading, the eight-chapter mainline, task cards, side quests, journey tree, notes with evidence anchors, translation, library and Zotero sync, export |
+| **Added** | **Knowledge-base learning** (built on [Learn from Materials](https://github.com/dmoshehun-prog/learn-from-materials)): import several materials with source mapping, learn concepts and methods, practise, keep wrong answers. **Interactive explanations** (built on [Answer me with HTML](https://github.com/QingYunA/answer-me-with-html)): pages drawn from a question, a paper page or a knowledge base; editable, themed, exportable as HTML. It also fixes overlapping boxes in PDF text highlights |
+| **Version** | Plugin **1.1.0**, based on workbench **2.0.0rc13**. The standalone workbench has moved on; the snapshot inside the plugin has to be ported and re-verified on purpose to catch up |
+| **Install** | The installer `PRC-DSH-1.1.0-win-x64.zip` (about 476 MiB) is **not in Git**: a maintainer prepares the runtime, builds it and sends it to the recipient. The wheel and Skill ZIP in this repository's releases **do not replace it**. The recipient installs a compatible Harness and signs in, quits the app, extracts the whole ZIP, runs `安装.cmd` and restarts, then opens “论文研读”. `卸载.cmd` in the same package uninstalls and keeps papers and learning records |
+| **Data** | Stored in `%USERPROFILE%\.dsh\paper-research-coach` by default (follows `DSH_HOME` if set). Sign-in credentials stay with Harness and are not packaged |
+
+> [!NOTE]
+> This is a **third-party port, not an official DeepSeek distribution**, and it is maintained apart from the two options above. The built-in version **turns off** the standalone workbench's automatic updates; re-check compatibility after a Harness upgrade. Verbatim-quote checks are not a review of semantic completeness, practice answers are model-written reference answers, and progress is not mastery.
+
+Full guide: [Using Paper Research Coach in DeepSeek Harness](docs/DEEPSEEK_HARNESS.md#english) · source and build: [`ports/deepseek-harness`](ports/deepseek-harness/README.md)
 
 ## 💬 What a turn looks like
 
