@@ -4,9 +4,10 @@ import ArtifactFrame from "./ArtifactFrame";
 import { JobStatus } from "./Workspace";
 import { activeJob, RecordData, versionQuery, workspaceApi, workspaceUrl } from "./workspace-api";
 
-export default function InteractiveStudio({ id, jobs, kbs, paper, page, quote, reload, report }: {
+export default function InteractiveStudio({ id, jobs, kbs, paper, page, quote, reload, report, onSource }: {
   id: string; jobs: RecordData[]; kbs: RecordData[]; paper?: RecordData; page: number; quote?: string;
   reload: () => Promise<any>; report: (message: string) => void;
+  onSource?: (anchor: any) => void;
 }) {
   const [row, setRow] = useState<RecordData | null>(null), [draft, setDraft] = useState<RecordData>({});
   const [busy, setBusy] = useState(false), [editor, setEditor] = useState(false), [version, setVersion] = useState("");

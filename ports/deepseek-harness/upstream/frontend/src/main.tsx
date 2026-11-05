@@ -46,6 +46,9 @@ import {
 } from "./ReadingTools";
 import { hasTranslation, TranslationBadge } from "./TranslationLibrary";
 import Workspace from "./Workspace";
+import Icon from './Icon';
+import GlobalTranslation from './GlobalTranslation';
+import './harness-refresh.css';
 const stages: Record<string, string> = {
   orient: "确定当前需要",
   insight: "抓住独特贡献",
@@ -89,6 +92,8 @@ export function App() {
   );
   const [immersive, setImmersive] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [globalTranslation, setGlobalTranslation] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(() => localStorage.getItem('prc-workspace-original') !== 'off');
   const update = useUpdate(ready);
   const [toolsTab, setToolsTab] = useState("translate");
   const [syncBusy, setSyncBusy] = useState(false);
@@ -584,7 +589,7 @@ export function App() {
         <div className="sidebar-intro">阅读，始于一个好问题。</div>
         <nav>
           {nav
-            .filter(([id]) => ["read", "review", "knowledge", "interactive"].includes(id))
+            .filter(([id]) => ["read", "knowledge", "interactive"].includes(id))
             .map(([id, label, Icon]) => (
               <button
                 key={id}
@@ -604,7 +609,7 @@ export function App() {
               研究与记录 <ChevronDown size={14} />
             </summary>
             {nav
-              .filter(([id]) => !["read", "review", "knowledge", "interactive"].includes(id))
+              .filter(([id]) => !["read", "knowledge", "interactive"].includes(id))
               .map(([id, label, Icon]) => (
                 <button
                   key={id}
@@ -720,8 +725,15 @@ export function App() {
             {tab === "knowledge" ? "知识库学习" : tab === "interactive" ? "交互式讲解" : paper?.title || "论文工作台"}
           </span>
           <div className="workspace-shortcuts">
-            <button aria-pressed={tab === "knowledge"} onClick={() => { setImmersive(false); setTab("knowledge"); }}><Layers3 size={15} />知识库学习</button>
-            <button aria-pressed={tab === "interactive"} onClick={() => { setImmersive(false); setTab("interactive"); }}><Sparkles size={15} />交互式讲解</button>
+            <button aria-pressed={tab === 'read'} onClick={() => setTab('read')}><Icon name="book" />阅读</button>
+            <button aria-pressed={tab === "knowledge"} onClick={() => { setImmersive(false); setTab("knowledge"); }}><Icon name="layers" />知识库学习</button>
+            <button aria-pressed={tab === "interactive"} onClick={() => { setImmersive(false); setTab("interactive"); }}><Icon name="explain" />交互式讲解</button>
+            <button aria-expanded={globalTranslation} onClick={() => { setToolsOpen(false); setGlobalTranslation(!globalTranslation); }}><Icon name="translate" />翻译</button>
+            <button disabled={!paper?.source_path} aria-pressed={tab === 'read' ? pdfView === 'original' : showOriginal} onClick={() => {
+              if (tab === 'read') { setPdfView('original'); setSelection(null); setFocusAnchor(null); }
+              else { setShowOriginal(!showOriginal); localStorage.setItem('prc-workspace-original', showOriginal ? 'off' : 'on'); }
+            }}><Icon name="original" />显示原文</button>
+            {Object.values(translationIndex).some((job: any) => ['queued', 'running'].includes(job.state)) && <span className="translation-queue-count" role="status">后台翻译 · {Object.values(translationIndex).filter((job: any) => ['queued', 'running'].includes(job.state)).length}</span>}
           </div>
           {paper && tab === "read" ? (
             <div className="reading-toolbar">
@@ -744,8 +756,6 @@ export function App() {
                 {update.available && <span className="update-dot" aria-hidden="true" />}
               </button>
             </div>
-          ) : tab !== "read" ? (
-            <button onClick={() => setTab("read")}>返回阅读</button>
           ) : null}
         </header>
         {error && (
@@ -757,7 +767,16 @@ export function App() {
           </div>
         )}
         {tab === "knowledge" || tab === "interactive" ? (
-          <Workspace mode={tab} paper={paper} page={page} quote={selection?.anchor?.quote || selection?.quote || ""} report={report} />
+          <div className={'workspace-source-layout' + (showOriginal && paper?.source_path ? ' with-source' : '')}>
+            {showOriginal && paper?.source_path && <aside className="workspace-original" aria-label="当前论文原文">
+              <PdfReader key={paper.id + paper.source_version} paper={paper} page={page} setPage={movePage} onAnchor={a => setAnchor(a)} focusAnchor={focusAnchor} notes={context?.notes || []} onLocateNote={locate} />
+            </aside>}
+            <Workspace mode={tab} paper={paper} page={page} quote={anchor?.quote || selection?.anchor?.quote || selection?.quote || ""} report={report} onSource={a => {
+              if (!paper || a.paper_id !== paper.id) { report('请先在论文栏选择这份来源论文。'); return; }
+              if (a.source_version !== paper.source_version) { report('来源 PDF 已换版，请重新核实原文。'); return; }
+              setShowOriginal(true); movePage(a.page_index); setFocusAnchor(a);
+            }} />
+          </div>
         ) : tab === "settings" ? (
           <Settings
             updates={<UpdateSettings update={update} />}
@@ -1219,6 +1238,11 @@ export function App() {
           </>
         )}
       </main>
+      {globalTranslation && <GlobalTranslation paper={paper} papers={state.papers} job={translationJob} readableJob={translationPdfJob}
+        reload={() => void reloadTranslation()} onClose={() => setGlobalTranslation(false)} onRead={pid => {
+          translatedRead.current = pid; select(pid); setTab('read'); setGlobalTranslation(false);
+          if (pid === paper?.id) void reloadTranslation();
+        }} />}
       {importing && (
         <ImportModal
           onClose={() => setImporting(false)}
