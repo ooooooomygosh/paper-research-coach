@@ -17,8 +17,13 @@ def run(args, cwd=ROOT):
     subprocess.run(list(map(str, args)), cwd=cwd, env=env, check=True)
 
 
+# upstream/tests/test_install_script.py runs scripts/install.sh, a POSIX installer, and expects a venv laid
+# out as bin/python. Windows lays it out as Scripts/python.exe, and a GitHub Windows runner has sh and curl
+# (Git for Windows), so the test is not skipped there and cannot pass. The main workflow runs that test on
+# Linux, so the Windows run leaves it out.
+posix_only = ['--deselect', 'upstream/tests/test_install_script.py'] if os.name == 'nt' else []
 run([sys.executable, '-X', 'utf8', '-m', 'pytest', 'upstream/tests',
-     'tests/test_studio.py', 'tests/test_learning.py', 'tests/test_distribution.py', '-q', '--tb=short'])
+     'tests/test_studio.py', 'tests/test_learning.py', 'tests/test_distribution.py', '-q', '--tb=short', *posix_only])
 run([node, '--test', 'tests/host.test.mjs', 'tests/studio.test.mjs'])
 frontend = ROOT / 'upstream/frontend'
 run([node, 'node_modules/typescript/bin/tsc', '--noEmit'], frontend)
