@@ -65,9 +65,9 @@ jobs:
       - name: Port tests
         run: >
           python -X utf8 -m pytest upstream/tests tests/test_studio.py tests/test_learning.py
-          -q --tb=short --ignore=upstream/tests/test_install_script.py
+          tests/test_port_runtime.py -q --tb=short --ignore=upstream/tests/test_install_script.py
       - name: Host bridge tests
-        run: node --test tests/host.test.mjs tests/studio.test.mjs
+        run: node --test tests/host.test.mjs tests/studio.test.mjs tests/model-defaults.test.mjs
       - name: Installer scripts parse
         run: |
           bash -n macos/install-macos.sh

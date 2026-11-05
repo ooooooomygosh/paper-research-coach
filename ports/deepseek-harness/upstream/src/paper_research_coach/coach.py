@@ -572,6 +572,29 @@ class Coach:
             finally:
                 lock.release()
 
+    def seed_messages(self, conversation_id, limit=12, clip=1500):
+        """Replay the tail of a migrated conversation into its new runtime thread.
+
+        The browser build kept its context inside Codex CLI threads, which the
+        Harness runtime cannot read. Without this, switching runtime would drop
+        the discussion the reader already had.
+        """
+        try:
+            messages = [
+                message
+                for message in self.messages(conversation_id)
+                if message.get("status") == "completed"
+                and message.get("role") in ("user", "assistant")
+                and str(message.get("content", "")).strip()
+            ]
+        except (KeyError, ValueError):
+            return []
+        seed = []
+        for message in messages[-limit:]:
+            text = str(message["content"]).strip()[:clip]
+            seed.append({"role": message["role"], "text": text})
+        return seed
+
     async def native_thread(self, conversation, options):
         pid = conversation["paper_id"]
         async with self.paper_lock(pid):
@@ -580,7 +603,15 @@ class Coach:
             thread_id = bound["thread_id"] or conversation.get("thread_id")
             if thread_id:
                 if thread_id not in self.resumed:
-                    await self.rpc.call("thread/resume", {"threadId": thread_id, "excludeTurns": True, **options, "dynamicTools": TOOLS})
+                    resumed = await self.rpc.call("thread/resume", {"threadId": thread_id, "excludeTurns": True, **options, "dynamicTools": TOOLS, "seedMessages": self.seed_messages(conversation["id"])})
+                    # A binding carried over from the browser build points at a Codex CLI
+                    # thread this runtime never wrote; the bridge starts a runtime thread
+                    # instead and its id replaces the stale one.
+                    replacement = (resumed or {}).get("thread", {}).get("id")
+                    if replacement and replacement != thread_id:
+                        thread_id = replacement
+                        with self.store.connect() as db:
+                            db.execute("UPDATE coach_paper_bindings SET thread_id=?,creation_state='ready' WHERE paper_id=?", (thread_id, pid))
             else:
                 cwd = Path(bound["cwd"])
                 cwd.mkdir(exist_ok=True)
@@ -603,7 +634,7 @@ class Coach:
                     with self.store.connect() as db:
                         db.execute("UPDATE coach_paper_bindings SET creation_state='creating' WHERE paper_id=?", (pid,))
                     try:
-                        started = await self.rpc.call("thread/start", {**options, "dynamicTools": TOOLS})
+                        started = await self.rpc.call("thread/start", {**options, "dynamicTools": TOOLS, "seedMessages": self.seed_messages(conversation["id"])})
                     except ProtocolError:
                         with self.store.connect() as db:
                             db.execute("UPDATE coach_paper_bindings SET creation_state='ready' WHERE paper_id=?", (pid,))
@@ -925,15 +956,46 @@ class Coach:
                     {"threadId": conversation["thread_id"], "turnId": state["turn_id"]},
                 )
             await state["done"].wait()
-        except (Exception, asyncio.CancelledError):  # noqa: BLE001 -- Preserve durable messages on every runtime failure.
+        except (Exception, asyncio.CancelledError) as failure:  # noqa: BLE001 -- Preserve durable messages on every runtime failure.
             if answer["status"] in ("queued", "streaming"):
+                self.log_failure(cid, failure, state)
                 self.finish(
                     state,
                     "interrupted" if state["stop"] else "failed",
-                    "回复未完成，输入和已收到的内容已保留。可重连后继续。",
+                    "" if state["stop"] else self.failure_message(failure),
                 )
         finally:
             self.active.pop(cid, None)
+
+    def log_failure(self, conversation_id, failure, state):
+        """Keep one line per failed turn so a generic toast never hides the cause."""
+        try:
+            import traceback
+
+            root = Path(os.environ.get("PRC_DATA", ".")) / "logs"
+            root.mkdir(parents=True, exist_ok=True)
+            record = {
+                "at": now(),
+                "conversation": conversation_id,
+                "turn": state.get("turn_id") or "",
+                "stopped": bool(state.get("stop")),
+                "error": f"{type(failure).__name__}: {failure}",
+                "traceback": "".join(traceback.format_exception(failure))[-4000:],
+            }
+            with (root / "coach-errors.log").open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except (OSError, ValueError):
+            pass
+
+    @staticmethod
+    def failure_message(failure):
+        """Specific reason when the runtime gives one; generic text only as the last resort."""
+        text = str(failure or "").strip()
+        if not text or isinstance(failure, asyncio.CancelledError):
+            return "回复未完成，输入和已收到的内容已保留。可重连后继续。"
+        if len(text) > 300:
+            text = text[:300] + "…"
+        return f"本轮未完成：{text}（输入和已收到的内容已保留）"
 
     def finish(self, state, status, error=""):
         answer = state["answer"]

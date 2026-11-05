@@ -73,23 +73,68 @@ class DeepSeekRPC:
         temporary.write_text(json.dumps(thread, ensure_ascii=False), encoding="utf-8")
         temporary.replace(target)
 
+    @staticmethod
+    def preferred_effort(state):
+        """Flash + high by default, but only when the model declares it."""
+        model = next((item for item in state.get("models") or [] if item.get("model") == state.get("model")), None)
+        efforts = [item.get("reasoningEffort") for item in (model or {}).get("supportedReasoningEfforts") or []]
+        wanted = state.get("effort") or state.get("defaultEffort") or "high"
+        if not efforts:
+            return wanted if wanted else ""
+        if wanted in efforts:
+            return wanted
+        fallback = (model or {}).get("defaultReasoningEffort") or ""
+        if fallback in efforts:
+            return fallback
+        return "low" if "low" in efforts else (efforts[0] if efforts else "")
+
     async def call(self, method, params, timeout=45):
         await self.start()
         if method in ("config/read", "account/read", "model/list"):
             state = await self.state()
             if method == "config/read":
-                return {"config": {"model_provider": "deepseek-account", "model": state["model"], "model_reasoning_effort": ""}}
+                return {"config": {"model_provider": "deepseek-account", "model": state["model"], "model_reasoning_effort": self.preferred_effort(state)}}
             if method == "account/read":
                 return {"requiresOpenaiAuth": True, "account": {"type": "deepseek-account"} if state["signedIn"] else None}
             return {"data": state["models"]}
         if method == "thread/start":
             tid = identifier()
             thread = {"id": tid, "cwd": params.get("cwd", str(self.cwd)), "ephemeral": params.get("ephemeral", False), "system": params.get("developerInstructions", ""), "tools": params.get("dynamicTools", []), "model": params.get("model", ""), "messages": []}
+            for seed in params.get("seedMessages") or []:
+                text = str(seed.get("text", "")).strip()
+                if not text:
+                    continue
+                role = "user" if seed.get("role") == "user" else "assistant"
+                thread["messages"].append({"id": identifier(), "role": role, "source": {"kind": "user" if role == "user" else "model"}, "content": [{"type": "text", "text": text}]})
             self.threads[tid] = thread
             self.save(thread)
             return {"thread": {"id": tid}}
         if method == "thread/resume":
-            thread = self.load(params["threadId"])
+            try:
+                thread = self.load(params["threadId"])
+            except ValueError:
+                # A migrated binding may point at a thread this runtime never wrote
+                # (the browser build used Codex CLI ids). Start a runtime thread so
+                # the turn can proceed; the notebook keeps the durable history.
+                tid = identifier()
+                thread = {
+                    "id": tid,
+                    "cwd": params.get("cwd", str(self.cwd)),
+                    "ephemeral": params.get("ephemeral", False),
+                    "system": params.get("developerInstructions", ""),
+                    "tools": params.get("dynamicTools", []),
+                    "model": params.get("model", ""),
+                    "messages": [],
+                }
+                for seed in params.get("seedMessages") or []:
+                    text = str(seed.get("text", "")).strip()
+                    if not text:
+                        continue
+                    role = "user" if seed.get("role") == "user" else "assistant"
+                    thread["messages"].append({"id": identifier(), "role": role, "source": {"kind": "user" if role == "user" else "model"}, "content": [{"type": "text", "text": text}]})
+                self.threads[tid] = thread
+                self.save(thread)
+                return {"thread": {"id": tid}, "replaced": str(params.get("threadId", ""))}
             for source, key in (("developerInstructions", "system"), ("dynamicTools", "tools"), ("model", "model")):
                 if source in params:
                     thread[key] = params[source]
@@ -105,8 +150,12 @@ class DeepSeekRPC:
             return {"data": data, "nextCursor": None}
         if method == "turn/start":
             thread = self.load(params["threadId"])
-            if thread["id"] in self.tasks and not self.tasks[thread["id"]].done():
-                raise ValueError("这篇论文已有回复正在进行。")
+            stale = self.tasks.get(thread["id"])
+            if stale and not stale.done():
+                # A previous turn that never finished must not lock the paper forever.
+                stale.cancel()
+                await asyncio.wait({stale}, timeout=5)
+                self.tasks.pop(thread["id"], None)
             turn_id = identifier()
             self.tasks[thread["id"]] = asyncio.create_task(self.run(thread, params, turn_id))
             return {"turn": {"id": turn_id}}
@@ -154,7 +203,14 @@ class DeepSeekRPC:
                 finish, route = None, {"provider": "deepseek-account", "model": params.get("model") or thread["model"]}
                 payload = {"model": params.get("model") or thread["model"], "effort": params.get("effort", ""), "system": system, "messages": thread["messages"], "tools": [{"name": t["name"], "description": t["description"], "parameters": t["inputSchema"]} for t in thread["tools"]]}
                 async with self.client.stream("POST", "/stream", json=payload) as response:
-                    response.raise_for_status()
+                    if response.status_code >= 400:
+                        raw = (await response.aread()).decode("utf-8", "replace")
+                        try:
+                            failure = json.loads(raw)
+                        except ValueError:
+                            failure = {}
+                        message = failure.get("error") or raw.strip() or f"HTTP {response.status_code}"
+                        raise ValueError(f"{message}（{failure.get('code') or response.status_code}）")
                     async for line in response.aiter_lines():
                         if not line:
                             continue

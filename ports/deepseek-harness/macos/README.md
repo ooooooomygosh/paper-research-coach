@@ -73,6 +73,43 @@ bash macos/import-legacy.sh --copy   # 复制，旧目录保留
 - `/api/update` 返回 `disabled:true, auto:false, managed_by:"DeepSeek Harness"`，内置版不会自动装入未适配版本
 - 138 篇论文 / 160 条笔记 / 138 个会话从浏览器版迁移后完整可用；183 个翻译资源按清单哈希全部匹配
 
+## 论文教练默认模型：DeepSeek Flash + high
+
+上游把模型交给 Harness 的 `agentDefaultModel`，教练再读 `config/read` 取模型与档位。本机这份改成显式默认：
+
+| 位置 | 改动 |
+| --- | --- |
+| `host/model.js` | `DEFAULT_MODEL = 'deepseek-flash'`、`DEFAULT_EFFORT = 'high'`；`modelState()` 先找 Flash，找不到才用 agent 默认；新增 `effortFor()` |
+| `host/modelStream` | 请求没带 effort 时用 `effortFor(state)`，不落到 provider 隐式默认 |
+| `host/index.js` | `/state` 多返回 `effort`（`/api/coach/status` 里可见） |
+| `dsh_bridge.py` | `config/read` 返回 `model_reasoning_effort = preferred_effort(state)`：模型声明了 `high` 用 high，否则 `defaultReasoningEffort` → `low` → 首档 |
+| `translation.py` | 保持 `deepseek-flash` / `low`（翻译不需要 high，省额度） |
+
+实测：`/api/coach/status` → `model: deepseek-flash, effort: high`；`bridge.log` 记录
+`stream model=deepseek-flash effort=high tools=16 messages=27`，一轮真实发送 10 秒内 `completed`。
+
+## 失败诊断（"回复未完成"不再吞原因）
+
+1. 残留回合不再永久锁死：`dsh_bridge.turn/start` 发现同会话还有未结束的 turn 时，先 cancel、等 5 秒再开新回合
+   （旧实现里那个 turn 卡住时，之后每次点击都失败）。
+2. 桥接 HTTP 错误透传：`response.status_code >= 400` 时解析 host 的 `{error, code}`，抛成
+   `本轮未完成：<原因>（<code>）`。
+3. 落盘日志：`~/.dsh/paper-research-coach/logs/coach-errors.log`（每轮一行 JSON，含 traceback）、
+   `logs/bridge.log`（每次模型请求的 model/effort/tools/messages 与桥接错误码）。
+
+4. 旧浏览器版会话不再报「阅读会话记录不可用」：浏览器版（Codex CLI）把线程 id 存成带连字符的 UUID，而
+   Harness 运行时的线程是 `coach-workspace/deepseek-threads/<32 位 hex>.json`，迁移过来的 binding 一 resume
+   就失败。现在两处兜底：
+   - `coach.native_thread` 发现 id 不是 32 位 hex 就走 `thread/start` 新建，并把新 id 写回 `coach_paper_bindings`
+     （历史消息仍在笔记本里，模型上下文从新线程重新建立）；
+   - `dsh_bridge.thread/resume` 遇到未知 id 时自建线程并返回新 id，调用方据此更新 binding。
+
+实测：WiCo-MG（`paper fcdcc990…`，浏览器版遗留的 UUID 线程）发送「自检：用一句话说明这篇论文的独特贡献」，
+binding 从 `01a0f0ab-71f3-…` 改写成 `a6f29235443c40fcba9b14976ff73c25`，30 秒内 `completed`，
+`bridge.log` 里是连续 4 次 `model=deepseek-flash effort=high` 的工具循环。
+
+排查顺序：先看 `bridge.log` 最后一行有没有 `-> CODE`，再看 `coach-errors.log` 的 `error` / `traceback`。
+
 ## 已知限制
 
 - 译文生成走 CPU 版 doclayout（`babeldoc_worker.py` 里主动绕开 CoreML 编译），首次翻译较慢。
