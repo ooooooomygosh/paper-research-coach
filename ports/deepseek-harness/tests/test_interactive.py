@@ -185,3 +185,62 @@ def test_sources_are_rechecked_before_async_publication(tmp_path):
         assert calls[-1]["source_version"] == "v1"
         await ws.close()
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("kind, expected", [
+    ("comparison", ["缺少预算时不能判断比较是否公平。", "解释"]),
+    ("evidence", ["模型参考选项：1. 预算是否匹配", "先检查比较条件。"]),
+    ("parameters", ["y = a·x + b", "输入定义域：[0, 4]", "输入（无量纲）", "输出（无量纲）", "最小值", "初始值"]),
+])
+def test_markdown_keeps_the_component_explanations_and_parameter_contract(kind, expected):
+    exported = markdown(grounded_page(json.dumps(fixture(kind)), []))
+    for text in expected:
+        assert text in exported
+
+
+def test_standalone_exports_keep_known_pdf_and_knowledge_base_versions():
+    value = fixture()
+    value.update(source_id="block", source_quote="预算必须相同")
+    for binding in [
+        {"paper_id": "p", "source_version": "pdf-v2", "page_index": 3},
+        {"kb_id": "kb", "version": "kb-build-v3", "unit_id": "unit-1"},
+    ]:
+        version = binding.get("version") or binding["source_version"]
+        source = {"id": "block", "label": "合成原文，第 4 页", "text": "预算必须相同", "context": {**binding, "quote": "not evidence"}}
+        page = grounded_page(json.dumps(value), [source])
+        assert page["source_context"] == binding
+        assert version in page["source_label"]
+        assert version in markdown(page)
+        assert version in render_page(page, "export-test")
+        assert "not evidence" not in json.dumps(page)
+
+
+def test_switching_to_components_uses_the_current_edited_document(tmp_path):
+    import asyncio
+    from paper_research_coach.server import create_app
+    from paper_research_coach.store import Store
+    prompts = []
+
+    class Text:
+        def __init__(self, *args):
+            pass
+        async def text(self, prompt, **kwargs):
+            prompts.append(prompt)
+            return json.dumps(fixture())
+        async def close(self):
+            pass
+
+    async def run():
+        app = create_app(Store(tmp_path), "secret", workspace_text_factory=Text)
+        ws = app.state.workspace
+        row = ws.studio.create({"question": "Revise", "source": "CURRENT_EDITED_DRAFT_MARKER"})
+        ws.store.patch("studio", row["id"], {"component_spec": grounded_page(json.dumps(fixture("steps")), [])})
+        ws.studio.update(row["id"], {"presentation": "components"})
+        job = ws.studio.generate(row["id"], {})
+        await ws.jobs.tasks[job["id"]]
+        assert ws.store.get("job", job["id"])["state"] == "completed"
+        assert "CURRENT_EDITED_DRAFT_MARKER" in prompts[0]
+        assert "不是核验来源" in prompts[0]
+        assert "source_context" not in prompts[0]  # derived metadata is not model schema
+        await ws.close()
+    asyncio.run(run())

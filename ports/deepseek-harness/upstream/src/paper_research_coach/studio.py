@@ -107,6 +107,8 @@ class Studio:
             context = sources[0]["context"]
             self.store.patch("studio", item_id, {"context": context})
         prompt = question + "\n\n选定来源（仅覆盖这些片段）：\n" + json.dumps(sources, ensure_ascii=False)
+        if document.get("source"):
+            prompt += "\n\n当前文字草稿（供修订使用，不是核验来源；与旧组件冲突时优先遵循当前草稿和本次问题）：\n" + document["source"]
         if document.get("component_spec"):
             previous = {key: value for key, value in document["component_spec"].items() if key in InteractivePage.model_fields}
             prompt += "\n\n当前组件（根据本次问题修订，重新核对来源）：\n" + json.dumps(previous, ensure_ascii=False)

@@ -35,7 +35,7 @@ def excluded(path, relative):
 def copy_inputs(stage, include_runtime=True):
     # Only product code, public upstream source and portable dependencies are allowed.
     allow = ["host", "client", "locale", "icon.svg", "package.json", "cordis.patch.yml", "runtime",
-             "THIRD_PARTY.md", "功能与验收.md", "upstream", "integrations", "scripts/prepare_integrations.py"]
+             "THIRD_PARTY.md", "功能与验收.md", "docs", "upstream", "integrations", "scripts/prepare_integrations.py"]
     if not include_runtime:
         allow.remove("runtime")
     count = 0

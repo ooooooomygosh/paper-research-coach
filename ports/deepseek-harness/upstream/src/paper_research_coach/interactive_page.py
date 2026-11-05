@@ -114,20 +114,35 @@ def grounded_page(value, sources):
     elif page["source_id"] or page["source_quote"]:
         raise ValueError("独立问题没有绑定来源，不能声称已有原文依据。")
     page["source_label"] = source["label"] if source else "模型解释 · 未绑定原文"
+    binding = (source.get("context") or source.get("anchor") or {}) if source else {}
+    page["source_context"] = {key: binding[key] for key in ("paper_id", "source_version", "page_index", "kb_id", "version", "unit_id", "method_id") if key in binding}
+    version = binding.get("version") if binding.get("kb_id") else binding.get("source_version")
+    if version:
+        page["source_label"] += (" · 知识库版本：" if binding.get("kb_id") else " · 来源版本：") + str(version)
     page["source_anchor"] = ({**source["anchor"], "quote": page["source_quote"]} if source and source.get("anchor") else None)
     return page
 
 
 def markdown(page):
+    def cell(value):
+        return str(value).replace("|", "\\|").replace("\n", "<br>")
+
     parts = ["# " + page["title"], page["summary"]]
     parts.extend("## " + item["title"] + "\n" + item["detail"] for item in page["items"])
     if page["kind"] == "comparison":
-        parts += ["| 项目 | " + " | ".join(page["columns"]) + " |", "|---|" + "---|" * len(page["columns"])]
-        parts.extend("| " + r["label"] + " | " + " | ".join(r["values"]) + " |" for r in page["rows"])
+        table = ["| 项目 | " + " | ".join(map(cell, page["columns"])) + " | 解释 |", "|---|" + "---|" * (len(page["columns"]) + 1)]
+        table.extend("| " + " | ".join(map(cell, [r["label"], *r["values"], r["explanation"]])) + " |" for r in page["rows"])
+        parts.append("\n".join(table))
     if page["kind"] == "parameters":
-        parts += ["教学示意，不代表作者实验结果。", page["family"], page["assumptions"], json.dumps(page["parameters"], ensure_ascii=False, indent=2)]
+        formula = {"linear": "y = a·x + b", "power": "y = a·x^n + b", "exponential": "y = a·exp(k·x) + b"}[page["family"]]
+        parts += ["教学示意，不代表作者实验结果。", formula, page["assumptions"],
+                  f"输入轴：{page['x_label']}；输出轴：{page['y_label']}。输入定义域：[{page['x_min']}, {page['x_max']}]。"]
+        table = ["| 参数 | 符号 | 单位 | 最小值 | 最大值 | 初始值 |", "|---|---|---|---|---|---|"]
+        table.extend("| " + " | ".join(map(cell, [p["label"], p["name"], p["unit"], p["minimum"], p["maximum"], p["value"]])) + " |" for p in page["parameters"])
+        parts.append("\n".join(table))
     if page["kind"] == "evidence":
-        parts += [page["question"], *page["options"], "模型参考解释：" + page["explanation"]]
+        parts += [page["question"], *[f"{i + 1}. {option}" for i, option in enumerate(page["options"])],
+                  f"模型参考选项：{page['answer'] + 1}. {page['options'][page['answer']]}", "模型参考解释：" + page["explanation"]]
     if page["source_quote"]:
         parts += ["## 原文依据", "> " + page["source_quote"], page["source_label"]]
     return "\n\n".join(parts) + "\n"

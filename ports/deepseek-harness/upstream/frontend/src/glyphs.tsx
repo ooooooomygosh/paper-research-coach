@@ -54,7 +54,7 @@ import ZoomInSvg from './icons/zoom-in.svg?raw';
 import ZoomOutSvg from './icons/zoom-out.svg?raw';
 
 type GlyphProps = React.SVGProps<SVGSVGElement> & { size?: number | string; absoluteStrokeWidth?: boolean };
-// Paths come only from bundled, MIT-licensed SVG assets. No model data is rendered as markup.
+// Paths come only from bundled Lucide SVG assets; see icons/LICENSE.txt (ISC with MIT Feather portions).
 function glyph(name: string, source: string) {
   const paths = source.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
   const Component = React.forwardRef<SVGSVGElement, GlyphProps>(({ size = 24, strokeWidth = 2, color = 'currentColor', absoluteStrokeWidth, className, children: _children, ...props }, ref) =>

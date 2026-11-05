@@ -10,7 +10,7 @@ The bundled translation worker uses **BabelDOC 0.6.4**, AGPL-3.0. Its Python sou
 
 The explainer syntax and writing checks include MIT-licensed contributions adapted from Answer me with HTML; see `upstream/docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md`. React, PDF.js, KaTeX, Lucide and other frontend dependencies retain their original licenses. Exact frontend dependencies are recorded in `upstream/frontend/package-lock.json`; Python versions are recorded in `runtime/requirements.lock.txt`.
 
-Version 1.2.0 stores the Lucide control glyphs as independent SVG files in `upstream/frontend/src/icons/`, with the original MIT notice in that directory's `LICENSE.txt`. The local React adapters only consume these bundled assets. The standard-reading prompt is an attributed synthesis of the public Nanjing University machine-learning reading guide and this project's METHOD.md, not a verbatim reproduction or an official template. Source links and adaptation details are in [the reading redesign notes](docs/READING_REDESIGN.md).
+Version 1.2.0 stores the Lucide control glyphs as independent SVG files in `upstream/frontend/src/icons/`, with the original ISC notice (including MIT-licensed Feather portions) in that directory's `LICENSE.txt`. The local React adapters only consume these bundled assets. The standard-reading prompt is an attributed synthesis of the public Nanjing University machine-learning reading guide and this project's METHOD.md, not a verbatim reproduction or an official template. Source links and adaptation details are in [the reading redesign notes](docs/READING_REDESIGN.md).
 
 Version 1.1.0 also embeds two fixed source revisions:
 
