@@ -22,7 +22,7 @@ import {
   Minimize2,
   Layers3,
   Sparkles,
-} from "lucide-react";
+} from "./glyphs";
 import { api, ApiError, put, anchorFor, anchorQuote, id, type Row } from "./api";
 import { readLaunchInput } from "./launch";
 import { filterPapers } from "./library-search";

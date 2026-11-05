@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, BookOpen, X } from "lucide-react";
+import { ArrowRight, BookOpen, X } from "./glyphs";
 import { api, put, type Row } from "./api";
 import Dialog from "./Dialog";
 

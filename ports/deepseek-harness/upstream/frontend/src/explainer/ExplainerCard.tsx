@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ChevronDown, ChevronUp, Download, ExternalLink, Maximize2, Sparkles } from "lucide-react";
+import { ArrowUp, ChevronDown, ChevronUp, Download, ExternalLink, Maximize2, Sparkles } from "../glyphs";
 import { api } from "../api";
 import { ExplainerView, type PanelAsk } from "./ExplainerDoc";
 import { downloadHtml, explainerHtml } from "./exportHtml";

@@ -70,3 +70,18 @@ it('locates the selected publication through its callback, ignoring message-supp
   window.dispatchEvent(new MessageEvent('message', { source: frame.contentWindow, data: { channel: 'prc-workspace-v1', scope: { id: 'another', type: 'studio' }, kind: 'locate' } }));
   expect(locate).toHaveBeenCalledTimes(1);
 });
+
+it('brings a page question into the collapsed composer without sending it', async () => {
+  const fetch = vi.fn(async () => ({ ok: true, json: async () => ({ id: 's1', revision: 1, title: 'Saved explanation', question: 'Earlier question', source: '', presentation: 'components', language: 'zh', context: {}, history: [], published: { version: 'v1', title: 'Saved page', format: 'components' } }) }));
+  vi.stubGlobal('fetch', fetch);
+  render(<InteractiveStudio id="s1" jobs={[]} kbs={[]} page={0} reload={vi.fn()} report={vi.fn()} />);
+  const frame = await screen.findByTitle('Saved page') as HTMLIFrameElement;
+  const question = screen.getByLabelText('交互式讲解问题');
+  Object.defineProperty(question, 'scrollIntoView', { value: vi.fn(), configurable: true });
+  expect(question.closest('details')?.open).toBe(false);
+  window.dispatchEvent(new MessageEvent('message', { source: frame.contentWindow, data: { channel: 'prc-workspace-v1', scope: { id: 's1', type: 'studio' }, kind: 'question', text: 'Explain the current slope = 2' } }));
+  await waitFor(() => expect(document.activeElement).toBe(question));
+  expect(question.closest('details')?.open).toBe(true);
+  expect((question as HTMLTextAreaElement).value).toContain('slope = 2');
+  expect(fetch).toHaveBeenCalledOnce();
+});

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, Download, FileText, FolderPlus, MessageCircle, Upload } from "lucide-react";
+import { ArrowUp, Download, FileText, FolderPlus, MessageCircle, Upload } from "./glyphs";
 import ArtifactFrame from "./ArtifactFrame";
 import MethodsLibrary from "./MethodsLibrary";
 import { JobStatus } from "./Workspace";

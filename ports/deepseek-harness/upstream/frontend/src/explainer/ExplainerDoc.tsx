@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { HelpCircle, MessageCircle } from "lucide-react";
+import { HelpCircle, MessageCircle } from "../glyphs";
 import type { AskBlock, Block, ExplainerDoc } from "./types";
 import { FlowDiagram, KvView, SequenceDiagram, TimelineView, TreeView } from "./Diagrams";
 import { Inline, Prose } from "./Inline";

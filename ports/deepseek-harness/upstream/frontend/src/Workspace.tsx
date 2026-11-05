@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, Layers3, Plus, Sparkles, Square } from "lucide-react";
+import { BookOpen, Layers3, Plus, Sparkles, Square } from "./glyphs";
 import { activeJob, jobLabel, RecordData, workspaceApi } from "./workspace-api";
 import LearningWorkspace from "./LearningWorkspace";
 import InteractiveStudio from "./InteractiveStudio";

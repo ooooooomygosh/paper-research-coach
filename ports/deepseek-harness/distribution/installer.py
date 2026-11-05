@@ -23,7 +23,7 @@ import time
 import uuid
 
 NAME = "@local/dsh-paper-research-coach"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 HOST_VERSION = "0.2.1-rc.5"
 PACKAGE_PATH = "dsh/node_modules/" + NAME
 EXE = "DeepSeek Harness.exe"

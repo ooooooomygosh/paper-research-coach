@@ -12,7 +12,7 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 SLUG = f"PRC-DSH-{VERSION}-win-x64"
 ARCHIVE_FOLDER = f"PRC-DSH-{VERSION}"
 OMIT_PARTS = {"__pycache__", "node_modules", ".git", ".pytest_cache", ".ruff_cache", ".vite", ".DS_Store"}

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus } from "./glyphs";
 import "./onboarding.css";
 
 export default function Welcome({ onImport, onConnect, notice }: {

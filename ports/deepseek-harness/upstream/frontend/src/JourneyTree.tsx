@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, Check, Circle, CircleDot, Download, ExternalLink, GitBranch, Lightbulb, MessageSquare, NotebookPen, RotateCcw, X } from "lucide-react";
+import { BookOpen, Check, Circle, CircleDot, Download, ExternalLink, GitBranch, Lightbulb, MessageSquare, NotebookPen, RotateCcw, X } from "./glyphs";
 import { api } from "./api";
 import { downloadHtml, explainerHtml } from "./explainer/exportHtml";
 import journeyCss from "./journey.css?raw";

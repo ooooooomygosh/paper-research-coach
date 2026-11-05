@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "../glyphs";
 import { api } from "../api";
 import { ExplainerView } from "./ExplainerDoc";
 import type { ExplainerRecord } from "./types";

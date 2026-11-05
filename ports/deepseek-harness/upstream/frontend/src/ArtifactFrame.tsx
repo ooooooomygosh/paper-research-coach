@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2 } from "./glyphs";
 import { workspaceApi, workspaceUrl, versionQuery } from "./workspace-api";
 
 export function artifactMessage(event: MessageEvent, source: Window | null, kind: string, id: string) {

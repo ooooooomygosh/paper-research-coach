@@ -7,7 +7,7 @@ import {
   Link2,
   Download,
   Lightbulb,
-} from "lucide-react";
+} from "./glyphs";
 import { api, put, type Row, location } from "./api";
 import TranslationLibrary from "./TranslationLibrary";
 const fields: Record<string, string> = {

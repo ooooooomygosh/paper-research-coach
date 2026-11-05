@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Code2, Download, Eye, Sparkles } from "lucide-react";
+import { Code2, Download, Eye, Sparkles } from "./glyphs";
 import ArtifactFrame from "./ArtifactFrame";
 import { JobStatus } from "./Workspace";
 import { activeJob, RecordData, versionQuery, workspaceApi, workspaceUrl } from "./workspace-api";
@@ -12,6 +12,7 @@ export default function InteractiveStudio({ id, jobs, kbs, paper, page, quote, r
   const [row, setRow] = useState<RecordData | null>(null), [draft, setDraft] = useState<RecordData>({});
   const [busy, setBusy] = useState(false), [editor, setEditor] = useState(false), [version, setVersion] = useState("");
   const [notice, setNotice] = useState("");
+  const [requirementsOpen, setRequirementsOpen] = useState(false);
   const job = jobs.find(j => j.owner === id), running = !!activeJob(jobs, id), input = useRef<HTMLTextAreaElement>(null);
   const load = useCallback(async () => {
     const result = await workspaceApi(`/studios/${id}`);
@@ -49,7 +50,8 @@ export default function InteractiveStudio({ id, jobs, kbs, paper, page, quote, r
   function set(key: string, value: any) { setDraft(old => ({ ...old, [key]: value })); }
   function relay(text: string) {
     set("question", text); setNotice(version ? "历史页面输入已带回当前草稿。返回当前版后，请核对来源再发送。" : "页面输入已带回，可以修改后再点击生成。");
-    input.current?.scrollIntoView({ behavior: "smooth", block: "center" }); input.current?.focus();
+    setRequirementsOpen(true);
+    requestAnimationFrame(() => { input.current?.scrollIntoView({ behavior: "smooth", block: "center" }); input.current?.focus(); });
   }
   if (!row) return <p role="status">正在打开讲解…</p>;
   const selectedContext = draft.context?.kb_id ? "kb:" + draft.context.kb_id : draft.context?.paper_id ? "paper" : "none";
@@ -59,7 +61,8 @@ export default function InteractiveStudio({ id, jobs, kbs, paper, page, quote, r
   return <div className="studio-workspace">
     <div className="workspace-section-head"><h2>{row.title}</h2><span className="muted small">{changed ? "有未保存的修改" : row.published ? "本机已保存" : "待生成"}</span></div>
     {version && <p className="workspace-notice">历史版本仅供查看与导出。继续编辑和生成使用当前草稿及其来源。<button onClick={() => setVersion("")}>返回当前草稿</button></p>}
-    {!version && <>
+    {!version && <details className="studio-requirements" open={!row.published || requirementsOpen} onToggle={e => { if (row.published) setRequirementsOpen(e.currentTarget.open); }}>
+    <summary>{row.published ? "修改讲解要求" : "生成讲解"}</summary>
     <label className="workspace-question">你想弄清楚什么？<textarea aria-label="交互式讲解问题" ref={input} value={draft.question || ""} disabled={running}
       onChange={e => set("question", e.target.value)} placeholder="例如：用图和一个可选分支解释这页论文的方法，并指出适用条件。" rows={3} /></label>
     <div className="workspace-controls">
@@ -80,8 +83,8 @@ export default function InteractiveStudio({ id, jobs, kbs, paper, page, quote, r
       <button className="primary" disabled={busy || running || !draft.question?.trim()} onClick={() => void perform("generate")}><Sparkles size={15} />{row.published ? "按要求更新讲解" : "生成交互式讲解"}</button>
     </div>
     <p className="muted small">使用 Harness 当前登录账户。{components ? '自动选择概念、步骤、比较、参数或证据组件；参数变化在本地计算。' : '页面回答与选择会带回提问区。'}点击生成后才发送。</p>
-    </>}
-    <JobStatus job={job} onCancel={() => { void workspaceApi(`/jobs/${job!.id}/cancel`, {}).then(reload).catch(error => report(error.message)); }} />
+    </details>}
+    <JobStatus job={job?.state === 'completed' ? undefined : job} onCancel={() => { void workspaceApi(`/jobs/${job!.id}/cancel`, {}).then(reload).catch(error => report(error.message)); }} />
     {notice && <p className="workspace-notice" role="status">{notice}</p>}
     <div className="workspace-artifact-actions">
       {!components && <button aria-pressed={editor} disabled={!!version} onClick={() => setEditor(!editor)}>{editor ? <Eye size={15} /> : <Code2 size={15} />}{editor ? "收起草稿" : "编辑 Markdown 草稿"}</button>}

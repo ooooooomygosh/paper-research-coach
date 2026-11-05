@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BookOpenCheck, Flag, Quote } from "lucide-react";
+import { BookOpenCheck, Flag, Quote } from "./glyphs";
 
 export const CIRCLED = "①②③④⑤⑥⑦⑧⑨";
 
