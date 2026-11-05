@@ -9,6 +9,8 @@
 本地 PDF 阅读工作台 + 可装进 Claude Code / Codex / Pi 的 AI 带读 Skill。<br>
 教练把你带到原文那一句，一次只给一个小任务，判断留在你自己手里。
 
+另提供 [DeepSeek Harness 内置插件版](docs/DEEPSEEK_HARNESS.md)：沿用 **Paper Research Coach** 名称和工作台 UI，使用 Harness 登录账户，集成知识库学习与交互式讲解。已验证 Windows x64 / Harness 0.2.1-rc.5；安装包与独立工作台分开构建，暂未提供 macOS 包。
+
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![Release](https://img.shields.io/github/v/release/ooooooomygosh/paper-research-coach?include_prereleases&label=release&color=365c47)](https://github.com/ooooooomygosh/paper-research-coach/releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-526653)](docs/QUICKSTART.md)

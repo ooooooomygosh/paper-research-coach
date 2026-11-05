@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "learn-from-materials/unit-dependency-map-v1",
+  "pageId": "method-lab-sequential-systematic-v1",
+  "entries": [
+    {
+      "sourceKey": "method-lab-synthetic.pdf#pdf_page:1",
+      "contentHash": "7e0a8bf0f046fd67fbf54aea04ed367527b36b98ebea7517d429efc87a55f7a6",
+      "unitIds": [
+        "u01"
+      ],
+      "claimIds": [
+        "claim-001",
+        "claim-002",
+        "claim-003",
+        "claim-004",
+        "claim-005",
+        "claim-006",
+        "claim-007"
+      ],
+      "derivedRefs": [
+        "framework:f-map",
+        "term:boundary",
+        "rule:r-map",
+        "assessment:a-map"
+      ]
+    },
+    {
+      "sourceKey": "method-lab-synthetic.pdf#pdf_page:2",
+      "contentHash": "31a046cfaa51ec1fb726fe5db573a0ee4d99eb87f9d9c5047e8a6de584a36347",
+      "unitIds": [
+        "u02"
+      ],
+      "claimIds": [
+        "claim-008",
+        "claim-009",
+        "claim-010",
+        "claim-011",
+        "claim-012",
+        "claim-013",
+        "claim-014"
+      ],
+      "derivedRefs": [
+        "framework:f-evidence",
+        "term:counterevidence",
+        "rule:r-evidence",
+        "assessment:a-evidence"
+      ]
+    },
+    {
+      "sourceKey": "method-lab-synthetic.pdf#pdf_page:3",
+      "contentHash": "e0a75e2cb7ff59c23924cf4255c374490062330d058c42ba83e844b8ee0a06e8",
+      "unitIds": [
+        "u03"
+      ],
+      "claimIds": [
+        "claim-015",
+        "claim-016",
+        "claim-017",
+        "claim-018",
+        "claim-019",
+        "claim-020",
+        "claim-021",
+        "claim-022",
+        "claim-023",
+        "claim-024",
+        "claim-025"
+      ],
+      "derivedRefs": [
+        "framework:f-action",
+        "term:feedback",
+        "rule:r-test",
+        "rule:r-pause",
+        "assessment:a-action"
+      ]
+    }
+  ]
+}

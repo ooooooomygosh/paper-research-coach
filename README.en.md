@@ -9,6 +9,8 @@
 A local PDF workbench, plus a reading-coach Skill for Claude Code, Codex and Pi.<br>
 The coach takes you to the sentence in the paper, gives you one small task at a time, and leaves the judgment in your hands.
 
+A [DeepSeek Harness plugin port](docs/DEEPSEEK_HARNESS.md#english) also keeps the **Paper Research Coach** name and workbench UI, uses the signed-in Harness account, and adds knowledge-base learning and interactive explanations. Verified on Windows x64 / Harness 0.2.1-rc.5; its installer is built separately from standalone releases. No macOS package is currently provided.
+
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![Release](https://img.shields.io/github/v/release/ooooooomygosh/paper-research-coach?include_prereleases&label=release&color=365c47)](https://github.com/ooooooomygosh/paper-research-coach/releases)
 [![Python](https://img.shields.io/badge/python-3.10%2B-526653)](docs/QUICKSTART.md)

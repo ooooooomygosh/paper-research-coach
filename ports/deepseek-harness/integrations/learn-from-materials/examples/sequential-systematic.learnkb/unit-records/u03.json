@@ -1,0 +1,443 @@
+{
+  "schemaVersion": "learn-from-materials/unit-record-v2",
+  "unit": {
+    "id": "u03",
+    "label": "单元 3",
+    "title": "通过行动学习",
+    "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+    "core": {
+      "id": "display-u03-core",
+      "text": "小试验应产生能改变下一步判断的信息。"
+    },
+    "frameworks": [
+      {
+        "id": "display-u03-framework-0",
+        "text": "行动循环"
+      }
+    ],
+    "takeaways": [
+      {
+        "id": "display-u03-takeaway-0",
+        "text": "用低成本试验检验重要假设。"
+      },
+      {
+        "id": "display-u03-takeaway-1",
+        "text": "扩大行动前对比结果与预测。"
+      },
+      {
+        "id": "display-u03-takeaway-2",
+        "text": "相关证据无法核查时，暂停结论。"
+      }
+    ],
+    "conclusions": [
+      {
+        "title": "把结果带回思考",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+        "summary": {
+          "id": "display-u03-conclusion-0-summary",
+          "text": "结果可以更新证据链或问题边界。"
+        },
+        "points": [
+          {
+            "id": "display-u03-conclusion-0-point-0",
+            "text": "对比结果与预测后修正假设，再扩大行动。"
+          },
+          {
+            "id": "display-u03-conclusion-0-point-1",
+            "text": "约束变化时重新查看问题地图。"
+          },
+          {
+            "id": "display-u03-conclusion-0-point-2",
+            "text": "这些工具不保证成功。"
+          },
+          {
+            "id": "display-u03-conclusion-0-point-3",
+            "text": "证据缺口不足以支持成功判断。"
+          },
+          {
+            "id": "display-u03-conclusion-0-point-4",
+            "text": "工具的顺序与适用性取决于问题和已有证据。"
+          }
+        ]
+      }
+    ]
+  },
+  "sources": [
+    {
+      "sourceId": "src-451aaf991057-pdf_page-00003",
+      "status": "covered",
+      "reason": "Synthetic demo block assigned to this unit; fixture only."
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-015",
+      "kind": "method",
+      "text": "小试验应产生能改变下一步判断的信息。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-core"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-016",
+      "kind": "method",
+      "text": "行动循环",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-framework-0"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-017",
+      "kind": "method",
+      "text": "用低成本试验检验重要假设。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-takeaway-0"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-018",
+      "kind": "method",
+      "text": "扩大行动前对比结果与预测。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-takeaway-1"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-019",
+      "kind": "method",
+      "text": "相关证据无法核查时，暂停结论。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-takeaway-2"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-020",
+      "kind": "method",
+      "text": "结果可以更新证据链或问题边界。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-conclusion-0-summary"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-021",
+      "kind": "method",
+      "text": "对比结果与预测后修正假设，再扩大行动。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-conclusion-0-point-0"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-022",
+      "kind": "method",
+      "text": "约束变化时重新查看问题地图。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-conclusion-0-point-1"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-023",
+      "kind": "method",
+      "text": "这些工具不保证成功。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-conclusion-0-point-2"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-024",
+      "kind": "method",
+      "text": "证据缺口不足以支持成功判断。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-conclusion-0-point-3"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    },
+    {
+      "id": "claim-025",
+      "kind": "method",
+      "text": "工具的顺序与适用性取决于问题和已有证据。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "contentIds": [
+        "display-u03-conclusion-0-point-4"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map.\n\nThese methods are complementary tools, not a guarantee of success. Their order and\n\nsuitability depend on the problem and available evidence.\n\nWhen relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess."
+        }
+      ]
+    }
+  ],
+  "frameworks": [
+    {
+      "id": "f-action",
+      "name": "行动循环",
+      "oneLine": "检验假设，对比预测与结果，再修正。",
+      "when": "把理解变成有信息价值的小行动时",
+      "firstUnitId": "u03",
+      "sourceOrder": 3,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "glossary": [
+    {
+      "id": "feedback",
+      "term": "反馈",
+      "category": "方法框架",
+      "definition": "用试验获得的信息修正假设或下一步行动。",
+      "context": "行动循环对比结果与预测，并可更新此前的思考。",
+      "related": [
+        "预测",
+        "假设"
+      ],
+      "units": [
+        "u03"
+      ],
+      "firstUnitId": "u03",
+      "sourceOrder": 3,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "decisionRules": [
+    {
+      "id": "r-test",
+      "when": "讨论停滞",
+      "do": "设计有信息价值的小试验",
+      "because": "结果可以更新假设并指导下一步行动",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    },
+    {
+      "id": "r-pause",
+      "when": "相关证据无法核查",
+      "do": "暂停结论",
+      "because": "证据缺口不足以支持成功判断",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "focusAreas": [
+    {
+      "id": "a-action",
+      "title": "设计有信息价值的小试验",
+      "unitId": "u03",
+      "abilities": [
+        "应用",
+        "迁移"
+      ],
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "sections": {
+    "mentalModels": [
+      "小试验将重要假设、预测、结果和修正连接起来；结果可以回到证据链，约束变化可以回到问题地图。 method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    ],
+    "antiPatterns": [
+      "未对比预测就扩大行动；证据不可核查仍宣称成功；把互补工具当作保证成功的固定流程。 method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    ],
+    "workedExamples": [
+      "原页没有实证案例；示例中的应用情境只用于核对这段自编材料的条件。 method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    ],
+    "connections": [
+      "结果更新证据链；约束变化返回问题地图；讨论停滞时可选择小试验而非强制经过证据节点。 method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    ]
+  },
+  "ruleReview": {
+    "unitId": "u03",
+    "status": "reviewed",
+    "reviewedSourceIds": [
+      "src-451aaf991057-pdf_page-00003"
+    ],
+    "note": "读回第3页直到末尾：低成本小试验、对比预测、扩大行动前修正、讨论停滞触发、两条反馈、工具不保证成功、顺序取决于问题及证据、证据不可核查时暂停结论均核对。修正旧摘要中额外的“结果不同时”条件。"
+  },
+  "ruleCandidates": [
+    {
+      "id": "candidate-r-test",
+      "unitId": "u03",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "quote": "When discussion stalls,\n\ndesign a small test",
+      "when": "讨论停滞",
+      "do": "设计有信息价值的小试验",
+      "because": "结果可以更新假设并指导下一步行动",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-test",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    },
+    {
+      "id": "candidate-r-pause",
+      "unitId": "u03",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "quote": "When relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess.",
+      "when": "相关证据无法核查",
+      "do": "暂停结论",
+      "because": "证据缺口不足以支持成功判断",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-pause",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    }
+  ],
+  "frameworkCandidates": [
+    {
+      "id": "fc-f-action",
+      "name": "行动循环",
+      "claimIds": [
+        "claim-016"
+      ],
+      "status": "retained",
+      "targetFrameworkId": "f-action",
+      "reason": "读回第3页直到末尾：低成本小试验、对比预测、扩大行动前修正、讨论停滞触发、两条反馈、工具不保证成功、顺序取决于问题及证据、证据不可核查时暂停结论均核对。修正旧摘要中额外的“结果不同时”条件。"
+    }
+  ],
+  "relationSearch": {
+    "status": "searched",
+    "sourceIds": [
+      "src-451aaf991057-pdf_page-00003"
+    ],
+    "note": "读回第3页直到末尾：低成本小试验、对比预测、扩大行动前修正、讨论停滞触发、两条反馈、工具不保证成功、顺序取决于问题及证据、证据不可核查时暂停结论均核对。修正旧摘要中额外的“结果不同时”条件。"
+  },
+  "relationCandidates": [
+    {
+      "id": "rc-page-action-rule",
+      "unitIds": [
+        "u03"
+      ],
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00003",
+          "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action. When discussion stalls,\n\ndesign a small test that produces new information. The result can update the evidence\n\nchain, and changed constraints can send you back to the problem map."
+        }
+      ],
+      "from": "f-action",
+      "to": "r-test",
+      "type": "applies",
+      "condition": "讨论停滞时",
+      "handoff": "能产生新信息的小试验。",
+      "evidenceKind": "material",
+      "note": "第3页明确给出讨论停滞这一触发条件。"
+    }
+  ]
+}

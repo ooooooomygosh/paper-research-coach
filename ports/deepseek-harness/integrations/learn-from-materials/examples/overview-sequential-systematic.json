@@ -1,0 +1,916 @@
+{
+  "schemaVersion": "4.3",
+  "meta": {
+    "title": "方法实验室：顺序系统学习示例",
+    "creator": "自编合成材料",
+    "sourceType": "document",
+    "mode": "overview",
+    "pageId": "method-lab-sequential-systematic-v1",
+    "learningDepth": "systematic",
+    "language": "zh-CN",
+    "initialTheme": "warm-paper",
+    "knowledgeBase": "sequential-systematic.learnkb/INDEX.md"
+  },
+  "hero": {
+    "eyebrow": "方法实验室 · 交互学习",
+    "title": "方法实验室：顺序系统学习示例",
+    "lede": "自编的三页材料，演示问题边界、证据判断、小试验及其条件与反馈。",
+    "thesis": "先界定问题，再核查证据，用小试验更新判断；没有证据时暂停结论。"
+  },
+  "relationships": [
+    {
+      "id": "map-rule",
+      "from": "f-map",
+      "to": "r-map",
+      "type": "applies",
+      "explanation": "范围不清楚时，画问题地图使边界与成功标准可用于判断。",
+      "evidence": "material",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+    },
+    {
+      "id": "evidence-rule",
+      "from": "f-evidence",
+      "to": "r-evidence",
+      "type": "applies",
+      "explanation": "寻找反证是检验依据不足的主张的一种方法。",
+      "evidence": "material",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    },
+    {
+      "id": "action-rule",
+      "from": "f-action",
+      "to": "r-test",
+      "type": "applies",
+      "explanation": "讨论停滞时，有信息价值的小试验开启行动循环。",
+      "evidence": "material",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    },
+    {
+      "id": "feedback-evidence",
+      "from": "f-action",
+      "to": "f-evidence",
+      "type": "feedback",
+      "explanation": "试验结果为证据链提供新的观察。",
+      "evidence": "material",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    },
+    {
+      "id": "feedback-map",
+      "from": "f-action",
+      "to": "f-map",
+      "type": "feedback",
+      "explanation": "约束变化可能需要重新查看问题地图。",
+      "evidence": "material",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    },
+    {
+      "id": "map-evidence",
+      "from": "f-map",
+      "to": "f-evidence",
+      "type": "supports",
+      "explanation": "明确的边界可以帮助聚焦证据收集。这是分析性联系，并非材料规定的必然顺序。",
+      "evidence": "inference",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab · PDF第1–2页"
+    }
+  ],
+  "footer": "自编合成教学材料，按 MIT 许可发布；不是某篇真实论文，也不代表实证研究结论。",
+  "contentUnits": [
+    {
+      "id": "u01",
+      "label": "单元 1",
+      "title": "界定问题",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+      "core": "选择行动前先明确范围。",
+      "frameworks": [
+        "问题地图"
+      ],
+      "takeaways": [
+        "指出边界与相关方。",
+        "明确约束和成功标准。"
+      ],
+      "conclusions": [
+        {
+          "title": "先明确边界再行动",
+          "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+          "summary": "问题地图帮助识别哪些信息与问题相关。",
+          "points": [
+            "记录问题包含哪些内容。",
+            "选择可观察的成功标准。"
+          ]
+        }
+      ],
+      "sourceDetails": {
+        "core": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+        "frameworks": [
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+        ],
+        "takeaways": [
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+        ],
+        "conclusions": [
+          {
+            "summary": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+            "points": [
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u02",
+      "label": "单元 2",
+      "title": "检验主张",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "core": "观察与解释是两回事。",
+      "frameworks": [
+        "证据链"
+      ],
+      "takeaways": [
+        "把结论追溯到观察。",
+        "寻找其他解释与反证。"
+      ],
+      "conclusions": [
+        {
+          "title": "证据不自动等于证明",
+          "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+          "summary": "一次观察可能对应多种解释。",
+          "points": [
+            "区分观察到什么和它可能意味着什么。",
+            "寻找可能挑战当前主张的证据。"
+          ]
+        }
+      ],
+      "sourceDetails": {
+        "core": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+        "frameworks": [
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+        ],
+        "takeaways": [
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+        ],
+        "conclusions": [
+          {
+            "summary": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+            "points": [
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u03",
+      "label": "单元 3",
+      "title": "通过行动学习",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+      "core": "小试验应产生能改变下一步判断的信息。",
+      "frameworks": [
+        "行动循环"
+      ],
+      "takeaways": [
+        "用低成本试验检验重要假设。",
+        "扩大行动前对比结果与预测。",
+        "相关证据无法核查时，暂停结论。"
+      ],
+      "conclusions": [
+        {
+          "title": "把结果带回思考",
+          "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+          "summary": "结果可以更新证据链或问题边界。",
+          "points": [
+            "对比结果与预测后修正假设，再扩大行动。",
+            "约束变化时重新查看问题地图。",
+            "这些工具不保证成功。",
+            "证据缺口不足以支持成功判断。",
+            "工具的顺序与适用性取决于问题和已有证据。"
+          ]
+        }
+      ],
+      "sourceDetails": {
+        "core": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+        "frameworks": [
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+        ],
+        "takeaways": [
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+          "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+        ],
+        "conclusions": [
+          {
+            "summary": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "points": [
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+              "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "frameworks": [
+    {
+      "id": "f-map",
+      "name": "问题地图",
+      "oneLine": "明确边界、相关方、约束和成功标准。",
+      "when": "进入陌生或尚不明确的问题时",
+      "firstUnitId": "u01",
+      "sourceOrder": 1,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+    },
+    {
+      "id": "f-evidence",
+      "name": "证据链",
+      "oneLine": "把结论连到观察和其他可能的解释。",
+      "when": "判断主张是否有充分依据时",
+      "firstUnitId": "u02",
+      "sourceOrder": 2,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    },
+    {
+      "id": "f-action",
+      "name": "行动循环",
+      "oneLine": "检验假设，对比预测与结果，再修正。",
+      "when": "把理解变成有信息价值的小行动时",
+      "firstUnitId": "u03",
+      "sourceOrder": 3,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "glossary": [
+    {
+      "id": "boundary",
+      "term": "问题边界",
+      "category": "领域术语",
+      "definition": "当前要解决的问题的范围。",
+      "context": "问题地图在行动前明确边界。",
+      "related": [
+        "约束",
+        "成功标准"
+      ],
+      "units": [
+        "u01"
+      ],
+      "firstUnitId": "u01",
+      "sourceOrder": 1,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+    },
+    {
+      "id": "counterevidence",
+      "term": "反证",
+      "category": "领域术语",
+      "definition": "可能挑战当前主张的证据。",
+      "context": "证据链用反证检查信心，避免把一次观察当作证明。",
+      "related": [
+        "观察",
+        "其他解释"
+      ],
+      "units": [
+        "u02"
+      ],
+      "firstUnitId": "u02",
+      "sourceOrder": 2,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    },
+    {
+      "id": "feedback",
+      "term": "反馈",
+      "category": "方法框架",
+      "definition": "用试验获得的信息修正假设或下一步行动。",
+      "context": "行动循环对比结果与预测，并可更新此前的思考。",
+      "related": [
+        "预测",
+        "假设"
+      ],
+      "units": [
+        "u03"
+      ],
+      "firstUnitId": "u03",
+      "sourceOrder": 3,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "decisionRules": [
+    {
+      "id": "r-map",
+      "when": "问题范围不清楚",
+      "do": "先画问题地图",
+      "because": "边界有助于识别相关信息",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+    },
+    {
+      "id": "r-evidence",
+      "when": "对主张的信心不足",
+      "do": "收集证据并寻找反证",
+      "because": "一次观察不应被当作证明",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    },
+    {
+      "id": "r-test",
+      "when": "讨论停滞",
+      "do": "设计有信息价值的小试验",
+      "because": "结果可以更新假设并指导下一步行动",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    },
+    {
+      "id": "r-pause",
+      "when": "相关证据无法核查",
+      "do": "暂停结论",
+      "because": "证据缺口不足以支持成功判断",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+    }
+  ],
+  "assessment": {
+    "focusAreas": [
+      {
+        "id": "a-map",
+        "title": "识别有用的问题边界",
+        "unitId": "u01",
+        "abilities": [
+          "解释",
+          "应用"
+        ],
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页"
+      },
+      {
+        "id": "a-evidence",
+        "title": "区分观察与解释",
+        "unitId": "u02",
+        "abilities": [
+          "记忆",
+          "解释"
+        ],
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+      },
+      {
+        "id": "a-action",
+        "title": "设计有信息价值的小试验",
+        "unitId": "u03",
+        "abilities": [
+          "应用",
+          "迁移"
+        ],
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      }
+    ]
+  },
+  "methodLibrary": {
+    "schemaVersion": "learn-from-materials/methods-v1",
+    "libraryId": "method-lab",
+    "title": "方法实验室：材料方法卡",
+    "language": "zh-CN",
+    "status": "extracted",
+    "note": "来自合成教学材料的六张方法卡；条件、步骤和限制对应原文，英文原始引文保留供核对。",
+    "methods": [
+      {
+        "id": "f-map",
+        "version": "1.0.0",
+        "kind": "framework",
+        "name": "问题地图",
+        "summary": "明确边界、相关方、约束和成功标准。",
+        "problem": "问题范围不清晰时，难以判断哪些信息相关。",
+        "when": "进入陌生或尚不明确的问题时",
+        "prerequisites": [
+          "能够描述问题和可观察的预期结果。"
+        ],
+        "limitations": [
+          "原文没有给出普遍成功保证或量化阈值。",
+          "顺序与适用性取决于问题和现有证据。"
+        ],
+        "rationale": "明确边界有助于判断哪些信息相关。",
+        "steps": [
+          {
+            "action": "记录问题边界和相关方。",
+            "input": "待解决的问题。",
+            "output": "明确的范围与相关方清单。",
+            "check": "检查清单中的事项是否属于问题范围。"
+          },
+          {
+            "action": "记录约束和可观察的成功标准。",
+            "input": "已知约束与预期结果。",
+            "output": "约束与成功标准。",
+            "check": "确认成功标准可以观察。"
+          }
+        ],
+        "successChecks": [
+          "边界、相关方、约束和可观察的成功标准均已明确。"
+        ],
+        "tags": [
+          "问题",
+          "边界",
+          "范围"
+        ],
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+        "sources": [
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00001"
+            ],
+            "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion."
+          },
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "These methods are complementary tools, not a guarantee of success."
+          }
+        ],
+        "parents": []
+      },
+      {
+        "id": "f-evidence",
+        "version": "1.0.0",
+        "kind": "framework",
+        "name": "证据链",
+        "summary": "把结论连到观察和其他可能的解释。",
+        "problem": "某项主张的支持不足，或存在多种可能解释。",
+        "when": "判断主张是否有充分依据时",
+        "prerequisites": [
+          "有可供检查的主张和相关观察。"
+        ],
+        "limitations": [
+          "原文没有给出普遍成功保证或量化阈值。",
+          "顺序与适用性取决于问题和现有证据。"
+        ],
+        "rationale": "不能把单次观察当作证明。",
+        "steps": [
+          {
+            "action": "区分观察与解释。",
+            "input": "主张与现有观察。",
+            "output": "区分可观察事实和解释。",
+            "check": "确认解释没有被写成直接观察。"
+          },
+          {
+            "action": "寻找其他解释与反证。",
+            "input": "当前解释。",
+            "output": "其他解释与相关证据。",
+            "check": "不能把单次观察当作证明；原文未规定数字化证据阈值。"
+          }
+        ],
+        "successChecks": [
+          "观察与解释已分开，也考虑了其他解释。"
+        ],
+        "tags": [
+          "证据",
+          "主张",
+          "反证"
+        ],
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+        "sources": [
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00002"
+            ],
+            "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations."
+          },
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "These methods are complementary tools, not a guarantee of success."
+          }
+        ],
+        "parents": []
+      },
+      {
+        "id": "f-action",
+        "version": "1.0.0",
+        "kind": "framework",
+        "name": "行动循环",
+        "summary": "检验假设，对比预测与结果，再修正。",
+        "problem": "讨论停滞，缺少能帮助决策的信息。",
+        "when": "把理解变成有信息价值的小行动时",
+        "prerequisites": [
+          "一项重要假设可以通过小规模测试检验。"
+        ],
+        "limitations": [
+          "原文没有给出普遍成功保证或量化阈值。",
+          "顺序与适用性取决于问题和现有证据。"
+        ],
+        "rationale": "测试可以产生新信息并改变下一步决策。",
+        "steps": [
+          {
+            "action": "选择一个小规模、低成本的测试，检验重要假设。",
+            "input": "一项假设及其预测。",
+            "output": "有信息价值的测试及结果。",
+            "check": "检查测试是否产生新信息。"
+          },
+          {
+            "action": "比较结果与预测，在扩大规模前修正。",
+            "input": "预测结果与实际结果。",
+            "output": "修正的假设或下一步决策。",
+            "check": "约束发生变化时，按需重新检查问题地图。"
+          }
+        ],
+        "successChecks": [
+          "扩大规模前已经比较测试结果与预测。"
+        ],
+        "tags": [
+          "行动",
+          "测试",
+          "反馈"
+        ],
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+        "sources": [
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action."
+          },
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "These methods are complementary tools, not a guarantee of success."
+          }
+        ],
+        "parents": []
+      },
+      {
+        "id": "r-map",
+        "version": "1.0.0",
+        "kind": "rule",
+        "name": "先画问题地图",
+        "summary": "边界有助于识别相关信息",
+        "problem": "问题范围不清晰时，难以判断哪些信息相关。",
+        "when": "问题范围不清楚",
+        "prerequisites": [
+          "能够描述问题和可观察的预期结果。"
+        ],
+        "limitations": [
+          "原文没有给出普遍成功保证或量化阈值。",
+          "顺序与适用性取决于问题和现有证据。"
+        ],
+        "rationale": "边界有助于识别相关信息",
+        "steps": [
+          {
+            "action": "记录问题边界和相关方。",
+            "input": "待解决的问题。",
+            "output": "明确的范围与相关方清单。",
+            "check": "检查清单中的事项是否属于问题范围。"
+          },
+          {
+            "action": "记录约束和可观察的成功标准。",
+            "input": "已知约束与预期结果。",
+            "output": "约束与成功标准。",
+            "check": "确认成功标准可以观察。"
+          }
+        ],
+        "successChecks": [
+          "边界、相关方、约束和可观察的成功标准均已明确。"
+        ],
+        "tags": [
+          "问题",
+          "边界",
+          "范围"
+        ],
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+        "sources": [
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00001"
+            ],
+            "quote": "Before choosing an action, record the problem boundary, stakeholders, constraints and an\n\nobservable success criterion."
+          },
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "These methods are complementary tools, not a guarantee of success."
+          }
+        ],
+        "parents": []
+      },
+      {
+        "id": "r-evidence",
+        "version": "1.0.0",
+        "kind": "rule",
+        "name": "收集证据并寻找反证",
+        "summary": "一次观察不应被当作证明",
+        "problem": "某项主张的支持不足，或存在多种可能解释。",
+        "when": "对主张的信心不足",
+        "prerequisites": [
+          "有可供检查的主张和相关观察。"
+        ],
+        "limitations": [
+          "原文没有给出普遍成功保证或量化阈值。",
+          "顺序与适用性取决于问题和现有证据。"
+        ],
+        "rationale": "一次观察不应被当作证明",
+        "steps": [
+          {
+            "action": "区分观察与解释。",
+            "input": "主张与现有观察。",
+            "output": "区分可观察事实和解释。",
+            "check": "确认解释没有被写成直接观察。"
+          },
+          {
+            "action": "寻找其他解释与反证。",
+            "input": "当前解释。",
+            "output": "其他解释与相关证据。",
+            "check": "不能把单次观察当作证明；原文未规定数字化证据阈值。"
+          }
+        ],
+        "successChecks": [
+          "观察与解释已分开，也考虑了其他解释。"
+        ],
+        "tags": [
+          "证据",
+          "主张",
+          "反证"
+        ],
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+        "sources": [
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00002"
+            ],
+            "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations."
+          },
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "These methods are complementary tools, not a guarantee of success."
+          }
+        ],
+        "parents": []
+      },
+      {
+        "id": "r-test",
+        "version": "1.0.0",
+        "kind": "rule",
+        "name": "设计有信息价值的小试验",
+        "summary": "结果可以更新假设并指导下一步行动",
+        "problem": "讨论停滞，缺少能帮助决策的信息。",
+        "when": "讨论停滞",
+        "prerequisites": [
+          "一项重要假设可以通过小规模测试检验。"
+        ],
+        "limitations": [
+          "原文没有给出普遍成功保证或量化阈值。",
+          "顺序与适用性取决于问题和现有证据。"
+        ],
+        "rationale": "结果可以更新假设并指导下一步行动",
+        "steps": [
+          {
+            "action": "选择一个小规模、低成本的测试，检验重要假设。",
+            "input": "一项假设及其预测。",
+            "output": "有信息价值的测试及结果。",
+            "check": "检查测试是否产生新信息。"
+          },
+          {
+            "action": "比较结果与预测，在扩大规模前修正。",
+            "input": "预测结果与实际结果。",
+            "output": "修正的假设或下一步决策。",
+            "check": "约束发生变化时，按需重新检查问题地图。"
+          }
+        ],
+        "successChecks": [
+          "扩大规模前已经比较测试结果与预测。"
+        ],
+        "tags": [
+          "行动",
+          "测试",
+          "反馈"
+        ],
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+        "sources": [
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "Choose a small, low-cost test of an important assumption, compare its result with your\n\nprediction, and revise the assumption before scaling the action."
+          },
+          {
+            "locator": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "These methods are complementary tools, not a guarantee of success."
+          }
+        ],
+        "parents": []
+      }
+    ]
+  },
+  "methodology": {
+    "schemaVersion": "learn-from-materials/methodology-v1",
+    "id": "method-lab-systematic-whole",
+    "version": "1.0.0",
+    "language": "zh-CN",
+    "status": "ready",
+    "structure": "process",
+    "title": "界定问题、检验证据、按结果修正",
+    "problem": "怎样使用三种互补工具选择下一步行动？",
+    "outcome": "明确的问题边界、经过检验的主张与有信息价值的小试验。",
+    "evidence": "synthesis",
+    "note": "合成教学示例。主线只是一个分析性的规划顺序，并非原文要求的固定步骤；条件和反馈可能改变下一步适合使用的工具。 示例源材料为本仓库自编的三页 PDF；与真实研究无关。 三种工具都可按当前问题与证据状态进入；入口集合不是固定必经顺序。",
+    "entryNodes": [
+      "m-map",
+      "m-evidence",
+      "m-test"
+    ],
+    "mainPath": [
+      "m-map",
+      "m-evidence",
+      "m-test"
+    ],
+    "nodes": [
+      {
+        "id": "m-map",
+        "title": "界定问题",
+        "role": "action",
+        "input": "问题描述与当前约束。",
+        "action": "记录边界、相关方、约束和可观察的成功标准。",
+        "output": "明确的范围与标准。",
+        "check": "检查标准可观察且边界明确。",
+        "unitIds": [
+          "u01"
+        ],
+        "methodIds": [
+          "f-map",
+          "r-map"
+        ],
+        "evidence": "material",
+        "sources": [
+          {
+            "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 1. Problem map · PDF第1页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00001"
+            ],
+            "quote": "When the scope is unclear, draw a problem map first"
+          }
+        ]
+      },
+      {
+        "id": "m-evidence",
+        "title": "检验证据",
+        "role": "action",
+        "input": "主张及支撑它的观察。",
+        "action": "区分观察与解释，寻找其他解释和反证。",
+        "output": "可追溯的主张及尚存的不确定性。",
+        "check": "不要把一次观察当作证明。",
+        "unitIds": [
+          "u02"
+        ],
+        "methodIds": [
+          "f-evidence",
+          "r-evidence"
+        ],
+        "evidence": "material",
+        "sources": [
+          {
+            "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00002"
+            ],
+            "quote": "Separate observations from explanations."
+          }
+        ]
+      },
+      {
+        "id": "m-test",
+        "title": "进行有信息价值的小试验",
+        "role": "action",
+        "input": "重要假设及预测。",
+        "action": "用低成本试验对比结果与预测，在扩大行动前修正假设。",
+        "output": "供下一步判断使用的新信息。",
+        "check": "扩大行动前先对比预测与结果。",
+        "unitIds": [
+          "u03"
+        ],
+        "methodIds": [
+          "f-action",
+          "r-test"
+        ],
+        "evidence": "material",
+        "sources": [
+          {
+            "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页",
+            "sourceIds": [
+              "src-451aaf991057-pdf_page-00003"
+            ],
+            "quote": "The result can update the evidence\n\nchain"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-map-evidence",
+        "from": "m-map",
+        "to": "m-evidence",
+        "kind": "main",
+        "condition": "边界和标准已明确。",
+        "handoff": "相关观察与验收标准。",
+        "why": "一种分析性的规划顺序：范围可以帮助聚焦证据；原文没有强制这个顺序。",
+        "evidence": "inference",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab · PDF第1–2页"
+      },
+      {
+        "id": "e-evidence-test",
+        "from": "m-evidence",
+        "to": "m-test",
+        "kind": "main",
+        "condition": "重要假设可用低成本试验检验。",
+        "handoff": "假设及其预测。",
+        "why": "一种分析性的规划顺序：主张帮助确定小试验检验什么。",
+        "evidence": "inference",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab · PDF第2–3页"
+      },
+      {
+        "id": "e-direct-test",
+        "from": "m-map",
+        "to": "m-test",
+        "kind": "branch",
+        "condition": "讨论停滞且可以进行小试验。",
+        "handoff": "已界定的问题与重要假设。",
+        "why": "原文建议在讨论停滞时进行小试验；分支位置属于有条件的分析性安排。",
+        "evidence": "inference",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      },
+      {
+        "id": "e-return-evidence",
+        "from": "m-test",
+        "to": "m-evidence",
+        "kind": "feedback",
+        "condition": "试验结果带来新的观察时。",
+        "handoff": "试验产生的新观察。",
+        "why": "原文说明结果可以更新证据链。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      },
+      {
+        "id": "e-return-map",
+        "from": "m-test",
+        "to": "m-map",
+        "kind": "feedback",
+        "condition": "约束变化：重看问题边界。",
+        "handoff": "变化后的约束。",
+        "why": "原文说明约束变化可使读者重新审视问题地图。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      }
+    ],
+    "coverage": [
+      {
+        "unitId": "u01",
+        "nodeIds": [
+          "m-map"
+        ],
+        "role": "core",
+        "reason": "节点保留对应合成材料方法及其原始出处。"
+      },
+      {
+        "unitId": "u02",
+        "nodeIds": [
+          "m-evidence"
+        ],
+        "role": "core",
+        "reason": "节点保留对应合成材料方法及其原始出处。"
+      },
+      {
+        "unitId": "u03",
+        "nodeIds": [
+          "m-test"
+        ],
+        "role": "core",
+        "reason": "节点保留对应合成材料方法及其原始出处。"
+      }
+    ],
+    "constraints": [
+      {
+        "text": "这些互补工具不保证成功；顺序和适用性取决于问题与可用证据。",
+        "evidence": "material",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 3. Action loop · PDF第3页"
+      }
+    ]
+  }
+}

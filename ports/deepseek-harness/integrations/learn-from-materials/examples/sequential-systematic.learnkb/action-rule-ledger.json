@@ -1,0 +1,237 @@
+{
+  "independentRules": [
+    {
+      "ruleId": "r-pause",
+      "reason": "证据不足时暂停结论，是独立限制卡片；未另造流程节点。"
+    }
+  ],
+  "independentFrameworks": [],
+  "relationStatus": "mapped",
+  "relationReason": "保留三种工具之间有依据的关系及分析性顺序。",
+  "relationReview": {
+    "framework": [
+      {
+        "type": "applies",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "causes",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "contrasts",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "feedback",
+        "status": "mapped",
+        "edgeIds": [
+          "feedback-evidence",
+          "feedback-map"
+        ],
+        "reason": "自编材料及当前可见图中有对应关系。"
+      },
+      {
+        "type": "parallel",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "part_of",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "prerequisite",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "sequence",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "supports",
+        "status": "mapped",
+        "edgeIds": [
+          "map-evidence"
+        ],
+        "reason": "自编材料及当前可见图中有对应关系。"
+      }
+    ],
+    "methodology": [
+      {
+        "type": "branch",
+        "status": "mapped",
+        "edgeIds": [
+          "e-direct-test"
+        ],
+        "reason": "自编材料及当前可见图中有对应关系。"
+      },
+      {
+        "type": "causes",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "contains",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "contrasts",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "feedback",
+        "status": "mapped",
+        "edgeIds": [
+          "e-return-evidence",
+          "e-return-map"
+        ],
+        "reason": "自编材料及当前可见图中有对应关系。"
+      },
+      {
+        "type": "main",
+        "status": "mapped",
+        "edgeIds": [
+          "e-map-evidence",
+          "e-evidence-test"
+        ],
+        "reason": "自编材料及当前可见图中有对应关系。"
+      },
+      {
+        "type": "parallel",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "prerequisite",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      },
+      {
+        "type": "supports",
+        "status": "unsupported",
+        "edgeIds": [],
+        "reason": "源材料没有规定此类关系，不补造连线。"
+      }
+    ]
+  },
+  "schemaVersion": "learn-from-materials/action-rule-ledger-v2",
+  "pageId": "method-lab-sequential-systematic-v1",
+  "learningDepth": "systematic",
+  "units": [
+    {
+      "unitId": "u01",
+      "status": "reviewed",
+      "reviewedSourceIds": [
+        "src-451aaf991057-pdf_page-00001"
+      ],
+      "note": "读回第1页：范围、相关方、约束、可观察成功标准四个要素均保留；问题地图的触发条件是范围不清，不把它扩张为所有工具的强制前置步骤。页眉、版权与页脚不当作研究证据。"
+    },
+    {
+      "unitId": "u02",
+      "status": "reviewed",
+      "reviewedSourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "note": "读回第2页：区分观察和解释，把结论连回观察，寻找竞争解释与反证；低信心条件和单次观察不能视为证明均保留。没有原文给出的经验数据或实证案例。"
+    },
+    {
+      "unitId": "u03",
+      "status": "reviewed",
+      "reviewedSourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "note": "读回第3页直到末尾：低成本小试验、对比预测、扩大行动前修正、讨论停滞触发、两条反馈、工具不保证成功、顺序取决于问题及证据、证据不可核查时暂停结论均核对。修正旧摘要中额外的“结果不同时”条件。"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "candidate-r-map",
+      "unitId": "u01",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00001"
+      ],
+      "quote": "When the scope is unclear, draw a problem map first",
+      "when": "问题范围不清楚",
+      "do": "先画问题地图",
+      "because": "边界有助于识别相关信息",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-map",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    },
+    {
+      "id": "candidate-r-evidence",
+      "unitId": "u02",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "quote": "When confidence in a claim is low, gather relevant evidence",
+      "when": "对主张的信心不足",
+      "do": "收集证据并寻找反证",
+      "because": "一次观察不应被当作证明",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-evidence",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    },
+    {
+      "id": "candidate-r-test",
+      "unitId": "u03",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "quote": "When discussion stalls,\n\ndesign a small test",
+      "when": "讨论停滞",
+      "do": "设计有信息价值的小试验",
+      "because": "结果可以更新假设并指导下一步行动",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-test",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    },
+    {
+      "id": "candidate-r-pause",
+      "unitId": "u03",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00003"
+      ],
+      "quote": "When relevant evidence cannot be checked, pause the conclusion rather than claiming\n\nsuccess.",
+      "when": "相关证据无法核查",
+      "do": "暂停结论",
+      "because": "证据缺口不足以支持成功判断",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-pause",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    }
+  ]
+}

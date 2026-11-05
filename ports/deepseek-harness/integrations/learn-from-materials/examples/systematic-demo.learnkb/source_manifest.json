@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "2.0",
+  "total_sources": 1,
+  "sources": [
+    {
+      "source_file": "examples/method-lab-synthetic.pdf",
+      "filename": "method-lab-synthetic.pdf",
+      "format": "pdf",
+      "extraction_method": "pdfminer",
+      "file_size_mb": 0.0,
+      "pages": 3,
+      "pages_label": "pages",
+      "chars": 1704,
+      "words": 240,
+      "estimated_tokens": 316,
+      "token_estimate_method": "cjk-aware-mixed",
+      "ocr_used": false,
+      "ocr_recommended": false,
+      "visual_assets": 0,
+      "visual_review_recommended": false,
+      "page_mapping_complete": true,
+      "chapters_detected": 0,
+      "has_toc": false,
+      "sha256": "451aaf991057c230cc1bba74b6c69e90d7d064a7394df6c5c39da3d7d2d7f098",
+      "text_sha256": "0cc5c251edb5147d3087777984c07297e87e588539e37601f880c311750eb1b8",
+      "extractor_schema": "learn-from-materials/extractor-v2",
+      "reused_from_cache": false,
+      "duration_seconds": 0.190472
+    }
+  ]
+}

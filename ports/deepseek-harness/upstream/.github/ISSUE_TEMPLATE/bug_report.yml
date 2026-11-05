@@ -1,0 +1,26 @@
+name: Reading interruption / 使用问题
+description: Report a reproducible interruption to reading, navigation, notes or setup.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic material. Never attach a private PDF, database, launch token, credential or unapproved conversation."
+  - type: textarea
+    id: task
+    attributes:
+      label: What were you trying to read or do?
+      description: Include the smallest reproduction and expected/actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Package version or commit, OS, browser, viewport and installation route; no private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Safe evidence
+      description: A synthetic screenshot or redacted error. State whether retry recovered your input.

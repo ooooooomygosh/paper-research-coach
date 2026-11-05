@@ -1,0 +1,5 @@
+# Retained upstream snapshots and third-party projects keep their own notices.
+ports/deepseek-harness/integrations/** linguist-vendored
+ports/deepseek-harness/upstream/docs/** linguist-vendored
+ports/deepseek-harness/integrations/answer-me-with-html/prc-renderer.mjs linguist-generated
+ports/deepseek-harness/integrations/learn-from-materials/examples/*.html linguist-generated

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "learn-from-materials/unit-dependency-map-v1",
+  "pageId": "method-lab-systematic-demo-v1",
+  "entries": [
+    {
+      "sourceKey": "method-lab-synthetic.pdf#pdf_page:1",
+      "sourceId": "src-451aaf991057-pdf_page-00001",
+      "unitIds": [
+        "u01"
+      ],
+      "claimIds": [
+        "claim-001",
+        "claim-002",
+        "claim-003",
+        "claim-004",
+        "claim-005",
+        "claim-006",
+        "claim-007"
+      ]
+    },
+    {
+      "sourceKey": "method-lab-synthetic.pdf#pdf_page:2",
+      "sourceId": "src-451aaf991057-pdf_page-00002",
+      "unitIds": [
+        "u02"
+      ],
+      "claimIds": [
+        "claim-008",
+        "claim-009",
+        "claim-010",
+        "claim-011",
+        "claim-012",
+        "claim-013",
+        "claim-014"
+      ]
+    },
+    {
+      "sourceKey": "method-lab-synthetic.pdf#pdf_page:3",
+      "sourceId": "src-451aaf991057-pdf_page-00003",
+      "unitIds": [
+        "u03"
+      ],
+      "claimIds": [
+        "claim-015",
+        "claim-016",
+        "claim-017",
+        "claim-018",
+        "claim-019",
+        "claim-020",
+        "claim-021",
+        "claim-022",
+        "claim-023",
+        "claim-024",
+        "claim-025"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,327 @@
+{
+  "schemaVersion": "learn-from-materials/unit-record-v2",
+  "unit": {
+    "id": "u02",
+    "label": "单元 2",
+    "title": "检验主张",
+    "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+    "core": {
+      "id": "display-u02-core",
+      "text": "观察与解释是两回事。"
+    },
+    "frameworks": [
+      {
+        "id": "display-u02-framework-0",
+        "text": "证据链"
+      }
+    ],
+    "takeaways": [
+      {
+        "id": "display-u02-takeaway-0",
+        "text": "把结论追溯到观察。"
+      },
+      {
+        "id": "display-u02-takeaway-1",
+        "text": "寻找其他解释与反证。"
+      }
+    ],
+    "conclusions": [
+      {
+        "title": "证据不自动等于证明",
+        "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+        "summary": {
+          "id": "display-u02-conclusion-0-summary",
+          "text": "一次观察可能对应多种解释。"
+        },
+        "points": [
+          {
+            "id": "display-u02-conclusion-0-point-0",
+            "text": "区分观察到什么和它可能意味着什么。"
+          },
+          {
+            "id": "display-u02-conclusion-0-point-1",
+            "text": "寻找可能挑战当前主张的证据。"
+          }
+        ]
+      }
+    ]
+  },
+  "sources": [
+    {
+      "sourceId": "src-451aaf991057-pdf_page-00002",
+      "status": "covered",
+      "reason": "Synthetic demo block assigned to this unit; fixture only."
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-008",
+      "kind": "method",
+      "text": "观察与解释是两回事。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-core"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "id": "claim-009",
+      "kind": "method",
+      "text": "证据链",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-framework-0"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "id": "claim-010",
+      "kind": "method",
+      "text": "把结论追溯到观察。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-takeaway-0"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "id": "claim-011",
+      "kind": "method",
+      "text": "寻找其他解释与反证。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-takeaway-1"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "id": "claim-012",
+      "kind": "method",
+      "text": "一次观察可能对应多种解释。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-conclusion-0-summary"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "id": "claim-013",
+      "kind": "method",
+      "text": "区分观察到什么和它可能意味着什么。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-conclusion-0-point-0"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    },
+    {
+      "id": "claim-014",
+      "kind": "method",
+      "text": "寻找可能挑战当前主张的证据。",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "contentIds": [
+        "display-u02-conclusion-0-point-1"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ]
+    }
+  ],
+  "frameworks": [
+    {
+      "id": "f-evidence",
+      "name": "证据链",
+      "oneLine": "把结论连到观察和其他可能的解释。",
+      "when": "判断主张是否有充分依据时",
+      "firstUnitId": "u02",
+      "sourceOrder": 2,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    }
+  ],
+  "glossary": [
+    {
+      "id": "counterevidence",
+      "term": "反证",
+      "category": "领域术语",
+      "definition": "可能挑战当前主张的证据。",
+      "context": "证据链用反证检查信心，避免把一次观察当作证明。",
+      "related": [
+        "观察",
+        "其他解释"
+      ],
+      "units": [
+        "u02"
+      ],
+      "firstUnitId": "u02",
+      "sourceOrder": 2,
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    }
+  ],
+  "decisionRules": [
+    {
+      "id": "r-evidence",
+      "when": "对主张的信心不足",
+      "do": "收集证据并寻找反证",
+      "because": "一次观察不应被当作证明",
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    }
+  ],
+  "focusAreas": [
+    {
+      "id": "a-evidence",
+      "title": "区分观察与解释",
+      "unitId": "u02",
+      "abilities": [
+        "记忆",
+        "解释"
+      ],
+      "source": "method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    }
+  ],
+  "sections": {
+    "mentalModels": [
+      "观察与解释分开；结论应可回溯到观察并容纳竞争解释。 method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    ],
+    "antiPatterns": [
+      "把单次观察当作证明；只找支持当前解释的信息而忽略反证。 method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    ],
+    "workedExamples": [
+      "原页未提供具体观测数据或经验案例。 method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    ],
+    "connections": [
+      "第3页明确允许小试验结果更新证据链。 method-lab-synthetic.pdf · 标题路径：Method Lab > 2. Evidence chain · PDF第2页"
+    ]
+  },
+  "ruleReview": {
+    "unitId": "u02",
+    "status": "reviewed",
+    "reviewedSourceIds": [
+      "src-451aaf991057-pdf_page-00002"
+    ],
+    "note": "读回第2页：区分观察和解释，把结论连回观察，寻找竞争解释与反证；低信心条件和单次观察不能视为证明均保留。没有原文给出的经验数据或实证案例。"
+  },
+  "ruleCandidates": [
+    {
+      "id": "candidate-r-evidence",
+      "unitId": "u02",
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "quote": "When confidence in a claim is low, gather relevant evidence",
+      "when": "对主张的信心不足",
+      "do": "收集证据并寻找反证",
+      "because": "一次观察不应被当作证明",
+      "prerequisites": [],
+      "exceptions": [],
+      "stopCondition": "",
+      "status": "retained",
+      "targetRuleId": "r-evidence",
+      "reason": "核对自编源材料中的条件、行动与理由后保留。"
+    }
+  ],
+  "frameworkCandidates": [
+    {
+      "id": "fc-f-evidence",
+      "name": "证据链",
+      "claimIds": [
+        "claim-009"
+      ],
+      "status": "retained",
+      "targetFrameworkId": "f-evidence",
+      "reason": "读回第2页：区分观察和解释，把结论连回观察，寻找竞争解释与反证；低信心条件和单次观察不能视为证明均保留。没有原文给出的经验数据或实证案例。"
+    }
+  ],
+  "relationSearch": {
+    "status": "searched",
+    "sourceIds": [
+      "src-451aaf991057-pdf_page-00002"
+    ],
+    "note": "读回第2页：区分观察和解释，把结论连回观察，寻找竞争解释与反证；低信心条件和单次观察不能视为证明均保留。没有原文给出的经验数据或实证案例。"
+  },
+  "relationCandidates": [
+    {
+      "id": "rc-page-evidence-rule",
+      "unitIds": [
+        "u02"
+      ],
+      "sourceIds": [
+        "src-451aaf991057-pdf_page-00002"
+      ],
+      "evidence": [
+        {
+          "kind": "text",
+          "sourceId": "src-451aaf991057-pdf_page-00002",
+          "quote": "Separate observations from explanations. Link conclusions to observations and look for\n\ncompeting explanations. When confidence in a claim is low, gather relevant evidence and\n\nactively seek counterevidence instead of treating a single observation as proof."
+        }
+      ],
+      "from": "f-evidence",
+      "to": "r-evidence",
+      "type": "applies",
+      "condition": "对主张信心不足时",
+      "handoff": "观察、解释和反证。",
+      "evidenceKind": "material",
+      "note": "第2页明确要求寻找反证而非用一次观察证明主张。"
+    }
+  ]
+}

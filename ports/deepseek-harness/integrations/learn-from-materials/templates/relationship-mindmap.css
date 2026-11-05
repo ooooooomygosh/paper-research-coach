@@ -1,0 +1,107 @@
+/* The relationship view uses the same paper, ink, accent and type tokens as the page. */
+.lfm-mm{border:1px solid var(--line);border-radius:20px;background:var(--panel-bg);box-shadow:var(--card-shadow);padding:19px;color:var(--ink);font-family:var(--font-display)}
+.lfm-mm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:4px 3px 16px}
+.lfm-mm-heading h3{font:750 clamp(20px,2.3vw,27px)/1.25 var(--font-display);margin:6px 0;color:var(--ink)}
+.lfm-mm-heading p{font:13px/1.6 var(--font-display);color:var(--muted);margin:0}
+.lfm-mm-eyebrow{font:700 11px/1.4 var(--font-display);letter-spacing:.12em;color:var(--blue)}
+.lfm-mm-tools{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:7px;max-width:610px}
+.lfm-mm-tools button,.lfm-mm-search{min-height:37px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface-strong);color:var(--ink);font:13px/1.25 var(--font-display)}
+.lfm-mm-tools button{cursor:pointer;transition:background .16s,border-color .16s}
+.lfm-mm-tools button:hover{background:var(--tint-accent-strong);border-color:var(--blue)}
+.lfm-mm-tools button:focus-visible,.lfm-mm-search:focus-visible,.lfm-mm-node button:focus-visible,.lfm-mm-edge-label:focus-visible,.lfm-mm-viewport:focus-visible,.lfm-mm-unlinked summary:focus-visible,.lfm-mm-unlinked-item:focus-visible,.lfm-mm-unlinked-detail:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.lfm-mm-tools button:disabled{cursor:default;opacity:.5}
+.lfm-mm-tools button[hidden]{display:none}
+.lfm-mm-search{width:158px;outline:none}
+.lfm-mm-viewport{height:min(67vh,650px);min-height:450px;overflow:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:16px;background-color:var(--paper);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:22px 22px;scrollbar-color:var(--blue) transparent}
+.lfm-mm-viewport[hidden],.lfm-mm-unlinked-detail[hidden]{display:none}
+.lfm-mm-empty{margin:3px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-strong);color:var(--muted);font:13px/1.6 var(--font-display)}
+.lfm-mm-unlinked{margin:14px 3px 0;border-top:1px solid var(--line);padding-top:12px;flex:none;min-height:0}
+.lfm-mm-unlinked summary{cursor:pointer;color:var(--muted);font:700 13px/1.5 var(--font-display);overflow-wrap:anywhere}
+.lfm-mm-unlinked-note{margin:10px 0;color:var(--muted);font:12px/1.6 var(--font-display)}
+.lfm-mm-unlinked-list{display:flex;flex-wrap:wrap;gap:7px;max-height:180px;overflow:auto;padding:3px;overscroll-behavior:contain}
+.relation-panel .lfm-mm-unlinked-item{max-width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-strong);color:var(--ink);font:12px/1.5 var(--font-display);overflow-wrap:anywhere;text-align:left;cursor:pointer}
+.relation-panel .lfm-mm-unlinked-item.is-selected{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.lfm-mm-unlinked-detail{margin:12px 0 2px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-strong);font:13px/1.7 var(--font-display);overflow-wrap:anywhere}
+.lfm-mm-unlinked-detail h3{margin:0 0 8px;color:var(--ink);font:700 16px/1.4 var(--font-display)}
+.lfm-mm-unlinked-detail p{margin:0 0 9px}
+.lfm-mm-unlinked-detail .relation-source{color:var(--muted);font-size:12px}
+.lfm-mm-canvas{position:relative;min-width:1px;min-height:1px}
+.lfm-mm-measure{position:absolute;left:-100000px;top:0;visibility:hidden;pointer-events:none;width:228px;contain:layout style}
+.lfm-mm-results{margin:0 3px 14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-strong)}
+.lfm-mm-results[hidden]{display:none}
+.lfm-mm-search-status{margin:0 0 8px;color:var(--muted);font:12px/1.5 var(--font-display)}
+.lfm-mm-result-list{display:flex;flex-wrap:wrap;gap:8px;max-height:180px;overflow:auto;overscroll-behavior:contain}
+.relation-panel .lfm-mm-result{max-width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-strong);color:var(--ink);font:12px/1.5 var(--font-display);overflow-wrap:anywhere;cursor:pointer;text-align:left}
+.relation-panel .lfm-mm-result:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.lfm-mm-stage{position:relative;transform-origin:0 0}
+/* The legacy relation view caps every SVG at 1100px. This SVG must instead
+   match its coordinate stage exactly, or its paths shrink away from the nodes. */
+.relation-canvas .lfm-mm-wires{position:absolute;inset:0;display:block;width:100%;height:100%;min-width:0;max-width:none;margin:0;overflow:visible;pointer-events:none}
+.lfm-mm-wire{fill:none;stroke:var(--blue);stroke-width:2.5;opacity:.75;vector-effect:non-scaling-stroke}
+.lfm-mm-wire.is-inference{stroke:var(--gold);stroke-dasharray:7 6}
+.lfm-mm-tip-material{fill:var(--blue);stroke:none}
+.lfm-mm-tip-inference{fill:var(--gold);stroke:none}
+.lfm-mm-flow{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round;opacity:0;pointer-events:none;vector-effect:non-scaling-stroke}
+.lfm-mm-flow.is-inference{stroke:var(--gold)}
+.lfm-mm-edge-label.is-route-fallback rect{stroke-width:1.8}
+.lfm-mm-edge-label{pointer-events:all;cursor:help}
+.lfm-mm-edge-label rect{fill:var(--paper);stroke:var(--blue);stroke-width:1}
+.lfm-mm-edge-label text{fill:var(--ink);font:700 11px/1 var(--font-display)}
+.lfm-mm-edge-label.is-inference rect{stroke:var(--gold);stroke-dasharray:3 2}
+.lfm-mm-edge-label:hover rect,.lfm-mm-edge-label:focus-visible rect{fill:var(--tint-accent-strong)}
+.lfm-mm-nodes{position:absolute;inset:0;pointer-events:none}
+.lfm-mm-node{position:absolute;box-sizing:border-box;z-index:1;pointer-events:auto;border:1.5px solid var(--blue);border-radius:16px;background:transparent;color:var(--ink);box-shadow:var(--card-shadow);transition:box-shadow .15s,transform .15s,border-color .15s}
+.lfm-mm-node:hover{transform:translateY(-2px);box-shadow:var(--shadow);z-index:3}
+.lfm-mm-node.is-selected{border-color:var(--gold);box-shadow:0 0 0 3px var(--tint-accent-strong),var(--card-shadow)}
+.lfm-mm-node.is-root{color:var(--nav-ink);border-color:var(--nav-bg);box-shadow:var(--shadow)}
+/* The legacy .relation-panel button rule has higher specificity than a single
+   class, so paint the actual button surface with an explicit descendant rule. */
+.relation-panel .lfm-mm-select{box-sizing:border-box;display:flex;width:100%;height:100%;min-height:72px;flex-direction:column;justify-content:center;align-items:flex-start;gap:6px;padding:12px 17px;border:0;border-radius:14px;background:var(--surface-strong);color:var(--ink);text-align:left;cursor:pointer;font:700 15px/1.38 var(--font-display);overflow-wrap:anywhere}
+.lfm-mm-select small{color:var(--muted);font:700 10px/1 var(--font-display);letter-spacing:.1em}
+.lfm-mm-node.is-root .lfm-mm-select{font-size:17px}
+.lfm-mm-node.is-root .lfm-mm-select small{color:var(--nav-muted)}
+.relation-panel .lfm-mm-node.is-root .lfm-mm-select{background:var(--nav-bg);color:var(--nav-ink)}
+.relation-panel .lfm-mm-toggle{position:absolute;right:-14px;top:50%;z-index:2;box-sizing:border-box;width:29px;height:29px;margin:0;padding:0;transform:translateY(-50%);border-radius:50%;border:1px solid var(--paper);background:var(--blue);color:var(--white);font:700 19px/24px var(--font-display);text-align:center;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.18)}
+.relation-panel .lfm-mm-node.is-root .lfm-mm-toggle{background:var(--gold)}
+body[data-theme="dark"] .relation-panel .lfm-mm-select{background:#11171d;color:#f6f8f8}
+body[data-theme="dark"] .relation-panel .lfm-mm-node.is-root .lfm-mm-select{background:#0b1015;color:#ffffff}
+body[data-theme="dark"] .lfm-mm-select small{color:#b8c3c7}
+body[data-theme="dark"] .lfm-mm-node.is-root .lfm-mm-select small{color:#b8c3c7}
+body[data-theme="dark"] .lfm-mm-edge-label rect{fill:#11171d}
+body[data-theme="dark"] .lfm-mm-edge-label text{fill:#ffffff}
+.lfm-mm-foot{display:flex;justify-content:space-between;gap:15px;margin:13px 3px 0;color:var(--muted);font:12px/1.5 var(--font-display)}
+.lfm-mm-foot span:last-child{white-space:nowrap}
+.lfm-mm-extra{margin:8px 3px 0;color:var(--muted);font:12px/1.5 var(--font-display)}
+.lfm-mm-hover h3{color:var(--dg-tip-title);font:700 15px/1.4 var(--font-display);margin:0 0 7px}
+.lfm-mm-hover p{margin:0 0 9px}
+.lfm-mm-hover .lfm-mm-hover-type{color:var(--dg-tip-label);font-weight:700}
+.lfm-mm-hover .relation-edge-list{margin:5px 0 0;padding-left:17px}
+.lfm-mm-hover .relation-edge-list li{margin-bottom:9px}
+.lfm-mm-hover .relation-edge-list strong{display:block}
+.lfm-mm-hover .relation-source,.lfm-mm-hover .hover-source{color:var(--dg-tip-label);font-size:11.5px;overflow-wrap:anywhere}
+html.lfm-mm-scroll-lock{overflow:hidden}
+.lfm-mm:fullscreen,.lfm-mm.is-fullscreen{position:fixed;inset:0;z-index:2147483000;box-sizing:border-box;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:18px;border:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden;background:var(--panel-bg)}
+.lfm-mm:fullscreen .lfm-mm-head,.lfm-mm.is-fullscreen .lfm-mm-head{flex:none}
+.lfm-mm:fullscreen .lfm-mm-viewport,.lfm-mm.is-fullscreen .lfm-mm-viewport{flex:1;min-height:0;height:auto;max-height:none}
+.lfm-mm:fullscreen .lfm-mm-foot,.lfm-mm.is-fullscreen .lfm-mm-foot{flex:none}
+.lfm-mm:fullscreen .lfm-mm-unlinked[open],.lfm-mm.is-fullscreen .lfm-mm-unlinked[open]{max-height:42vh;overflow:auto;overscroll-behavior:contain;flex-shrink:1}
+.lfm-mm.is-empty:fullscreen .lfm-mm-unlinked[open],.lfm-mm.is-empty.is-fullscreen .lfm-mm-unlinked[open]{max-height:none;flex:1;overflow:auto}
+@media(max-width:900px){.lfm-mm-head{display:block}.lfm-mm-tools{justify-content:flex-start;margin-top:14px;max-width:none}.lfm-mm-viewport{height:540px}}
+@media(max-width:620px){.lfm-mm{padding:12px;border-radius:16px}.lfm-mm-tools{gap:5px}.lfm-mm-tools button,.lfm-mm-search{font-size:12px;padding:7px 9px}.lfm-mm-search{flex:1;min-width:110px}.lfm-mm-viewport{height:450px;min-height:380px}.lfm-mm-foot{display:block}.lfm-mm-foot span{display:block}}
+@media(prefers-reduced-motion:reduce){.lfm-mm-node,.lfm-mm-tools button{transition:none}.lfm-mm-node:hover{transform:none}}
+
+
+/* Compact framework layout uses the existing theme and stable content identities. */
+.lfm-mm-sections{position:absolute;inset:0;pointer-events:none}
+.lfm-mm .lfm-mm-section{position:absolute;box-sizing:border-box;padding:0 0 12px;border-bottom:1px solid var(--line);color:var(--muted);font:700 13px/1.5 var(--font-display);letter-spacing:.02em}
+.lfm-mm .lfm-mm-node{transition:border-color .16s,box-shadow .16s}
+.lfm-mm .lfm-mm-node.is-muted{opacity:1;border-color:var(--line);box-shadow:none}
+.lfm-mm .lfm-mm-node.is-related{border-color:var(--blue);box-shadow:0 0 0 2px var(--tint-accent-strong),var(--card-shadow)}
+.lfm-mm .lfm-mm-node.is-selected{border-color:var(--gold);box-shadow:0 0 0 3px var(--tint-accent-strong),var(--card-shadow);opacity:1}
+.lfm-mm .lfm-mm-wire.is-active{stroke-width:3.5;opacity:1}
+.lfm-mm .lfm-mm-wire.is-muted{opacity:.45}
+.lfm-mm .lfm-mm-edge-label.is-muted{opacity:1}
+.lfm-mm .lfm-mm-edge-label.is-muted rect{stroke:var(--muted)}
+.lfm-mm .lfm-mm-edge-label.is-active rect{stroke-width:2;fill:var(--paper)}
+.lfm-mm .lfm-mm-node:focus-within,.lfm-mm .lfm-mm-node:hover,.lfm-mm .lfm-mm-edge-label:focus,.lfm-mm .lfm-mm-edge-label:hover{opacity:1}
+@media(prefers-reduced-motion:reduce){.lfm-mm .lfm-mm-node{transition:none}}

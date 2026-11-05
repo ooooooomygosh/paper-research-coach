@@ -1,0 +1,23 @@
+name: Reading improvement / 阅读改进
+description: Explain a reading need before proposing another feature.
+title: "[Reading] "
+body:
+  - type: textarea
+    id: moment
+    attributes:
+      label: Which reading moment needs help?
+      description: What were you trying to understand, check, remember or transfer?
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Smallest useful change
+      description: Could removing a step or improving wording solve it without a new panel?
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: How would we know it helped?
+      description: Describe observable reader behavior, not just more generated text.

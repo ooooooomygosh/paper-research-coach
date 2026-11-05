@@ -1,0 +1,21 @@
+{
+  "name": "@local/dsh-paper-research-coach",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Paper Research Coach full workbench, built into DeepSeek Harness with account authentication",
+  "license": "MIT",
+  "exports": {
+    ".": "./host/index.js",
+    "./client": "./client/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "dsh": {
+    "bundle": {"patch": "./cordis.patch.yml"},
+    "client": {"platform": "web", "immediately": true, "inject": ["@deepseek-ai/dsh-client-ui-layout"]}
+  },
+  "engines": {"dsh": ">=0.2.1-rc.5"},
+  "peerDependencies": {"@deepseek-ai/dsh-http-proxy": "0.2.1-rc.5", "@deepseek-ai/dsh-launch-environment": "0.2.1-rc.5"},
+  "scripts": {"test": "node --test tests/host.test.mjs"}
+}

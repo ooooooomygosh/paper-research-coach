@@ -1,0 +1,41 @@
+/* Content-sized reader controls; applies to both locales and enlarged text. */
+body[data-theme] .tabs > .tab{
+  display:flex;flex:1 0 auto;width:max-content;min-width:0;max-width:none;
+  align-items:center;gap:10px;white-space:nowrap;padding:10px 14px;
+}
+body[data-theme] .tabs > .tab::before{
+  flex:0 0 26px;width:26px;min-width:26px;height:26px;aspect-ratio:1;
+}
+body[data-theme] .tabs{align-items:stretch;scroll-padding-inline:8px}
+body[data-theme] :is(.note,.note[data-source],.note:nth-child(3n+1),.note:nth-child(4n+1)){
+  height:auto;max-height:none;min-width:0;padding-bottom:58px;
+}
+body[data-theme] :is(.note h3,.note p,.rule-item,.unit-source-disclosure,.source-original,.relation-source,.diagram-card-title,.lfm-mm-node-title,.term-body,.term-name,.ch-core,.ch-block li,.section-title,.chapter-conclusion summary,.method-constraints,.whole-text){
+  overflow-wrap:anywhere;word-break:normal;min-width:0;max-width:100%;
+}
+body[data-theme] .note .card-source{position:static;white-space:normal;max-height:none}
+.source-original{margin:8px 0;color:var(--muted);font:12px/1.7 var(--font-display)}
+.source-original summary{cursor:pointer;overflow-wrap:anywhere}
+.source-original p{white-space:pre-wrap;overflow-wrap:anywhere}
+body[data-theme] .note > .source-original{display:none}
+body[data-theme].show-sources .note > .source-original,
+body[data-theme] .note:hover > .source-original,
+body[data-theme] .note:focus-within > .source-original{display:block}
+/* Avoid a second hover layer covering neighboring cards. Each card has a real
+   source paragraph plus an original-label disclosure in document flow. */
+body[data-theme] .note[data-source]::after{content:"";pointer-events:none}
+body[data-theme] :is(.source-target,.chapter-conclusion,.ch-view)[data-source]::after{display:none!important}
+[data-source-display]::after{content:attr(data-source-display)}
+.content-source-tooltip{
+  width:max-content;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);
+  white-space:normal;overflow-wrap:anywhere;overflow:auto;overscroll-behavior:contain;
+}
+@media(max-width:620px){
+  body[data-theme] .tabs > .tab{flex:0 0 auto;min-width:0;padding:10px 12px}
+  body[data-theme] :is(.note,.note[data-source],.note:nth-child(3n+1),.note:nth-child(4n+1)){padding-bottom:58px}
+}
+/* Keep legacy source and unit-button pseudo tooltips inside the reader width. */
+body[data-theme] [data-source]:not(.note)::after{
+  max-width:calc(100% - 8px);white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;
+}
+body[data-theme] .ch-send[data-tooltip]::after{box-sizing:border-box}

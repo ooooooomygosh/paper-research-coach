@@ -1,0 +1,737 @@
+{
+  "description": "BabelDOC 0.6.4 cached assets in the tested Windows 1.1.0 package; binary files are not stored in Git.",
+  "files": {
+    "cache.v1.db": {
+      "bytes": 12288,
+      "sha256": "eab371fb99fb7f58598f99b6c798d237c8f79e4fedff9b0358310018250619c1"
+    },
+    "cmap/78-EUC-H.json": {
+      "bytes": 15035,
+      "sha256": "9151339ddb189ed2b7a75480df7b35f953b9aa514b55947bdf667f842c8605d7"
+    },
+    "cmap/78-EUC-V.json": {
+      "bytes": 704,
+      "sha256": "b4c090e343569e9f5214c3799765a3188bdd0cf3aefa9c5a4f2ecd056af78e7a"
+    },
+    "cmap/78-H.json": {
+      "bytes": 14993,
+      "sha256": "86d5e12570276d89cc3ce3d56d5fb9b149f9e74a86eb6f8e6b62f990463a0847"
+    },
+    "cmap/78-RKSJ-H.json": {
+      "bytes": 15054,
+      "sha256": "e1f3a8eff0d9428343cc5257576fbc6944959cbda9f3b48b54cd9d7cb26ec0d5"
+    },
+    "cmap/78-RKSJ-V.json": {
+      "bytes": 705,
+      "sha256": "54b09ae08fa12a22b2d99570f8123653138762ddee0eafd279b0ec47be7a8bcf"
+    },
+    "cmap/78-V.json": {
+      "bytes": 700,
+      "sha256": "51b824899805ad47b941809ea3e94aaa0d09718202efeac9b7845d95384a5f37"
+    },
+    "cmap/78ms-RKSJ-H.json": {
+      "bytes": 17125,
+      "sha256": "f2dd2bbb6e499c292ca5528be6975f6a5aa733bb4444083015c724ebce3d8e0c"
+    },
+    "cmap/78ms-RKSJ-V.json": {
+      "bytes": 1928,
+      "sha256": "2a3c489934e401cb7b096d189714e6685ba2f9482445dbfa449126eb9393c60f"
+    },
+    "cmap/83pv-RKSJ-H.json": {
+      "bytes": 5277,
+      "sha256": "f5eacb9a1938008d3cf01e4fe4e997f003919129af5af9659a32ca0089a76382"
+    },
+    "cmap/90ms-RKSJ-H.json": {
+      "bytes": 4117,
+      "sha256": "61a4ed954232b802d60085e8321e1aece0444f0a188c56164b8924bdda682855"
+    },
+    "cmap/90ms-RKSJ-V.json": {
+      "bytes": 1928,
+      "sha256": "edeaecfe7f64e1820c790aebd9a08e9fe91e45e8e17891af26a8661b24ef411a"
+    },
+    "cmap/90msp-RKSJ-H.json": {
+      "bytes": 4096,
+      "sha256": "17ce1217b8e6bc086539ae39e0361b8fdde1b420ade3a4232ecd7bec35144fec"
+    },
+    "cmap/90msp-RKSJ-V.json": {
+      "bytes": 1929,
+      "sha256": "1c379b1b7316d96c0f0f328b097d0d27b54fd62ebf1a16c71149cce57a8c75b8"
+    },
+    "cmap/90pv-RKSJ-H.json": {
+      "bytes": 6314,
+      "sha256": "d90704f9fcbf2456519e4131a4f8c8ff84f62e47aebc73151d33a33048861f0c"
+    },
+    "cmap/90pv-RKSJ-V.json": {
+      "bytes": 1283,
+      "sha256": "ae67f4fa19a19cf1be60179793db79549c6160ab9de17fbc4be0c068123e51ec"
+    },
+    "cmap/Add-H.json": {
+      "bytes": 15174,
+      "sha256": "cd1ec6004ed5f3a0118b4ff77b73491bc9e74b58b3046a4842f9c8661d2aeaf5"
+    },
+    "cmap/Add-RKSJ-H.json": {
+      "bytes": 15259,
+      "sha256": "4ccbd957b7223f9f672dd6d4eba96545a789c84da595f819dfa50f5cfc6aa62e"
+    },
+    "cmap/Add-RKSJ-V.json": {
+      "bytes": 1426,
+      "sha256": "5673389ee12e64488a2c627541d075a5040d6c36b2c998fe7ea2f39a3c749cd2"
+    },
+    "cmap/Add-V.json": {
+      "bytes": 1421,
+      "sha256": "d377c600e6acc4d2b52a852a4f58f6357a9f8baea18d5c9fa480bfc08652813f"
+    },
+    "cmap/B5-H.json": {
+      "bytes": 5960,
+      "sha256": "e6cd1cdf904bf83999862d1eac0030b2550f8408b5befc57065a773736d4553c"
+    },
+    "cmap/B5-V.json": {
+      "bytes": 334,
+      "sha256": "17ad43e7d2084a9d7430492360f7825da31a4dcfe18613555362e28e5bb29fa8"
+    },
+    "cmap/B5pc-H.json": {
+      "bytes": 6015,
+      "sha256": "8716bc18463c3f0a2bb49486cd9a33ec89a52e5a978a4df71f7118ce640d779b"
+    },
+    "cmap/B5pc-V.json": {
+      "bytes": 336,
+      "sha256": "796185639f03504c1486036addf48778c70fe377a6998ad2de4d9999f84c4bed"
+    },
+    "cmap/CNS-EUC-H.json": {
+      "bytes": 11342,
+      "sha256": "52b3e880c5cb9aa3f0dcf33b1f6529c9d98af48d0d0dde85b1f31b14c4e84577"
+    },
+    "cmap/CNS-EUC-V.json": {
+      "bytes": 12592,
+      "sha256": "7420564bf040a80819f7b555da3ae8e014b4ae6e3639ad91e3ca4a252bda45cf"
+    },
+    "cmap/CNS1-H.json": {
+      "bytes": 3728,
+      "sha256": "dc665c9d138b123c9b939d0011b13dd1b9275c6e43acd26d9c3c19076c9a6358"
+    },
+    "cmap/CNS1-V.json": {
+      "bytes": 332,
+      "sha256": "9f025f9b54296e25b5dad23721e7db515db35dc83fafbbe9ba749aedc99c3617"
+    },
+    "cmap/CNS2-H.json": {
+      "bytes": 2053,
+      "sha256": "11dbdb4fc75e06d2cee53c28a5b204f6e889b91c0c4fa7af55a48bf613babb30"
+    },
+    "cmap/CNS2-V.json": {
+      "bytes": 54,
+      "sha256": "e31f547da95c2198a59d559ec2acf29cc93ad7a8631905fe1de3b990992817cf"
+    },
+    "cmap/ETen-B5-H.json": {
+      "bytes": 6205,
+      "sha256": "33642fab0c9d780b8918a550fe998d8f31d009802b2b6478582c5f5c02f843a6"
+    },
+    "cmap/ETen-B5-V.json": {
+      "bytes": 364,
+      "sha256": "86d6ffb204643cf0be5b2184437ce721fa804b77f16d634869d324f306fd0cc4"
+    },
+    "cmap/ETenms-B5-H.json": {
+      "bytes": 72,
+      "sha256": "6c18b30845632db2302552f0ae235a0114b9bbd13b0ff97d55b45bc89f6cecd5"
+    },
+    "cmap/ETenms-B5-V.json": {
+      "bytes": 429,
+      "sha256": "3ca47e60bee973bf6112dc8532e8a814d34aeabdf6d5ba5c735a415e1c325177"
+    },
+    "cmap/ETHK-B5-H.json": {
+      "bytes": 25660,
+      "sha256": "70aec1b273ff5165fbb35d86d18888c4e427b3b4c60dbbee6c80f68875e9832e"
+    },
+    "cmap/ETHK-B5-V.json": {
+      "bytes": 364,
+      "sha256": "522d53e9519b70c5c4bdad252a88fed2dfb2f69d1c9dbedcc6aaffa541b0f265"
+    },
+    "cmap/EUC-H.json": {
+      "bytes": 2910,
+      "sha256": "15925b50b3b1ade9044ed04e1e4aa0ab6424b417bfc6985a2b2b0cb07c1ccc0a"
+    },
+    "cmap/EUC-V.json": {
+      "bytes": 701,
+      "sha256": "ce353dd53fc77823ed3a6384565a257eadc3f7eabcea6741cf91d935f3d3c831"
+    },
+    "cmap/Ext-H.json": {
+      "bytes": 15891,
+      "sha256": "c13047ff705650f9584bf877df1ae5d5f1a6334f4d0bd4a300fee538c508d0c1"
+    },
+    "cmap/Ext-RKSJ-H.json": {
+      "bytes": 15975,
+      "sha256": "3367e759f0f63358859d15ed42fd8f8654fbc2f47ce98505565a163088f95192"
+    },
+    "cmap/Ext-RKSJ-V.json": {
+      "bytes": 994,
+      "sha256": "34901d871f33f37d3bd5f429f51ba08b56a1f0575771608f19202b49bf68f8e4"
+    },
+    "cmap/Ext-V.json": {
+      "bytes": 989,
+      "sha256": "f1ba68a027f04c56ab72cf216b806932b41f71ba3a15dc8ff3ffa16d327651d1"
+    },
+    "cmap/GB-EUC-H.json": {
+      "bytes": 2178,
+      "sha256": "a96048f850ad2f37ca05119be70b323f9e49d50a49d4834fffa41f23d3975188"
+    },
+    "cmap/GB-EUC-V.json": {
+      "bytes": 520,
+      "sha256": "86a9db35ea40ef0e155e9584364c703041bdb193831cd5996fd4c3831f87561e"
+    },
+    "cmap/GB-H.json": {
+      "bytes": 2139,
+      "sha256": "99f3540c824e53b2b0c5910fcb003b3709ae1376437ff9de41d85189ec326abe"
+    },
+    "cmap/GB-V.json": {
+      "bytes": 516,
+      "sha256": "57811ae368634f637afef7c96ea4be6db258f05d4caef264f860f5425a3b1534"
+    },
+    "cmap/GBK-EUC-H.json": {
+      "bytes": 99532,
+      "sha256": "4464735ca0ff03f8ce9a6370258c320a7dee6f52f968052a1f5cae5332316203"
+    },
+    "cmap/GBK-EUC-V.json": {
+      "bytes": 521,
+      "sha256": "fa6f4543da18bc1de2965c6e224eecd914359ba2d73bcd2cd8560097ef48637a"
+    },
+    "cmap/GBK2K-H.json": {
+      "bytes": 109298,
+      "sha256": "65a92f220a28dc8f7eccbe152a80a482408f015f49b6b0888a9ded94b6c99976"
+    },
+    "cmap/GBK2K-V.json": {
+      "bytes": 1044,
+      "sha256": "a196500f6213dba3f59d6ef2246704a6a15b8b5da5b4ea03744424fa1888599b"
+    },
+    "cmap/GBKp-EUC-H.json": {
+      "bytes": 99510,
+      "sha256": "7f8c2d0c8a57b8d9d45b3115c6f49fab1e47cf9d70a268e038a3f7bc7418492b"
+    },
+    "cmap/GBKp-EUC-V.json": {
+      "bytes": 522,
+      "sha256": "2512a04c7fb9386ca163a97a6ea461aab3e9f9da6a8310128acea9f5b95666d3"
+    },
+    "cmap/GBpc-EUC-H.json": {
+      "bytes": 2196,
+      "sha256": "ed130ca5f0ad8e8a5334b87ea62a95468ae3fecd302b35684615baff16d7a439"
+    },
+    "cmap/GBpc-EUC-V.json": {
+      "bytes": 522,
+      "sha256": "a78e84c93084eff8a312ce3c87419a108ca109fd8658a5d3564a066481430ca8"
+    },
+    "cmap/GBT-EUC-H.json": {
+      "bytes": 54802,
+      "sha256": "c66670faa057bcab901b4cd28b2a5e11e2ddc79bbc7e06b926e5ff4140898cd6"
+    },
+    "cmap/GBT-EUC-V.json": {
+      "bytes": 521,
+      "sha256": "e59133a5ac8e3ce4a01e0dfd4aca46b8b3810c8864c5e781d8d48efd5c0ccf63"
+    },
+    "cmap/GBT-H.json": {
+      "bytes": 54763,
+      "sha256": "3824e28a30509234b2bab55ded5fdcb0c05c2c12d573e4c636227f2c446a68de"
+    },
+    "cmap/GBT-V.json": {
+      "bytes": 517,
+      "sha256": "e45c0ea9a829dfff7d1ec90b336498eab9f563f454d394257582e16cd0f87bb8"
+    },
+    "cmap/GBTpc-EUC-H.json": {
+      "bytes": 54820,
+      "sha256": "39a357abaaebbf2b01b6ba98ce697d5cd46c2b2a9756d7359584b4b252e5cbb2"
+    },
+    "cmap/GBTpc-EUC-V.json": {
+      "bytes": 523,
+      "sha256": "5b576ac6a616ed35a61d6583bfee80f14895b7cd473a5f1d83dd02d3d68d72de"
+    },
+    "cmap/H.json": {
+      "bytes": 2868,
+      "sha256": "8b0ea570a0a478f7edd0d3a0a208502271e8ef610e9d653d48fb46eb683ae74b"
+    },
+    "cmap/Hankaku.json": {
+      "bytes": 238,
+      "sha256": "eeced44cff509d892ff5ba4972c2c93c9ad75349785f351cdbc9a6a985ff0e83"
+    },
+    "cmap/Hiragana.json": {
+      "bytes": 200,
+      "sha256": "6d1a15665e5ee019437d9e8928cbf27fe48336f821802c7498c4b44fd86769dc"
+    },
+    "cmap/HKdla-B5-H.json": {
+      "bytes": 25384,
+      "sha256": "c523330bf951028a2dda69ac2226791d0880d0867b2df0e22261ca6abc438f6b"
+    },
+    "cmap/HKdla-B5-V.json": {
+      "bytes": 340,
+      "sha256": "af39377cca30f93c374d5a84ce6c83c36d89e83c6503fe092d72ec5a922fd15d"
+    },
+    "cmap/HKdlb-B5-H.json": {
+      "bytes": 22501,
+      "sha256": "12a22edf25345814464529734a96954938b389bf625f874d7c3f19cf849a746f"
+    },
+    "cmap/HKdlb-B5-V.json": {
+      "bytes": 340,
+      "sha256": "1fc0febc466a7eac50842d1940458bf692dd75fd1a8c24eb795585ef791f4cdd"
+    },
+    "cmap/HKgccs-B5-H.json": {
+      "bytes": 13642,
+      "sha256": "6bcb9fc126a2b5e1b021d2aa3605d71c13463cfc651dd1e59518381faf59af02"
+    },
+    "cmap/HKgccs-B5-V.json": {
+      "bytes": 341,
+      "sha256": "490991f02d111eb6d8bdb51cca4750d6b3a2a32c1a2f3439634f8642c3dc3031"
+    },
+    "cmap/HKm314-B5-H.json": {
+      "bytes": 13405,
+      "sha256": "057b58d44aff013b0846f42fd7d89206561b9cf456aeffc3cbf9ecdd939d9b4d"
+    },
+    "cmap/HKm314-B5-V.json": {
+      "bytes": 341,
+      "sha256": "abb3f3f6bc6427c05672bb68950b71c1991fefcb216f0afbc50447e784d65e42"
+    },
+    "cmap/HKm471-B5-H.json": {
+      "bytes": 17079,
+      "sha256": "0657b0e0c0501eecc728a0de6dbd975bd119be7209bcf7b1b39ef7889a36f01e"
+    },
+    "cmap/HKm471-B5-V.json": {
+      "bytes": 341,
+      "sha256": "2ed43250c4f899db9af6b6a89dbee00f6fdbd80cd28289e552e0bf7845b5ebc4"
+    },
+    "cmap/HKscs-B5-H.json": {
+      "bytes": 25722,
+      "sha256": "28122b59e9c55b80fd0f1d8bca87e4b4a4dd3df5e42af866defbb9d221276b58"
+    },
+    "cmap/HKscs-B5-V.json": {
+      "bytes": 365,
+      "sha256": "ac44d281ce658a71414f765498f5cc8cafefe00213b9fa007d4d3b2dcd94307e"
+    },
+    "cmap/Identity-H.json": {
+      "bytes": 6404,
+      "sha256": "201a06a0306cabaf583e1b3a5add63334347a92b511c3b5f9f125ada4b48e233"
+    },
+    "cmap/Identity-V.json": {
+      "bytes": 62,
+      "sha256": "e95f0826139f74d3c163d1f9ab13a916dbc18588a79967fc0ac8b8ed64f25735"
+    },
+    "cmap/Katakana.json": {
+      "bytes": 86,
+      "sha256": "a9f9460382e152ff3438409ab6961f48934d08c33002d37a4d7fe103f6d72900"
+    },
+    "cmap/KSC-EUC-H.json": {
+      "bytes": 11234,
+      "sha256": "bbb5454460aa04851d758c54861f1398895a40b63a8a92c8c17baf26f95bbcfd"
+    },
+    "cmap/KSC-EUC-V.json": {
+      "bytes": 441,
+      "sha256": "d4f13995c5d5cf2295ce10a252afb209912e80f9913d05b2d5672d6ee6f158a8"
+    },
+    "cmap/KSC-H.json": {
+      "bytes": 11214,
+      "sha256": "88fb83c46bd20f984da1dcfd5a166742940e655b612e4a42f985bb8bba69bfd8"
+    },
+    "cmap/KSC-Johab-H.json": {
+      "bytes": 100922,
+      "sha256": "36f780acdc830e26922549f57cc364bddb0875126f54628d486bbd9de3b44f21"
+    },
+    "cmap/KSC-Johab-V.json": {
+      "bytes": 443,
+      "sha256": "fd33a4f62d62c34333764501cfa52de1d1c4934fba945d8d8bb6a29b04a1a63e"
+    },
+    "cmap/KSC-V.json": {
+      "bytes": 437,
+      "sha256": "16a072eb1ab2e069146f3972bfdad6a10ee063b6debc7ff54a6691fa9a5a6a8b"
+    },
+    "cmap/KSCms-UHC-H.json": {
+      "bytes": 16419,
+      "sha256": "bd018272b05596412557075f8589a12e79bb9a79a7ff7112ce8ed115ddfb17e0"
+    },
+    "cmap/KSCms-UHC-HW-H.json": {
+      "bytes": 16422,
+      "sha256": "a85f4ba52d084229d6cce80e23a97340dda56d7b20f8d1a0acc32b6733e56257"
+    },
+    "cmap/KSCms-UHC-HW-V.json": {
+      "bytes": 446,
+      "sha256": "eb4827bd8164f897bf392d21ffc501f7d00c8bd3f049256e6d1f41d47d1e1900"
+    },
+    "cmap/KSCms-UHC-V.json": {
+      "bytes": 443,
+      "sha256": "0c6b9e9712f219f2eaabfcc481227ba3d21b9fb78c2109a29144ad64eb9a1686"
+    },
+    "cmap/KSCpc-EUC-H.json": {
+      "bytes": 12226,
+      "sha256": "a2f813b2c65f28202c32b40caad275349b4a0cd23c07aaea63bd1a2d9e5b3d4c"
+    },
+    "cmap/KSCpc-EUC-V.json": {
+      "bytes": 443,
+      "sha256": "5dbf70e9c8a5d9681b6c8de504738c062f02d25325e39bf65f672b4dae2dbd00"
+    },
+    "cmap/NWP-H.json": {
+      "bytes": 18143,
+      "sha256": "8fadb0999ec219d553ed92b7c52060fd4c8472f534e486d2dfac68ee619e42a3"
+    },
+    "cmap/NWP-V.json": {
+      "bytes": 1205,
+      "sha256": "ed345085f3f6450632f8752ef5b80c18e5c8edc056d5e5afd7bb60c8af8fcbcd"
+    },
+    "cmap/RKSJ-H.json": {
+      "bytes": 2953,
+      "sha256": "463d3aeef1331bf25c062c9034de5c3918d29e00ed6057b30dbb7f577c1cd6af"
+    },
+    "cmap/RKSJ-V.json": {
+      "bytes": 702,
+      "sha256": "caddb28211b9654fe19c9bf3bee63035f6b1a4dc120d7890b16d4aca7f7be192"
+    },
+    "cmap/Roman.json": {
+      "bytes": 67,
+      "sha256": "b6c3e64303cbf7969b3bf314474d36e416abb98858933997e73067c9f88d06d7"
+    },
+    "cmap/UniAKR-UTF16-H.json": {
+      "bytes": 232741,
+      "sha256": "a6abf912fd4febda93b8584674f24867406c3caf1709c65d1679888f734e3780"
+    },
+    "cmap/UniAKR-UTF32-H.json": {
+      "bytes": 296773,
+      "sha256": "a8b4c8df2c9fedf656f60194c55e5e78bd47d2f4db0d5b7b12f625a044336ea8"
+    },
+    "cmap/UniAKR-UTF8-H.json": {
+      "bytes": 266575,
+      "sha256": "1819bf4513f664dd22d6fce8fc4c8f33fec7038bba3df27c2e205597abba0370"
+    },
+    "cmap/UniCNS-UCS2-H.json": {
+      "bytes": 400654,
+      "sha256": "e99af4e52969c280f0e8a4e3061cbbf02839f2cf7c65ed1faecde7b966c9da39"
+    },
+    "cmap/UniCNS-UCS2-V.json": {
+      "bytes": 360,
+      "sha256": "7c292cb9d637ff00e9fd808e179c3b613c306c82c9b2f95f5c49404671be84b9"
+    },
+    "cmap/UniCNS-UTF16-H.json": {
+      "bytes": 320254,
+      "sha256": "b7482199df02bea5baad6c05f404cd2aeeb221c9ced0bc111b625a523e0028df"
+    },
+    "cmap/UniCNS-UTF16-V.json": {
+      "bytes": 311,
+      "sha256": "98d847da91e50d8904552b6840e38f3fdb1e8cde801462f72240516153a958d8"
+    },
+    "cmap/UniCNS-UTF32-H.json": {
+      "bytes": 391690,
+      "sha256": "b8da26127760a055cb9581dc4aa1c0f93182ce8f8c107cc4cc7d4249a8d1a74c"
+    },
+    "cmap/UniCNS-UTF32-V.json": {
+      "bytes": 391,
+      "sha256": "25703719cb9ca5fbd07528731f28f4642497dea32c2b25641887d1ff010aefa3"
+    },
+    "cmap/UniCNS-UTF8-H.json": {
+      "bytes": 357287,
+      "sha256": "147ed1a9f8d03f28f92269a5e30859f7b0192af850217af2d194bfc0ff5dddec"
+    },
+    "cmap/UniCNS-UTF8-V.json": {
+      "bytes": 350,
+      "sha256": "cd32d166774dfc7ec3e8f6dabfaa59f4ef0d0916f93bc81b2737a09a1c309bad"
+    },
+    "cmap/UniGB-UCS2-H.json": {
+      "bytes": 336533,
+      "sha256": "4ebbb225e191298fa49eb54b7b973c386f1410d47ef0c0baff5f2a3f898d6fd1"
+    },
+    "cmap/UniGB-UCS2-V.json": {
+      "bytes": 617,
+      "sha256": "bca7f5ad6a43b30459af892eb6940ce8a847eff0e07139338aa9635c60ef6740"
+    },
+    "cmap/UniGB-UTF16-H.json": {
+      "bytes": 251806,
+      "sha256": "2cfb2abacfb6dd2745a434eca9b663bfa51ccafc33d1a3be0f962f9cd3162c37"
+    },
+    "cmap/UniGB-UTF16-V.json": {
+      "bytes": 456,
+      "sha256": "48093f0386972f4458594b5b324e710ab4190b1ff5c07d8622b19547791fb3d4"
+    },
+    "cmap/UniGB-UTF32-H.json": {
+      "bytes": 319766,
+      "sha256": "dbee2c0cb2ded8698676d9ff43951e1e3666bdf12360b319c051a66cb2c4f6f1"
+    },
+    "cmap/UniGB-UTF32-V.json": {
+      "bytes": 572,
+      "sha256": "a490a4e7eb931af7c5078849cb7e6831d4dc6d7ea1eed6667e0fde4b5afc9205"
+    },
+    "cmap/UniGB-UTF8-H.json": {
+      "bytes": 290481,
+      "sha256": "eaf6c6b38a297ab647c84472ba7aafbc223fdaf0cce12544cc6046722a083a7d"
+    },
+    "cmap/UniGB-UTF8-V.json": {
+      "bytes": 513,
+      "sha256": "dd8f120454efc073ca26696d7b5043bf0c5d391b408b122cf3842c8ad9393abb"
+    },
+    "cmap/UniJIS-UCS2-H.json": {
+      "bytes": 205924,
+      "sha256": "4c99cf9a6266f7d25ae5d1e341025a98250a2faa5757319aea27d99c65a26bbf"
+    },
+    "cmap/UniJIS-UCS2-HW-H.json": {
+      "bytes": 154,
+      "sha256": "d4cfe07909fab40a6bc4ce6cb04e08edb259a0ebda228abda9d311e9a7c437da"
+    },
+    "cmap/UniJIS-UCS2-HW-V.json": {
+      "bytes": 4868,
+      "sha256": "34edf6889d645e0d60c32d49600914d060935dd277e4e11fdf83bf8b33a4d030"
+    },
+    "cmap/UniJIS-UCS2-V.json": {
+      "bytes": 4775,
+      "sha256": "71c66cfdded4860dc2fbe25a446462cf7086d3d1fb64d657a9526b59fb2e3604"
+    },
+    "cmap/UniJIS-UTF16-H.json": {
+      "bytes": 238042,
+      "sha256": "900b0ce49013f43d7023e6b4fe46d91ba9448e1e409aa8f43cec139cbc77b71a"
+    },
+    "cmap/UniJIS-UTF16-V.json": {
+      "bytes": 3951,
+      "sha256": "2f59f2cb49fdb590e543b2c4baef137cfd8211044c28fc49f11d9cdba8e3a6eb"
+    },
+    "cmap/UniJIS-UTF32-H.json": {
+      "bytes": 295294,
+      "sha256": "01af270569649c555a2eca4037a037a5b842c15ac917fd6ba50b87b22c361921"
+    },
+    "cmap/UniJIS-UTF32-V.json": {
+      "bytes": 4983,
+      "sha256": "15695ddba2893838f169eab059d33f2a84462ab7d0e34f15cd059f21cdf68f92"
+    },
+    "cmap/UniJIS-UTF8-H.json": {
+      "bytes": 266367,
+      "sha256": "264cea26ae3b2a48a9d36961e0dc44fd30adfe659dcfa91568cac594e9db5f24"
+    },
+    "cmap/UniJIS-UTF8-V.json": {
+      "bytes": 4483,
+      "sha256": "4ae76715f9db39c865d5559966ba4cd5cbba563cebe464a0e9c3ead888dc8eff"
+    },
+    "cmap/UniJIS2004-UTF16-H.json": {
+      "bytes": 238119,
+      "sha256": "d572f1f6fba608dce2639a44ffab7b99ee18b6908fab0e2dd6c196a20d251956"
+    },
+    "cmap/UniJIS2004-UTF16-V.json": {
+      "bytes": 3955,
+      "sha256": "b594cafb5bc59c4d41ea9a2b162a6c7ff79345f721e5178214285b5c0533081c"
+    },
+    "cmap/UniJIS2004-UTF32-H.json": {
+      "bytes": 295371,
+      "sha256": "b39c9a2253f417e7c80aac13b7bec0c3a8f090cac3d45673b873c153fd8899cd"
+    },
+    "cmap/UniJIS2004-UTF32-V.json": {
+      "bytes": 4987,
+      "sha256": "1aae9a2f3e006ce1d4bc3556580d40c9969e764bc296655676b1ba2792ebb570"
+    },
+    "cmap/UniJIS2004-UTF8-H.json": {
+      "bytes": 266444,
+      "sha256": "eb57065ad27134bf92c89b2bcb78f69227c7e1f8bc2615793778dab5b8c822c3"
+    },
+    "cmap/UniJIS2004-UTF8-V.json": {
+      "bytes": 4487,
+      "sha256": "394d4fa3eb9d452d277ad8943fd7f5b71c02aba0053e2f3b8683b05b9953d340"
+    },
+    "cmap/UniJISPro-UCS2-HW-V.json": {
+      "bytes": 4994,
+      "sha256": "b787b3c30cb2ad714c8e902783dd0913b19f64dc6fcee099ea19db2b0a1383cb"
+    },
+    "cmap/UniJISPro-UCS2-V.json": {
+      "bytes": 4901,
+      "sha256": "d56951a4404a9a3b2cec07cfb30d7d238478dcfc694efc081e6c675d9a826aec"
+    },
+    "cmap/UniJISPro-UTF8-V.json": {
+      "bytes": 5726,
+      "sha256": "9fe3dc03dc663c26b74f9cf18aba2adb666dab684da058920ffbd762b49f2e2d"
+    },
+    "cmap/UniJISX0213-UTF32-H.json": {
+      "bytes": 295246,
+      "sha256": "9498c29f71e1f8ee642cc9fc0b29e006d28d8490a08d9bd95392904d00e95c08"
+    },
+    "cmap/UniJISX0213-UTF32-V.json": {
+      "bytes": 4908,
+      "sha256": "c91e4f6af29aa614960baeab56dab35b1cb0c7e9547e7b7149664cd94e8ac35f"
+    },
+    "cmap/UniJISX02132004-UTF32-H.json": {
+      "bytes": 295323,
+      "sha256": "b85450af1a79fa9bcbb7056c89b0273c357d8e835656eaa4321e03f8f7a9bd6f"
+    },
+    "cmap/UniJISX02132004-UTF32-V.json": {
+      "bytes": 4912,
+      "sha256": "ab5f8e62c4c206206ee1b75dd870d8f44c303a0b46141e042df274bc4921ea3c"
+    },
+    "cmap/UniKS-UCS2-H.json": {
+      "bytes": 202706,
+      "sha256": "f1c0f6066f523c86361e3a3d7529103fb59870148f420d2e57b0256bc8146b5a"
+    },
+    "cmap/UniKS-UCS2-V.json": {
+      "bytes": 492,
+      "sha256": "73a21783e7999f7eb18228dbfa2eef02cea7ceda7cdf7e49bbfd5c4726c34052"
+    },
+    "cmap/UniKS-UTF16-H.json": {
+      "bytes": 153894,
+      "sha256": "bf628d68c52195d3526ca3fb233b144e26024605659bb19ce3b0b2630b163706"
+    },
+    "cmap/UniKS-UTF16-V.json": {
+      "bytes": 403,
+      "sha256": "7f2991067fe02bf3331e0eaaf9226ac36151008753428511b4c04f6ab2e228b6"
+    },
+    "cmap/UniKS-UTF32-H.json": {
+      "bytes": 195998,
+      "sha256": "26fe15643cf8266d22467eb05e6a83411a817a0c589ce4d67f54fb5857b4b18f"
+    },
+    "cmap/UniKS-UTF32-V.json": {
+      "bytes": 503,
+      "sha256": "5c65ff46b764cf8be17aa7ea82f41e68ca3d32e8815485724b7040e9bf9b41b8"
+    },
+    "cmap/UniKS-UTF8-H.json": {
+      "bytes": 177154,
+      "sha256": "c2573783c077411d207f315feb007ac4eac170c1274c24fe610f3006e578249f"
+    },
+    "cmap/UniKS-UTF8-V.json": {
+      "bytes": 452,
+      "sha256": "2091caca519147efa3d337523c62e1ed56877f459297c2d6519d3660953b2f61"
+    },
+    "cmap/V.json": {
+      "bytes": 697,
+      "sha256": "9b69d1dad0f904b13fddfe4ca433936ab3772cdb4b2592997d68f2207013b8d9"
+    },
+    "cmap/WP-Symbol.json": {
+      "bytes": 588,
+      "sha256": "966fcbd2b20e61ee5d7925bd05d95c79c752e1f110c1a232b31dcd25e3a3b9f5"
+    },
+    "fonts/GoNotoKurrent-Bold.ttf": {
+      "bytes": 15303772,
+      "sha256": "6f5ab7b16acedeac76625f75159d9d303be85b291d47376760a1c9f87802853e"
+    },
+    "fonts/GoNotoKurrent-Regular.ttf": {
+      "bytes": 15515760,
+      "sha256": "2f2cee5fbb2403df352ca2005247f6c4faa70f3086ebd31b6c62308b5f2f9865"
+    },
+    "fonts/KleeOne-Regular.ttf": {
+      "bytes": 8724704,
+      "sha256": "74cb0a6523cc22b221ceaa7b78b56cea66512ec14b4145fd0102ffe27c30d084"
+    },
+    "fonts/LXGWWenKaiGB-Regular.1.520.ttf": {
+      "bytes": 24903712,
+      "sha256": "252cde5857f7ce57ce76f7e2e1d2e91c1f912f1f4c13c7e4fb295b5fdf5923ed"
+    },
+    "fonts/LXGWWenKaiTC-Regular.1.520.ttf": {
+      "bytes": 15348376,
+      "sha256": "a36b11f231a923ad12a9bc045e54e6b1987dad5a6a201b6ea9e1093f9968e348"
+    },
+    "fonts/MaruBuri-Regular.ttf": {
+      "bytes": 3268988,
+      "sha256": "803429881927c79dbb49497274244e72b672c56e0503f28262503f77524cba7a"
+    },
+    "fonts/NotoSans-Bold.ttf": {
+      "bytes": 630964,
+      "sha256": "379bda1de5ceb6c81a6e0b7f8346d36e12b3202757fcba90a42dc5a7f8d5df38"
+    },
+    "fonts/NotoSans-BoldItalic.ttf": {
+      "bytes": 644340,
+      "sha256": "7c53c6334c7f7847201ba6ed93e4e00088b2ffae613aef69fb581153f347cac2"
+    },
+    "fonts/NotoSans-Italic.ttf": {
+      "bytes": 642344,
+      "sha256": "feb3e57888ce3acb604f270c278cfb304c674306518771619ddbdefca42a066b"
+    },
+    "fonts/NotoSans-Regular.ttf": {
+      "bytes": 629024,
+      "sha256": "fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614"
+    },
+    "fonts/NotoSerif-Bold.ttf": {
+      "bytes": 506864,
+      "sha256": "2015eba9ca7ca5cf7320bd5e6740439f84b55eefad7208e63b9b6d32e8c82410"
+    },
+    "fonts/NotoSerif-BoldItalic.ttf": {
+      "bytes": 535724,
+      "sha256": "c49e9f86cc43e05e8e5e8da53a7e00568fac08e2afb93b0d7979a2ea94fd6171"
+    },
+    "fonts/NotoSerif-Italic.ttf": {
+      "bytes": 535340,
+      "sha256": "be429bb62448b615f62cf7817d6a801fbc209e6cd2c11ffa15801f6d7dfac7cf"
+    },
+    "fonts/NotoSerif-Regular.ttf": {
+      "bytes": 504932,
+      "sha256": "76b746ed54a2f83fa41db9a85a43b4b39900dbdb8ae40ec3d93950b0b00c4bd7"
+    },
+    "fonts/SourceHanSansCN-Bold.ttf": {
+      "bytes": 10174460,
+      "sha256": "2dcaecc0dcba896fdc48e32617633123d91fa80c7eb9f7ae7c836da70e45ce88"
+    },
+    "fonts/SourceHanSansCN-Regular.ttf": {
+      "bytes": 10397552,
+      "sha256": "dd4ae04ab7d33f43202750cf755b2ba47a2122ba41412954e562da459337bbf6"
+    },
+    "fonts/SourceHanSansHK-Bold.ttf": {
+      "bytes": 6856692,
+      "sha256": "34fa1add2c9e7e8ee3fbb205a6ef5e8cb97f0393bbfe57c709273040cf10f48c"
+    },
+    "fonts/SourceHanSansHK-Regular.ttf": {
+      "bytes": 6999792,
+      "sha256": "b5a170508f5c3441b183d1eae39ec0f99545cab64918d07260492783bd5fa297"
+    },
+    "fonts/SourceHanSansJP-Bold.ttf": {
+      "bytes": 5603068,
+      "sha256": "e35443f4e468d7a038191c4bc5fc51bf7242bc12052eb427c07f00a1c3cec0fd"
+    },
+    "fonts/SourceHanSansJP-Regular.ttf": {
+      "bytes": 5723960,
+      "sha256": "4fb6ea21d30d3fe1751e590786950e9153bfc31e2669ac3528bd2f641b791d76"
+    },
+    "fonts/SourceHanSansKR-Bold.ttf": {
+      "bytes": 5858892,
+      "sha256": "51997e299785a2bc10806d95ff4fae0b1363caddea63c4e9fb43ee7d1dc899e0"
+    },
+    "fonts/SourceHanSansKR-Regular.ttf": {
+      "bytes": 5961704,
+      "sha256": "061c9a55b6b731af2a4667f06efb82ed7c80ba99d5350c1bba76f80472ea304f"
+    },
+    "fonts/SourceHanSansTW-Bold.ttf": {
+      "bytes": 6883224,
+      "sha256": "4cb4a8b665ef687fbfa15f4e5d551296d820183c68a324fb2432c88fa441c1e4"
+    },
+    "fonts/SourceHanSansTW-Regular.ttf": {
+      "bytes": 7024812,
+      "sha256": "e081fa19f3e92668c441c0e925ddc9ca35ed743d7c5d3308231a3c9a71302967"
+    },
+    "fonts/SourceHanSerifCN-Bold.ttf": {
+      "bytes": 14134156,
+      "sha256": "fafd6dc09a0ba3be1ac224aec3ff0befab97964c4ffba6b16f789702106577aa"
+    },
+    "fonts/SourceHanSerifCN-Regular.ttf": {
+      "bytes": 14047768,
+      "sha256": "8ba5ec09db04b1d1599edeff3fb5627ca11eaaf85e339e5c32684cb94e806993"
+    },
+    "fonts/SourceHanSerifHK-Bold.ttf": {
+      "bytes": 9532580,
+      "sha256": "52698377eb509bb60271fec92a26045f055958af7ace4c332eee2dfe1754776d"
+    },
+    "fonts/SourceHanSerifHK-Regular.ttf": {
+      "bytes": 9467292,
+      "sha256": "cf43b8a00e3e7e35c5e3d7d8d05dd2d21aeaaa386f0c4fa6665c29a11ea01b73"
+    },
+    "fonts/SourceHanSerifJP-Bold.ttf": {
+      "bytes": 7811832,
+      "sha256": "cbd7e67a0bc51b2da1d962a0de9a7745ad99a40a22febf6c56666119d21bfabe"
+    },
+    "fonts/SourceHanSerifJP-Regular.ttf": {
+      "bytes": 7748816,
+      "sha256": "3f3ecec06d2cfa6a9eb57469f75c7f551c4281741465e8eb1d6953f22abe453c"
+    },
+    "fonts/SourceHanSerifKR-Bold.ttf": {
+      "bytes": 12387920,
+      "sha256": "1e04d390823d458fc850f48d8fe6da19b55525249a5e63dded5690c288e138e1"
+    },
+    "fonts/SourceHanSerifKR-Regular.ttf": {
+      "bytes": 12459924,
+      "sha256": "140861eba42585f3280a47d4c5199449386b0f986c7ab2c67fd5aa1615bb15d7"
+    },
+    "fonts/SourceHanSerifTW-Bold.ttf": {
+      "bytes": 9551724,
+      "sha256": "a4d7ad443bccb130decc358cfbf3fea92d66cae22113cc9ac26c0200ed91b7cb"
+    },
+    "fonts/SourceHanSerifTW-Regular.ttf": {
+      "bytes": 9486772,
+      "sha256": "53b849ebd349db18bf574e3cbb1307c903cc036b98ff009e3f445632b7e09a7f"
+    },
+    "models/doclayout_yolo_docstructbench_imgsz1024.onnx": {
+      "bytes": 75324598,
+      "sha256": "fece9af02f618b603ff7921ccec6861d13e7e1f9830e091dfb7e8ad9311e5b21"
+    },
+    "tiktoken/fb374d419588a4632f3f557e76b4b70aebbca790": {
+      "bytes": 3613922,
+      "sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d"
+    }
+  }
+}
