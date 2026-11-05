@@ -1,13 +1,13 @@
 import {createServer, request as httpRequest} from 'node:http';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {spawn} from 'node:child_process';
-import {existsSync, mkdirSync, readFileSync, realpathSync} from 'node:fs';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync} from 'node:fs';
 import {homedir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createInterface} from 'node:readline';
 import {pipeline} from 'node:stream/promises';
-import {modelState, modelStream, safeFailure} from './model.js';
+import {modelState, modelStream, safeFailure, effortFor} from './model.js';
 import {followWindowsProxy} from './network.js';
 import {renderExplainer} from './studio-renderer.mjs';
 
@@ -18,6 +18,21 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // Resolve the unpacked junction before launching Python. Common per-user
 // Electron installation paths otherwise make deep dependency paths too long.
 const packageDir = realpathSync(path.dirname(here).replace(/\.asar([\\/])/, '.asar.unpacked$1'));
+
+/** Distribution archives bundle a Windows interpreter under runtime/python; a
+ * POSIX build (macOS/Linux) keeps a virtual environment in runtime/venv. Order
+ * keeps Windows behaviour unchanged and lets config.python override both. */
+export function resolveInterpreter(root, config = {}) {
+  const candidates = [
+    config.python,
+    path.join(root, 'runtime', 'python', 'python.exe'),
+    path.join(root, 'runtime', 'python', 'Scripts', 'python.exe'),
+    path.join(root, 'runtime', 'venv', 'bin', 'python3'),
+    path.join(root, 'runtime', 'venv', 'bin', 'python'),
+    path.join(root, 'runtime', 'python', 'bin', 'python3'),
+  ].filter(Boolean);
+  return candidates.find(candidate => existsSync(candidate));
+}
 
 function equal(a, b) {
   const left = Buffer.from(a || ''), right = Buffer.from(b || '');
@@ -40,7 +55,7 @@ function json(res, status, value) {
 }
 
 /** Private model bridge: loopback + ephemeral secret, never exposed to renderer. */
-export function createModelBridge(ctx, secret) {
+export function createModelBridge(ctx, secret, log = () => {}) {
   return createServer(async (req, res) => {
     if (req.headers.origin || !equal(req.headers.authorization, `Bearer ${secret}`)) return json(res, 403, {error: 'Forbidden'});
     const abort = new AbortController();
@@ -56,10 +71,13 @@ export function createModelBridge(ctx, secret) {
           const info = await ctx.get('llm').resolveModelInfo(state.provider, item.id, abort.signal);
           return {model: item.id, displayName: item.name, supportedReasoningEfforts: (info.reasoning?.efforts || []).map(e => ({reasoningEffort: e.id, description: e.name})), defaultReasoningEffort: info.reasoning?.defaultEffort || ''};
         }));
+        // Resolved reasoning levels live in the per-model info, not in listModels.
+        state.effort = effortFor({model: state.model, models: models.map(item => ({id: item.model, supportedReasoningEfforts: item.supportedReasoningEfforts, defaultReasoningEffort: item.defaultReasoningEffort}))});
         return json(res, 200, {...state, models});
       }
       if (req.url !== '/stream' || req.method !== 'POST') return json(res, 404, {error: 'Not found'});
       const body = await jsonBody(req);
+      log(`stream model=${body.model || '-'} effort=${body.effort || '-'} tools=${(body.tools || []).length} messages=${(body.messages || []).length}`);
       res.writeHead(200, {'content-type': 'application/x-ndjson', 'cache-control': 'no-store'});
       for await (const chunk of modelStream(ctx, body, abort.signal)) {
         if (abort.signal.aborted) break;
@@ -68,10 +86,19 @@ export function createModelBridge(ctx, secret) {
       res.end();
     } catch (error) {
       const failure = safeFailure(error);
+      log(`model bridge ${req.url} -> ${failure.code}: ${failure.message}`);
       if (!res.headersSent) json(res, 503, {error: failure.message, code: failure.code});
       else res.end(JSON.stringify({type: 'finish', reason: {kind: abort.signal.aborted ? 'aborted' : 'error', failure}}) + '\n');
     }
   });
+}
+
+function bridgeLog(dataDir, line) {
+  try {
+    const dir = path.join(dataDir, 'logs');
+    mkdirSync(dir, {recursive: true});
+    appendFileSync(path.join(dir, 'bridge.log'), `${new Date().toISOString()} ${line}\n`);
+  } catch { /* diagnostics must never break the turn */ }
 }
 
 export async function apply(ctx, config = {}) {
@@ -87,12 +114,10 @@ export async function apply(ctx, config = {}) {
     if (closing) return Promise.reject(new Error('论文研读正在关闭。'));
     if (startup) return startup;
     startup = (async () => {
-      bridge = createModelBridge(ctx, secret);
+      bridge = createModelBridge(ctx, secret, line => bridgeLog(dataDir, line));
       await new Promise((resolve, reject) => {bridge.once('error', reject); bridge.listen(0, '127.0.0.1', resolve);});
-      const python = config.python || path.join(packageDir, 'runtime', 'python', 'python.exe');
-      const fallback = path.join(packageDir, 'runtime', 'python', 'Scripts', 'python.exe');
-      const executable = existsSync(python) ? python : fallback;
-      if (!existsSync(executable)) throw new Error('论文研读的内置 Python 运行库缺失，请重新安装插件。');
+      const executable = resolveInterpreter(packageDir, config);
+      if (!executable) throw new Error('论文研读的内置 Python 运行库缺失，请重新安装插件。');
       child = spawn(executable, ['-X', 'utf8', '-m', 'paper_research_coach.embedded'], {
         cwd: packageDir, windowsHide: true,
         env: {...process.env, NO_PROXY: 'localhost,127.0.0.1', no_proxy: 'localhost,127.0.0.1', PYTHONPATH: path.join(packageDir, 'upstream', 'src'), PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8', PYTHONUNBUFFERED: '1', PRC_EMBEDDED: '1', PRC_DATA: dataDir, PRC_SESSION_TOKEN: backendToken, DSH_PRC_ASSETS: path.join(packageDir, 'runtime', 'assets'), DSH_PRC_BRIDGE_URL: `http://127.0.0.1:${bridge.address().port}`, DSH_PRC_BRIDGE_TOKEN: secret, PRC_NO_UPDATE_CHECK: '1', PRC_NO_AUTO_UPDATE: '1'},

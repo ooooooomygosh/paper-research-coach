@@ -32,3 +32,44 @@ jobs:
       - run: python -X utf8 -m pip install -e './upstream[dev]' PyPDF2==3.0.1
       - run: python -X utf8 scripts/prepare_integrations.py
       - run: python -X utf8 scripts/verify_source.py
+  # The port is not Windows-only: host/ is Node, the workbench is Python, and
+  # macOS registers the plugin through a profile link instead of app.asar edits.
+  # The distribution suite is excluded because it drives the Windows installer,
+  # which imports _winapi and patches app.asar junctions.
+  source-macos:
+    runs-on: macos-14
+    env:
+      PYTHONUTF8: '1'
+      PYTHONPATH: upstream/src
+    defaults:
+      run:
+        working-directory: ports/deepseek-harness
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ports/deepseek-harness/upstream/frontend/package-lock.json
+      - name: Build the workbench frontend
+        run: |
+          npm --prefix upstream/frontend ci
+          npm --prefix upstream/frontend run build
+      - name: Install the Python package
+        run: |
+          python -X utf8 upstream/scripts/prepare_licenses.py
+          python -X utf8 -m pip install -e './upstream[dev]' PyPDF2==3.0.1
+      - name: Port tests
+        run: >
+          python -X utf8 -m pytest upstream/tests tests/test_studio.py tests/test_learning.py
+          tests/test_port_runtime.py -q --tb=short --ignore=upstream/tests/test_install_script.py
+      - name: Host bridge tests
+        run: node --test tests/host.test.mjs tests/studio.test.mjs tests/model-defaults.test.mjs
+      - name: Installer scripts parse
+        run: |
+          bash -n macos/install-macos.sh
+          bash -n macos/uninstall-macos.sh
+          bash -n macos/import-legacy.sh

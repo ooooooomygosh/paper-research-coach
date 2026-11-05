@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
 import {modelState, modelStream, safeFailure} from '../host/model.js';
-import {createModelBridge} from '../host/index.js';
+import {createModelBridge, resolveInterpreter} from '../host/index.js';
 
 function harness() {
   const seen = [];
@@ -48,4 +51,40 @@ test('private bridge refuses missing secrets and cross-origin requests', async t
 
 test('provider diagnostics never expose credential-bearing exceptions', () => {
   assert.ok(!JSON.stringify(safeFailure(new Error('secret-auth-token'))).includes('secret-auth-token'));
+});
+
+/** Lay out a fake package directory with the given interpreter files. */
+function packageWith(files) {
+  const root = mkdtempSync(path.join(tmpdir(), 'prc-interpreter-'));
+  for (const relative of files) {
+    const target = path.join(root, relative);
+    mkdirSync(path.dirname(target), {recursive: true});
+    writeFileSync(target, '');
+  }
+  return root;
+}
+
+test('a POSIX build finds the virtual environment interpreter', t => {
+  const root = packageWith(['runtime/venv/bin/python3']);
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  assert.equal(resolveInterpreter(root), path.join(root, 'runtime/venv/bin/python3'));
+});
+
+test('Windows keeps preferring its bundled interpreter over runtime/venv', t => {
+  const root = packageWith(['runtime/python/python.exe', 'runtime/venv/bin/python3']);
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  assert.equal(resolveInterpreter(root), path.join(root, 'runtime/python/python.exe'));
+});
+
+test('config.python overrides every bundled interpreter', t => {
+  const root = packageWith(['runtime/python/python.exe', 'custom/python3']);
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const custom = path.join(root, 'custom/python3');
+  assert.equal(resolveInterpreter(root, {python: custom}), custom);
+});
+
+test('a package without any runtime reports nothing to launch', t => {
+  const root = packageWith(['host/index.js']);
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  assert.equal(resolveInterpreter(root), undefined);
 });

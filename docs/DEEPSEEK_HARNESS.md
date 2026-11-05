@@ -2,7 +2,7 @@
 
 Paper Research Coach 提供可内置到 **DeepSeek Harness** 的第三方适配版本。安装后从 Harness 侧栏的“论文研读”进入，保留原项目的阅读工作台和 UI，通过 Harness 当前登录账户的 `deepseek-account` 接口完成文献阅读、分析和学习，无需额外配置 API Key 或 Codex CLI。
 
-适配插件当前版本为 **1.1.0**，基于工作台 **2.0.0rc13**。已验证平台是 **Windows x64 / DeepSeek Harness 0.2.1-rc.5**。目前没有 macOS 安装包；其他 Harness 版本需要重新验证。该适配版并非 DeepSeek 官方发行。
+适配插件当前版本为 **1.1.0**，基于工作台 **2.0.0rc13**。已验证平台是 **Windows x64 / DeepSeek Harness 0.2.1-rc.5**；macOS 没有预打包安装包，但可以在装有 Node.js 24 与 uv 的机器上从源码构建并注册进 Harness profile，步骤见 [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md)。其他 Harness 版本需要重新验证。该适配版并非 DeepSeek 官方发行。
 
 ## 两个新增学习入口
 
@@ -24,6 +24,6 @@ Git 仓库不存储运行库、字体/模型缓存或大型安装 ZIP。维护�
 
 ## English
 
-The **Paper Research Coach 1.1.0** port embeds the full 2.0.0rc13 workbench in **DeepSeek Harness 0.2.1-rc.5 on Windows x64**. It uses the signed-in Harness account through `deepseek-account`, adds knowledge-base learning and interactive explanations, and fixes overlapping PDF text highlights. No separate API key or Codex CLI is required. macOS packages and other host versions have not been validated.
+The **Paper Research Coach 1.1.0** port embeds the full 2.0.0rc13 workbench in **DeepSeek Harness 0.2.1-rc.5 on Windows x64**. It uses the signed-in Harness account through `deepseek-account`, adds knowledge-base learning and interactive explanations, and fixes overlapping PDF text highlights. No separate API key or Codex CLI is required. macOS ships no prebuilt package, but the port can be built from source and registered into a Harness profile — see [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md); other host versions have not been validated.
 
 The [port source and build guide](../ports/deepseek-harness/README.md) includes both pinned MIT-licensed integrations, account bridges, tests and the distributable installer. Runtime binaries, cached translation assets, personal data and credentials are excluded from Git. The standalone wheel/Skill releases are separate from the Harness installer ZIP. This is a third-party integration, not an official DeepSeek distribution.
