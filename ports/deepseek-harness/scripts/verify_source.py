@@ -22,6 +22,6 @@ run([sys.executable, '-X', 'utf8', '-m', 'pytest', 'upstream/tests',
 run([node, '--test', 'tests/host.test.mjs', 'tests/studio.test.mjs'])
 frontend = ROOT / 'upstream/frontend'
 run([node, 'node_modules/typescript/bin/tsc', '--noEmit'], frontend)
-run([node, 'node_modules/vitest/vitest.mjs', 'run'], frontend)
+run([node, 'node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=4'], frontend)
 run([node, 'node_modules/vite/bin/vite.js', 'build'], frontend)
 print('Source checks passed. No live-account or desktop acceptance is inferred.')
