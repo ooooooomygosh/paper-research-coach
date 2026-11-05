@@ -71,7 +71,13 @@ export default function JourneyTree({
     };
   }, [paperId]);
   useEffect(() => {
-    if (!standalone) root.current?.focus();
+    if (standalone) return;
+    const opener = document.activeElement as HTMLElement | null;
+    root.current?.focus();
+    // Closing puts the keyboard back where the reader was, not on the page body.
+    return () => {
+      if (opener?.isConnected) opener.focus();
+    };
   }, [standalone]);
 
   // In its own window the tree is a document: page numbers and titles are plain text there.

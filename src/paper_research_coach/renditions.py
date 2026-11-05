@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 
-@lru_cache(maxsize=32)
+@lru_cache(maxsize=1024)  # a few KB per file; 32 thrashed once 16 translations were done
 def _inspect(path: str, size: int, mtime: int, ctime: int):
     from pypdf import PdfReader
 

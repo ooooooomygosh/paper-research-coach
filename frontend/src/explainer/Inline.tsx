@@ -14,12 +14,36 @@ const base = {
   disallowedElements: ["img", "script", "iframe"],
   unwrapDisallowed: true,
 };
-const link = (props: any) => <a {...props} target="_blank" rel="noopener noreferrer" />;
+// react-markdown also passes the syntax-tree `node`; spread onto <a> it would become node="[object Object]".
+const link = ({ node: _node, ...props }: any) => <a {...props} target="_blank" rel="noopener noreferrer" />;
+
+// Quotes and list markers nest as deep as the text says: "- - - - … x" is 2 bytes a level, and a few
+// thousand levels overflow the stack inside Markdown. Real explanations nest 3 or 4 deep.
+const MAX_NESTING = 20;
+export function nestingDepth(text: string): number {
+  let deepest = 0;
+  for (const raw of text.split("\n")) {
+    let rest = raw.slice(0, 4000).trimStart();
+    let depth = 0;
+    for (;;) {
+      const m = rest.match(/^(?:>\s?|[-*+]\s+|\d{1,9}[.)]\s+)/);
+      if (!m) break;
+      depth += 1;
+      rest = rest.slice(m[0].length).trimStart();
+    }
+    deepest = Math.max(deepest, depth);
+  }
+  return deepest;
+}
+const guard = (text: string) => {
+  if (nestingDepth(text) > MAX_NESTING) throw new Error("explainer text nests too deeply to draw");
+  return text;
+};
 
 export function Inline({ text }: { text: string }) {
   return (
     <Markdown {...base} components={{ p: ({ children }) => <>{children}</>, a: link }}>
-      {text}
+      {guard(text)}
     </Markdown>
   );
 }
@@ -58,7 +82,7 @@ export function Prose({ text }: { text: string }) {
           ),
         }}
       >
-        {text}
+        {guard(text)}
       </Markdown>
     </div>
   );

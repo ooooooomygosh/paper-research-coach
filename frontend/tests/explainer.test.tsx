@@ -156,3 +156,44 @@ it("a new page appears as a numbered tab and opens on it; the pop-out button is 
   fireEvent.click(screen.getByRole("button", { name: "在新窗口打开" }));
   expect(onPopout).toHaveBeenCalled();
 });
+
+// A flow node's id is its label, and the label is model text from an untrusted paper.
+// Names such as "constructor" or "__proto__" must be plain names, never JavaScript object plumbing.
+const flowOf = (labels: string[], edges: [string, string][], groups: { name: string; members: string[] }[] = []) =>
+  ({
+    type: "flow",
+    dir: "LR",
+    nodes: labels.map((label) => ({ id: label, label, shape: "rect", hi: false })),
+    edges: edges.map(([from, to]) => ({ from, to, dashed: false, label: "" })),
+    groups,
+  }) as any;
+
+it("lays out a flow whose node names look like object properties, without touching Object.prototype", () => {
+  const before = Object.getOwnPropertyNames(Object.prototype).sort();
+  try {
+    const names = ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__", "B"];
+    const layout = layoutFlow(
+      flowOf(names, [["constructor", "B"], ["__proto__", "B"], ["toString", "valueOf"]], [{ name: "g", members: ["hasOwnProperty", "B"] }]),
+    );
+    expect(layout.nodes.map((n) => n.id)).toEqual(names);
+    expect(layout.edges).toHaveLength(3);
+    expect(layout.edges.every((e) => e.d.startsWith("M"))).toBe(true);
+  } finally {
+    for (const key of Object.getOwnPropertyNames(Object.prototype))
+      if (!before.includes(key)) delete (Object.prototype as any)[key];
+  }
+  expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(before);
+});
+
+it("one block that cannot be drawn does not take the whole explainer page down", () => {
+  const doc: ExplainerDoc = {
+    title: "t", subtitle: "", lang: "zh", lead: [],
+    panels: [
+      { title: "ok", blocks: [{ type: "md", text: "this panel is fine", line: 1 }] },
+      { title: "deep", blocks: [{ type: "md", text: "- ".repeat(3000) + "x", line: 2 }] },
+    ],
+  };
+  const { container } = render(<ExplainerView doc={doc} />);
+  expect(container.textContent).toContain("this panel is fine");
+  expect(screen.getByRole("alert").textContent).toContain("这一块画不出来");
+});

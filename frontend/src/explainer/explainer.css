@@ -669,3 +669,14 @@
   .xp-card-head { background: color-mix(in srgb, #7fb2e5 10%, var(--surface)); }
   .xp-card-kind { background: #7fb2e5; color: #10202e; }
 }
+
+/* A block the browser could not draw: the rest of the page stays. */
+.xp-broken {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--warn-line);
+  border-radius: 8px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-size: 13px;
+}

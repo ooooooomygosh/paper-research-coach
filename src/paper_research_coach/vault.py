@@ -303,6 +303,7 @@ class VaultSync:
                 except (OSError, ValueError):
                     skipped += 1
             # Import existing cards as attributed, read-only external material.
+            bad_cards: list[str] = []
             for path, text, meta, pdf_path in cards:
                 link = files.get(str(pdf_path.relative_to(root)))
                 if not link:
@@ -312,36 +313,41 @@ class VaultSync:
                 old = files.get(rel)
                 if old and old["hash"] == h:
                     continue
-                with self.store.connect() as db:
-                    db.execute("BEGIN IMMEDIATE")
-                    n = (
-                        self.store.get("note", old["record_id"])
-                        if old and old["paper_id"] == link["paper_id"]
-                        else dict(
-                            paper_id=link["paper_id"],
-                            author="external",
-                            provenance="EXTERNAL",
-                            read_only=True,
-                            tags=["现有论文卡 · 外部资料"],
+                try:
+                    with self.store.connect() as db:
+                        db.execute("BEGIN IMMEDIATE")
+                        n = (
+                            self.store.get("note", old["record_id"])
+                            if old and old["paper_id"] == link["paper_id"]
+                            else dict(
+                                paper_id=link["paper_id"],
+                                author="external",
+                                provenance="EXTERNAL",
+                                read_only=True,
+                                tags=["现有论文卡 · 外部资料"],
+                            )
                         )
-                    )
-                    n = self.store.put(
-                        "note",
-                        n | {"content": text},
-                        n.get("revision", 0),
-                        origin="vault-source",
-                        connection=db,
-                    )
-                    self.bind(
-                        root,
-                        rel,
-                        "card",
-                        h,
-                        link["paper_id"],
-                        n["id"],
-                        n["revision"],
-                        connection=db,
-                    )
+                        n = self.store.put(
+                            "note",
+                            n | {"content": text},
+                            n.get("revision", 0),
+                            origin="vault-source",
+                            connection=db,
+                        )
+                        self.bind(
+                            root,
+                            rel,
+                            "card",
+                            h,
+                            link["paper_id"],
+                            n["id"],
+                            n["revision"],
+                            connection=db,
+                        )
+                except (OSError, ValueError):
+                    # One unreadable card (too long, bad front matter) is reported, not fatal: the
+                    # reader's notes still export and the other PDFs and cards still import.
+                    bad_cards.append(path.name)
             # Managed note revisions are append-only exports. Editing one is an input;
             # we never replace a file that an external editor might still be writing.
             managed = root / MANAGED
@@ -503,8 +509,10 @@ class VaultSync:
                         n["revision"],
                     )
             pending_metadata = []
+            bind_errors: list[str] = []
             if self.zotero and state.get("collection"):
                 from .metadata import MetadataPending
+                from .zotero import SyncError
 
                 if self.zotero.probe() != state["server"]:
                     raise ValueError(
@@ -529,15 +537,23 @@ class VaultSync:
                             pending_metadata.append(
                                 {"paper_id": pid, "title": p["title"]}
                             )
+                        except SyncError as e:
+                            # A lasting per-paper condition (for example two Zotero items for one PDF)
+                            # must not stop the papers sorted after it from ever being tried.
+                            bind_errors.append(str(e))
             state.update(
                 state="attention"
-                if skipped or self.conflicts() or pending_metadata
+                if skipped or self.conflicts() or pending_metadata or bad_cards or bind_errors
                 else "connected",
                 message="；".join(
                     filter(
                         None,
                         [
                             f"{skipped} 个文件等待下载或稳定" if skipped else "",
+                            f"{len(bad_cards)} 张论文卡无法导入（内容过长或格式不对）：{'、'.join(bad_cards[:3])}"
+                            if bad_cards
+                            else "",
+                            f"{len(bind_errors)} 篇论文未能绑定到 Zotero：{bind_errors[0]}" if bind_errors else "",
                             f"{len(pending_metadata)} 篇书目信息待核实，已保留本地 PDF"
                             if pending_metadata
                             else "",

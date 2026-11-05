@@ -110,6 +110,8 @@ def parser():
     fd = sub.add_parser("find", help="在论文正文里查找一个短语，返回页码和片段（不需要工作台运行）")
     fd.add_argument("query")
     fd.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
+    mp = sub.add_parser("map", help="论文的章节和图表在第几页（自动识别，可能不全；不需要工作台运行）")
+    mp.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
     sh = sub.add_parser("show", help="让工作台翻到某页并标出 1–3 句原文（需要工作台正在运行）")
     sh.add_argument("--paper", dest="paper_id", help="省略时沿用工作台当前论文")
     sh.add_argument("--page", type=int, required=True, help="PDF 页索引，从 0 开始")
@@ -404,6 +406,13 @@ def main():
             if not paper_id:
                 raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
             output(locate.search(store, paper_id, args.query))
+        elif cmd == "map":
+            from . import paper_map
+
+            paper_id = args.paper_id or store.setting("active-paper")
+            if not paper_id:
+                raise ValueError("先在工作台选择论文，或用 --paper 提供论文 ID。")
+            output(paper_map.get(store, paper_id))
         elif cmd == "show":
             import httpx
 
