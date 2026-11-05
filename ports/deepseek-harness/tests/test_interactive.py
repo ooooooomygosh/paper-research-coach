@@ -72,3 +72,116 @@ def test_formula_families_reject_an_unbounded_slider_combination():
     value["parameters"].append({"name": "k", "label": "增长系数", "unit": "无量纲", "minimum": 0, "maximum": 1000, "value": 1})
     with pytest.raises(ValueError, match="指数范围"):
         InteractivePage.model_validate(value)
+
+
+def test_account_component_generation_history_failure_and_exports(tmp_path):
+    import asyncio
+    import httpx
+    from paper_research_coach.server import create_app
+    from paper_research_coach.store import Store
+
+    class Text:
+        invalid = False
+        closed = 0
+        calls = []
+
+        def __init__(self, *args):
+            pass
+
+        async def text(self, prompt, **kwargs):
+            self.calls.append((prompt, kwargs))
+            return '{"bad": true}' if self.invalid else json.dumps(fixture("parameters"))
+
+        async def close(self):
+            Text.closed += 1
+
+    async def run():
+        app = create_app(Store(tmp_path), "secret", workspace_text_factory=Text)
+        ws = app.state.workspace
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://127.0.0.1", headers={"authorization": "Bearer secret"}) as client:
+            row = (await client.post('/api/workspace/studios', json={"question": "Explain a parameter", "presentation": "components"})).json()
+            url = '/api/workspace/studios/' + row["id"]
+            assert not Text.calls
+            async def generate():
+                job = (await client.post(url + '/generate', json={})).json()
+                task = ws.jobs.tasks.get(job["id"])
+                if task:
+                    await task
+                return ws.store.get("job", job["id"])
+            assert (await generate())["state"] == "completed"
+            current = (await client.get(url)).json()
+            first = current["published"]["version"]
+            assert current["published"]["format"] == "components"
+            assert Text.calls[0][1]["schema"]["title"] == "InteractivePage"
+            html = await client.get('/api/workspace/view/studio/' + row["id"])
+            assert html.status_code == 200 and 'prc-question' in html.text and 'allow-same-origin' not in html.headers['content-security-policy']
+            assert (await client.get('/api/workspace/export/studio/' + row["id"] + '/page.json')).json()["kind"] == "parameters"
+            await client.put('/api/workspace/storage/studio/' + row["id"], json={"key": "prc-interactive:" + first, "value": '{"params":{"a":1.7}}'})
+            assert (await generate())["state"] == "completed"
+            second = (await client.get(url)).json()
+            assert second["history"][0]["version"] == first
+            assert second["storage"]["prc-interactive:" + first]
+            assert (await client.get('/api/workspace/view/studio/' + row["id"], params={"version": first})).status_code == 200
+            Text.invalid = True
+            assert (await generate())["state"] == "failed"
+            assert (await client.get(url)).json()["published"]["version"] == second["published"]["version"]
+            assert Text.closed == 4  # two successful calls plus one bounded repair
+        await ws.close()
+    asyncio.run(run())
+
+
+def test_native_sources_do_not_treat_a_user_selection_as_pdf_evidence(tmp_path):
+    import asyncio
+    from reportlab.pdfgen import canvas
+    from paper_research_coach.server import create_app
+    from paper_research_coach.store import Store
+    path = tmp_path / 'synthetic.pdf'
+    pdf = canvas.Canvas(str(path)); pdf.drawString(40, 700, 'Real PDF evidence must be checked.'); pdf.save()
+    async def run():
+        app = create_app(Store(tmp_path / 'data'), 'secret'); ws = app.state.workspace
+        paper = ws.papers.add_paper('Synthetic metadata', str(path))
+        source = {"paper_id": paper["id"], "page_index": 0, "quote": "This is not in the PDF."}
+        sources = await ws.interactive_sources(source)
+        assert 'Real PDF evidence' in sources[0]["text"]
+        assert source["quote"] not in sources[0]["text"]
+        assert 'Synthetic metadata' not in sources[0]["text"]
+        assert sources[0]["anchor"]["source_version"] == paper["source_version"]
+        with pytest.raises(ValueError, match="换版"):
+            await ws.interactive_sources({**source, "source_version": "old-version"})
+        await ws.close()
+    asyncio.run(run())
+
+
+def test_sources_are_rechecked_before_async_publication(tmp_path):
+    import asyncio
+    from paper_research_coach.server import create_app
+    from paper_research_coach.store import Store
+    calls = []
+
+    class Text:
+        def __init__(self, *args):
+            pass
+        async def text(self, prompt, **kwargs):
+            value = fixture()
+            value.update(source_id="pdf-page", source_quote="预算必须相同")
+            return json.dumps(value)
+        async def close(self):
+            pass
+
+    async def run():
+        app = create_app(Store(tmp_path), "secret", workspace_text_factory=Text)
+        ws = app.state.workspace
+        async def sources(context, question):
+            calls.append(context)
+            if len(calls) > 1:
+                raise ValueError("source changed during generation")
+            return [{"id": "pdf-page", "label": "Synthetic PDF, page 1", "text": "预算必须相同", "context": {"paper_id": "p", "source_version": "v1"}}]
+        ws.studio.sources = sources
+        row = ws.studio.create({"question": "Explain", "presentation": "components", "context": {"paper_id": "p"}})
+        job = ws.studio.generate(row["id"], {})
+        await ws.jobs.tasks[job["id"]]
+        assert ws.store.get("job", job["id"])["state"] == "failed"
+        assert ws.store.get("studio", row["id"])["published"] is None
+        assert calls[-1]["source_version"] == "v1"
+        await ws.close()
+    asyncio.run(run())

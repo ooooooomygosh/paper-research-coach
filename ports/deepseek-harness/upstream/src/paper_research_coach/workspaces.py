@@ -194,10 +194,12 @@ const send=(kind,extra={})=>parent.postMessage({channel:'prc-workspace-v1',scope
 const storage={getItem:k=>Object.hasOwn(values,k)?values[k]:null,setItem:(k,v)=>{k=String(k);v=String(v);values[k]=v;send('storage',{key:k,value:v})},removeItem:k=>{delete values[k];send('storage',{key:k,value:null})},clear:()=>{Object.keys(values).forEach(k=>storage.removeItem(k))},key:i=>Object.keys(values)[i]??null};
 Object.defineProperty(storage,'length',{get:()=>Object.keys(values).length});
 try{Object.defineProperty(window,'localStorage',{get:()=>storage})}catch{}
+document.addEventListener('prc-question',e=>{if(typeof e.detail?.text==='string')send('question',{text:e.detail.text.slice(0,16000)})});
+document.addEventListener('prc-locate',()=>send('locate',{}));
 addEventListener('DOMContentLoaded',()=>{
  const button=document.createElement('button');button.type='button';button.textContent='带回 Paper Research Coach';button.title='将选中文字、页面回答或当前问题带入教练输入框，由你确认发送';
- button.style.cssText='position:fixed;right:12px;bottom:12px;z-index:9999;padding:9px 13px;border:1px solid #b6c8b9;border-radius:12px;background:#f5faf5;color:#264c35;font:12px system-ui;cursor:pointer;box-shadow:0 3px 16px #0002';
- button.addEventListener('click',()=>{const selection=getSelection()?.toString().trim();const inputs=[...document.querySelectorAll('textarea,input:checked')].filter(e=>e.getClientRects().length&&!e.closest('[hidden],[aria-hidden="true"]')).map(e=>e.value?.trim()).filter(Boolean);send('question',{text:(selection||inputs.join('\\n')||document.title).slice(0,16000)})});document.body.append(button);
+ button.style.cssText='position:fixed;right:12px;bottom:12px;z-index:9999;padding:9px 13px;border:1px solid #b6c8b9;border-radius:6px;background:light-dark(#f5faf5,#2c3529);color:light-dark(#264c35,#e2e9dc);font:12px system-ui;cursor:pointer;box-shadow:none';
+ button.addEventListener('click',()=>{const selection=getSelection()?.toString().trim();const inputs=[...document.querySelectorAll('textarea,input:checked')].filter(e=>e.getClientRects().length&&!e.closest('[hidden],[aria-hidden="true"]')).map(e=>e.value?.trim()).filter(Boolean);send('question',{text:(selection||inputs.join('\\n')||document.title).slice(0,16000)})});if(!document.getElementById('interactive-page'))document.body.append(button);
  document.addEventListener('click',e=>{const deep=e.target.closest('[data-deep-dive]');if(deep){e.preventDefault();e.stopImmediatePropagation();send('question',{text:'请结合资料解释：'+(deep.dataset.concept||deep.textContent)+'\\n出处：'+(deep.dataset.sourceRef||'')})}},true);
  const line=String.fromCharCode(10);
  document.addEventListener('click',e=>{const control=e.target.closest('[data-ch-send]');if(!control)return;const page=JSON.parse(document.getElementById('pageData')?.textContent||'{}'),unit=(page.contentUnits||[]).find(u=>u.id===control.dataset.chSend);if(unit){e.preventDefault();e.stopImmediatePropagation();send('question',{unit_id:unit.id,text:('请结合原文详细解释这个学习单元：'+unit.title+line+unit.core+line+(unit.takeaways||[]).join(line)+line+'出处：'+unit.source).slice(0,16000)})}},true);
@@ -213,4 +215,5 @@ addEventListener('DOMContentLoaded',()=>{
         pins = [pin] + ["'sha256-" + base64.b64encode(hashlib.sha256(body.encode()).digest()).decode() + "'" for attrs, body in scripts if 'application/json' not in attrs]
         policy = "default-src 'none'; script-src " + " ".join(pins) + "; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'"
         raw = raw.replace("<head>", '<head><meta http-equiv="Content-Security-Policy" content="' + policy + '">', 1)
-    return raw.replace("</head>", "<script>" + bootstrap + "</script></head>", 1)
+    matte = "<style>*,*::before,*::after{box-shadow:none!important}button,input,select,textarea{background-image:none!important;border-radius:6px}</style>"
+    return raw.replace("</head>", matte + "<script>" + bootstrap + "</script></head>", 1)

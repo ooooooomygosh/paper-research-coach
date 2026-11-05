@@ -71,11 +71,13 @@ class Workspace:
             # Use only PDF text, not the separately supplied selection or metadata.
             context = await self.context({**source, "quote": ""}, question)
             text = context.removeprefix(label + "\n").removesuffix("\n用户选区：").removesuffix("\n[本页过长，当前仅提供开头部分。]")
-            return [{"id": "pdf-page", "label": label, "text": text, "anchor": {
+            return [{"id": "pdf-page", "label": label, "text": text, "context": {**source, "source_version": paper["source_version"]}, "anchor": {
                 "paper_id": paper["id"], "source_version": paper["source_version"], "page_index": page, "status": "verified", "rects": []}}]
         if source.get("kb_id"):
-            blocks = self.learning.retrieve(source["kb_id"], question, source.get("unit_id"), source.get("version"), source.get("method_id"))
-            return [{"id": block["id"], "label": block["source"], "text": block["text"][:24000]} for block in blocks]
+            _, _, publication = self.learning.publication(source["kb_id"], source.get("version"))
+            context = {**source, "version": publication["version"]}
+            blocks = self.learning.retrieve(source["kb_id"], question, source.get("unit_id"), publication["version"], source.get("method_id"))
+            return [{"id": block["id"], "label": block["source"], "text": block["text"][:24000], "context": context} for block in blocks]
         return []
 
     def storage(self, kind, item_id, payload):

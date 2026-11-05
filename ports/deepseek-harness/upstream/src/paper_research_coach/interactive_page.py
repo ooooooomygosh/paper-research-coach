@@ -114,7 +114,7 @@ def grounded_page(value, sources):
     elif page["source_id"] or page["source_quote"]:
         raise ValueError("独立问题没有绑定来源，不能声称已有原文依据。")
     page["source_label"] = source["label"] if source else "模型解释 · 未绑定原文"
-    page["source_anchor"] = source.get("anchor") if source else None
+    page["source_anchor"] = ({**source["anchor"], "quote": page["source_quote"]} if source and source.get("anchor") else None)
     return page
 
 
@@ -138,7 +138,8 @@ def render_page(page, version):
     style = Path(__file__).with_name("interactive_page.css").read_text(encoding="utf-8")
     payload = json.dumps({"page": page, "version": version}, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     pin = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
-    return f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    language = "en" if page.get("language") == "en" else "zh-CN"
+    return f'''<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-{pin}'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>{escape(page["title"])}</title><style>{style}</style></head><body>
 <main id="interactive-page"><header><small>Paper Research Coach · 可交互讲解</small><h1>{escape(page["title"])}</h1><p>{escape(page["summary"])}</p></header>

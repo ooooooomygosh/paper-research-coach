@@ -6,18 +6,20 @@ export function artifactMessage(event: MessageEvent, source: Window | null, kind
   const data = event.data;
   if (!source || event.source !== source || !data || data.channel !== "prc-workspace-v1" || data.scope?.id !== id || data.scope?.type !== kind) return null;
   if (data.kind === "question" && typeof data.text === "string" && data.text.length <= 16000) return { ...data, action: data.kind };
+  if (data.kind === 'locate') return { ...data, action: 'locate' };
   if (data.kind === "storage" && typeof data.key === "string" && data.key.length <= 500 && (data.value === null || typeof data.value === "string" && data.value.length <= 500000)) return { ...data, action: data.kind };
   return null;
 }
 
-export default function ArtifactFrame({ kind, id, version, title, onQuestion, report }: {
+export default function ArtifactFrame({ kind, id, version, title, onQuestion, report, onLocate }: {
   kind: "studio" | "kb"; id: string; version: string; title: string;
   onQuestion: (text: string, context?: { unit_id?: string; method_id?: string }) => void; report: (message: string) => void;
+  onLocate?: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null), box = useRef<HTMLDivElement>(null);
   const [wide, setWide] = useState(false);
-  const latest = useRef({ onQuestion, report });
-  latest.current = { onQuestion, report };
+  const latest = useRef({ onQuestion, report, onLocate });
+  latest.current = { onQuestion, report, onLocate };
   const queue = useRef(Promise.resolve());
   useEffect(() => {
     function receive(event: MessageEvent) {
@@ -26,6 +28,9 @@ export default function ArtifactFrame({ kind, id, version, title, onQuestion, re
       if (data.action === "question") {
         const context = Object.fromEntries(["unit_id", "method_id"].filter(key => typeof data[key] === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(data[key])).map(key => [key, data[key]]));
         latest.current.onQuestion(data.text, context);
+      } else if (data.action === 'locate') {
+        // The anchor belongs to the selected publication, never to message data.
+        latest.current.onLocate?.();
       } else {
         // Serialize writes: rapid per-character note changes must keep their order.
         queue.current = queue.current.then(() => workspaceApi(`/storage/${kind}/${id}`, { key: data.key, value: data.value }, "PUT"))

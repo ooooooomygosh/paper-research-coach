@@ -94,6 +94,7 @@ export function App() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [globalTranslation, setGlobalTranslation] = useState(false);
   const [showOriginal, setShowOriginal] = useState(() => localStorage.getItem('prc-workspace-original') !== 'off');
+  useEffect(() => { setGlobalTranslation(false); }, [tab]);
   const update = useUpdate(ready);
   const [toolsTab, setToolsTab] = useState("translate");
   const [syncBusy, setSyncBusy] = useState(false);
@@ -151,6 +152,7 @@ export function App() {
     toolsTrigger.current?.focus();
   }
   function openTools(section = "translate") {
+    setGlobalTranslation(false);
     toolsTrigger.current = document.activeElement as HTMLElement;
     setToolsTab(section);
     setToolsOpen(true);
