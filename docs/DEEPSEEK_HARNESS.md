@@ -2,7 +2,7 @@
 
 Paper Research Coach 提供可内置到 **DeepSeek Harness** 的第三方适配版本。安装后从 Harness 侧栏的“论文研读”进入，保留原项目的阅读工作台和 UI，通过 Harness 当前登录账户的 `deepseek-account` 接口完成文献阅读、分析和学习，无需额外配置 API Key 或 Codex CLI。
 
-适配插件当前版本为 **1.1.0**，基于工作台 **2.0.0rc13**。已验证平台是 **Windows x64 / DeepSeek Harness 0.2.1-rc.5**；macOS 没有预打包安装包，但可以在装有 Node.js 24 与 uv 的机器上从源码构建并注册进 Harness profile，步骤见 [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md)。其他 Harness 版本需要重新验证。该适配版并非 DeepSeek 官方发行。
+适配插件当前版本为 **1.1.0**，基于工作台 **2.0.0rc13**，要求 Harness **0.2.1-rc.5**。Windows x64 有预打包分发包；macOS（Apple silicon）没有预打包产物，在装有 Node.js 24 与 uv 的机器上从源码构建并注册进 Harness profile，步骤见 [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md)。两个平台都在 0.2.1-rc.5 上实跑过，其他 Harness 版本需要重新验证。该适配版并非 DeepSeek 官方发行。
 
 ## 两个新增学习入口
 
@@ -10,7 +10,7 @@ Paper Research Coach 提供可内置到 **DeepSeek Harness** 的第三方适配�
 
 **交互式讲解**整合 Answer me with HTML：围绕一个问题、论文页或知识库生成含流程图、公式、表格和问答的图文页面，支持编辑草稿、更换主题、修订和 HTML 导出。插件名称保持 **Paper Research Coach**。
 
-原有 PDF 阅读、八章主线、支线讲解、复盘树、笔记、翻译和书库同步继续保留。PDF 高亮修复将碎片选区按行合并并去重，减少重复方框与文字遮挡。
+原有 PDF 阅读、八章主线、支线讲解、复盘树、笔记、翻译和书库同步继续保留。PDF 高亮修复将碎片选区按行合并并去重，减少重复方框与文字遮挡。教练默认用 **DeepSeek Flash + high 思考深度**，模型未声明的档位不会提交；一轮失败时会说明具体原因（额度、限流、上下文等），不再只显示通用提示。
 
 仅添加材料不会调用模型；点击构建、生成或发送后才通过登录账户请求模型。逐字引文校验不代表语义完整性或学习效果已经独立验证，扫描页与图中细节仍需人工核对。
 
@@ -24,6 +24,6 @@ Git 仓库不存储运行库、字体/模型缓存或大型安装 ZIP。维护�
 
 ## English
 
-The **Paper Research Coach 1.1.0** port embeds the full 2.0.0rc13 workbench in **DeepSeek Harness 0.2.1-rc.5 on Windows x64**. It uses the signed-in Harness account through `deepseek-account`, adds knowledge-base learning and interactive explanations, and fixes overlapping PDF text highlights. No separate API key or Codex CLI is required. macOS ships no prebuilt package, but the port can be built from source and registered into a Harness profile — see [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md); other host versions have not been validated.
+The **Paper Research Coach 1.1.0** port embeds the full 2.0.0rc13 workbench in **DeepSeek Harness 0.2.1-rc.5**. Windows x64 has a prebuilt package; macOS (Apple silicon) is built from source and registered into a Harness profile — see [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md). Both were run against 0.2.1-rc.5; other host versions have not been validated. It uses the signed-in Harness account through `deepseek-account`, adds knowledge-base learning and interactive explanations, and fixes overlapping PDF text highlights. No separate API key or Codex CLI is required. The coach defaults to DeepSeek Flash at high reasoning, never submits a level the model does not declare, and names the cause when a turn fails.
 
 The [port source and build guide](../ports/deepseek-harness/README.md) includes both pinned MIT-licensed integrations, account bridges, tests and the distributable installer. Runtime binaries, cached translation assets, personal data and credentials are excluded from Git. The standalone wheel/Skill releases are separate from the Harness installer ZIP. This is a third-party integration, not an official DeepSeek distribution.
