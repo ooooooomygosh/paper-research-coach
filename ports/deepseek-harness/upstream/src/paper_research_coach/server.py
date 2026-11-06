@@ -35,20 +35,66 @@ from .zotero import ZoteroSync
 log = logging.getLogger("paper_research_coach")
 
 def session_token(store: Store):
+    """The launch token. A missing or empty file is replaced; an empty token must never be a valid one."""
     path = store.root / "session-token"
-    if not path.exists():
+
+    def current() -> str:
         try:
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, "w") as f:
-                f.write(secrets.token_urlsafe(32))
-        except FileExistsError:
-            pass
+            return path.read_text().strip()
+        except OSError:
+            return ""
+
+    token = current()
+    if not token:
+        fresh = secrets.token_urlsafe(32)
+        # Write the whole token to a private file first, then put it in place in one step, so another
+        # process never reads a half-written (empty) token file.
+        temp = path.with_name(f".session-token.{os.getpid()}.{secrets.token_hex(4)}")
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(fresh)
+        try:
+            if path.exists():
+                os.replace(temp, path)  # an existing but unusable (empty) file
+            else:
+                try:
+                    os.link(temp, path)  # create only if still missing: the loser of a race reads the winner's token
+                except FileExistsError:
+                    pass
+                except OSError:  # a file system without hard links
+                    os.replace(temp, path)
+        finally:
+            temp.unlink(missing_ok=True)
+        token = current() or fresh
     path.chmod(0o600)
-    return path.read_text().strip()
+    return token
+
+
+def events_start(store: Store, since: int | None, last_event_id: str | None) -> int:
+    """Where an event stream begins.
+
+    A page that has just loaded already read the current state, so a new connection starts at the end:
+    replaying the whole history sent thousands of change events, each one a full refresh. A reconnecting
+    EventSource sends Last-Event-ID and continues from there, and an explicit position is never skipped past.
+    """
+    try:
+        seen = int(last_event_id) if last_event_id else None
+    except ValueError:
+        seen = None
+    if since is None and seen is None:
+        return store.latest_seq()
+    return max(since or 0, seen or 0)
+
+
+def same_token(given: str, expected: str) -> bool:
+    """Constant-time comparison that also accepts non-ASCII text (compare_digest raises on it)."""
+    return bool(expected) and secrets.compare_digest(given.encode("utf-8", "replace"), expected.encode("utf-8", "replace"))
 
 
 def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None = None, *, workspace_text_factory=None, workspace_renderer=None):
     token = token or session_token(store)
+    if not token.strip():
+        raise ValueError("The launch token must not be empty.")
     sync = sync or ZoteroSync(store)
     vault = VaultSync(store, sync)
     from .workspace_api import Workspace, mount_workspace, ARTIFACT_CSP
@@ -156,9 +202,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             return JSONResponse({"error": "Cross-origin requests are disabled"}, 403)
         bearer = request.headers.get("authorization", "").removeprefix("Bearer ")
         cookie = request.cookies.get("prc_session", "")
-        authorized = secrets.compare_digest(bearer, token) or secrets.compare_digest(
-            cookie, token
-        )
+        authorized = same_token(bearer, token) or same_token(cookie, token)
         if request.url.path.startswith("/api/") and request.url.path != "/api/login":
             if not authorized:
                 return JSONResponse(
@@ -167,7 +211,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             if (
                 request.method not in ("GET", "HEAD")
                 and not origin
-                and not secrets.compare_digest(bearer, token)
+                and not same_token(bearer, token)
             ):
                 return JSONResponse(
                     {"error": "Origin required for browser writes"}, 403
@@ -208,7 +252,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     @app.post("/api/login")
     async def login(request: Request):
         data = await request.json()
-        if not secrets.compare_digest(str(data.get("token", "")), token):
+        if not same_token(str(data.get("token", "")), token):
             return JSONResponse({"error": "启动链接已失效，请从本机启动器重新打开。"}, 401)
         response = JSONResponse({"ok": True})
         response.set_cookie(
@@ -339,8 +383,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def coach_reconnect():
         if coach.active:
             raise Conflict("先停止正在进行的回复，再重新连接。")
-        await coach.rpc.close()
-        coach.resumed.clear()
+        await coach.reconnect()
         return await coach.status()
 
     @app.post("/api/coach/login")
@@ -459,6 +502,12 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         if not isinstance(quotes, list) or not isinstance(data.get("page_index"), int):
             raise ValueError("需要 page_index（整数）和 quotes（列表）。")
         return await asyncio.to_thread(coach.show_external, paper_id, data["page_index"], [str(q) for q in quotes], str(data.get("note", "")))
+
+    @app.get("/api/map/{paper_id}")
+    async def paper_map_of(paper_id: str):
+        from . import paper_map
+
+        return await asyncio.to_thread(paper_map.get, store, paper_id)
 
     @app.get("/api/find/{paper_id}")
     async def find_text(paper_id: str, q: str):
@@ -636,16 +685,13 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         return FileResponse(path, filename=path.name)
 
     @app.get("/api/events")
-    async def events(request: Request, since: int = 0):
-        try:
-            since = max(since, int(request.headers.get("last-event-id", "0")))
-        except ValueError:
-            pass
+    async def events(request: Request, since: int | None = None):
+        start = await asyncio.to_thread(events_start, store, since, request.headers.get("last-event-id"))
 
         async def stream():
             app.state.viewers += 1
             try:
-                async for chunk in rows_since(since):
+                async for chunk in rows_since(start):
                     yield chunk
             finally:
                 left()
@@ -656,6 +702,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                 if rows:
                     cursor = rows[-1]["seq"]
                     yield f"id: {cursor}\ndata: {json.dumps(rows)}\n\n"
+                    if len(rows) >= 200:
+                        continue  # a full batch: more is waiting, do not make it wait a second
                 else:
                     yield ": keepalive\n\n"
                 await asyncio.sleep(1)

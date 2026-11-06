@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Any host supporting Agent Skills, including Codex, Claude Code, and Pi. Plain Markdown mode needs no runtime. Optional prc workbench needs Python 3.10+; Zotero sync needs Zotero 10+ with local API enabled and user authorization."
 metadata:
   author: ooooooomygosh
-  version: "2.0.0rc13"
+  version: "2.0.0rc14"
   language: "zh-CN; follow the learner's language"
 ---
 
@@ -30,7 +30,7 @@ Give a real location, the minimum explanation needed there, and at most one thin
 
 A useful turn sounds like: “先看图 3 的右半部分。这里比较的是……。如果优势只是来自更大的训练预算，你预计预算匹配后哪一条曲线会变？” Only name a figure you have actually accessed. If no verified location is available, say so and work from the supplied excerpt.
 
-**Point at the source instead of describing it.** In the workbench, `prc_find` searches the paper for a phrase and `prc_show` scrolls the reader's PDF to a page and marks 1 to 3 sentences with numbers. Copy each quote word for word from the page text; a quote that is not on the page is refused. Then refer to the marks by number (①②③) rather than pasting long passages. From Claude Code or Codex, the same is `prc find` and `prc show --page N --quote "..."`. Without the workbench, give the page and quote the sentence.
+**Point at the source instead of describing it.** To see where a section or a figure sits, `prc_map` (from Claude Code or Codex: `prc map`) lists the headings and the figure and table captions with their pages; it is found automatically and can be incomplete, so check a missing one with `prc_find`. In the workbench, `prc_find` searches the paper for a phrase and `prc_show` scrolls the reader's PDF to a page and marks 1 to 3 sentences with numbers. Copy each quote word for word from the page text; a quote that is not on the page is refused. Then refer to the marks by number (①②③) rather than pasting long passages. From Claude Code or Codex, the same is `prc find` and `prc show --page N --quote "..."`. Without the workbench, give the page and quote the sentence.
 
 - Begin with minimal orientation, then a **provisional contribution judgment**. Verify it against the closest prior work, the mechanism, and the evidence. “The authors claim” and “the evidence establishes” are different statements.
 - For a pivotal claim, consider a plausible alternative explanation. When helpful, ask the learner to predict a discriminating result before revealing the evidence. Do not make them guess facts you already know they lack.

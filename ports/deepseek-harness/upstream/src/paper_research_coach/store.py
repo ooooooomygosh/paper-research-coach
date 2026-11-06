@@ -183,8 +183,13 @@ class Store:
                     and old
                     and (
                         old["content"] != obj.content
-                        or old.get("anchor")
-                        != (obj.anchor.model_dump(mode="json") if obj.anchor else None)
+                        # Marking an anchor stale because the PDF was replaced is not the reader
+                        # moving the note: it must not send discussed notes back to the queue.
+                        or (
+                            origin != "source-version"
+                            and old.get("anchor")
+                            != (obj.anchor.model_dump(mode="json") if obj.anchor else None)
+                        )
                     )
                 ):
                     obj.discussed = False
@@ -306,30 +311,36 @@ class Store:
                 page_count=len(reader.pages),
                 access_scope="full",
             )
-            for existing in self.list("paper"):
-                compatible = (
-                    not metadata.get("zotero_server")
-                    or not existing["zotero_server"]
-                    or (
-                        existing["zotero_server"] == metadata["zotero_server"]
-                        and existing["zotero_key"] == metadata.get("zotero_key")
+        # The duplicate check and the insert share one write lock: concurrent imports of the same PDF
+        # (a double click, an upload during a vault scan) would otherwise each find nothing and each add a paper.
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if source_path:
+                for existing in self.list("paper"):
+                    compatible = (
+                        not metadata.get("zotero_server")
+                        or not existing["zotero_server"]
+                        or (
+                            existing["zotero_server"] == metadata["zotero_server"]
+                            and existing["zotero_key"] == metadata.get("zotero_key")
+                        )
                     )
-                )
-                if (
-                    existing["source_version"] == metadata["source_version"]
-                    and compatible
-                ):
-                    return existing
-        p = Paper(title=title, **metadata)
-        s = Session(id=p.id + "-session", paper_id=p.id, goal=p.goal)
-        return self.commit(
-            {
-                "mutations": [
-                    {"kind": "paper", "data": p.model_dump()},
-                    {"kind": "session", "data": s.model_dump()},
-                ]
-            }
-        )["records"][0]
+                    if (
+                        existing["source_version"] == metadata["source_version"]
+                        and compatible
+                    ):
+                        return existing
+            p = Paper(title=title, **metadata)
+            s = Session(id=p.id + "-session", paper_id=p.id, goal=p.goal)
+            return self.commit(
+                {
+                    "mutations": [
+                        {"kind": "paper", "data": p.model_dump()},
+                        {"kind": "session", "data": s.model_dump()},
+                    ]
+                },
+                connection=db,
+            )["records"][0]
 
     def check_source(self, paper_id: str):
         p = self.get("paper", paper_id)
@@ -386,6 +397,10 @@ class Store:
             return self.put(
                 "paper", p, p["revision"], origin="source-version", connection=db
             )
+
+    def latest_seq(self) -> int:
+        with self.connect() as db:
+            return db.execute("SELECT COALESCE(MAX(seq),0) FROM history").fetchone()[0]
 
     def events(self, since=0):
         with self.connect() as db:

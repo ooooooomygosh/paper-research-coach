@@ -1,3 +1,4 @@
+import BlockBoundary from "./BlockBoundary";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { HelpCircle, MessageCircle } from "../glyphs";
 import type { AskBlock, Block, ExplainerDoc } from "./types";
@@ -57,7 +58,17 @@ function Ask({ block, onAnswer, disabled }: { block: AskBlock; onAnswer?: (text:
   );
 }
 
-function BlockView({ block, uid, onAnswer, disabled, narrow = false }: { block: Block; uid: string; onAnswer?: (t: string) => void; disabled?: boolean; narrow?: boolean }) {
+type BlockProps = { block: Block; uid: string; onAnswer?: (t: string) => void; disabled?: boolean; narrow?: boolean };
+
+function BlockView(props: BlockProps) {
+  return (
+    <BlockBoundary resetKey={props.block}>
+      <DrawBlock {...props} />
+    </BlockBoundary>
+  );
+}
+
+function DrawBlock({ block, uid, onAnswer, disabled, narrow = false }: BlockProps) {
   // A long left-to-right flow does not fit a narrow column: draw it top to bottom there.
   const flow = useMemo(
     () => (block.type === "flow" && narrow && (block.dir === "LR" || block.dir === "RL") && block.nodes.length > 3 ? { ...block, dir: "TB" as const } : block),

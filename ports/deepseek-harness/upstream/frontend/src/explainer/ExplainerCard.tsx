@@ -42,7 +42,8 @@ export default function ExplainerCard({
   onToggle: (open: boolean) => void;
   disabled?: boolean;
   /** Send a follow-up in this branch (a detour that keeps the mainline where it is). */
-  onAsk: (text: string, branchId: string) => void;
+  /** Send a follow-up. Resolve false (or reject) when it was not sent: the reader's words then stay in the box. */
+  onAsk: (text: string, branchId: string) => void | boolean | Promise<boolean | void>;
   onEnlarge?: () => void;
   onPopout?: () => void;
   paperTitle?: string;
@@ -67,10 +68,18 @@ export default function ExplainerCard({
     };
   }, [id, rev]);
 
-  const ask = (text: string) => {
-    if (!text.trim() || disabled) return;
-    onAsk(text.trim(), branchId);
-    setDraft("");
+  const sending = useRef(false);
+  const ask = async (text: string) => {
+    if (!text.trim() || disabled || sending.current) return;
+    sending.current = true;
+    try {
+      // What the reader wrote leaves the box only once the coach has it.
+      if ((await onAsk(text.trim(), branchId)) !== false) setDraft("");
+    } catch {
+      /* not sent: keep the draft */
+    } finally {
+      sending.current = false;
+    }
   };
   const panelAsk: PanelAsk = (letter, title, kind) => {
     if (kind === "confused") ask(`${letter}「${title}」这一块我没看懂，请换个说法，或者举一个小例子。`);
@@ -83,6 +92,17 @@ export default function ExplainerCard({
     }
   };
   const done = quest?.status === "done";
+  // Download needs the drawn page. On a folded card, open it first and download once it is there.
+  const wantDownload = useRef(false);
+  const download = () => {
+    const doc = page.current?.querySelector(".xp-doc") as HTMLElement | null;
+    if (!doc || !record) return false;
+    downloadHtml(explainerHtml(doc, { title: record.title, source: paperTitle }), record.title);
+    return true;
+  };
+  useEffect(() => {
+    if (expanded && record && wantDownload.current && download()) wantDownload.current = false;
+  });
 
   return (
     <section className={"xp-card" + (expanded ? " open" : "") + (done ? " done" : "")} aria-label={"讲解页：" + (record?.title || "")}>
@@ -101,11 +121,9 @@ export default function ExplainerCard({
           {record && (
             <button type="button" title="下载为单个 HTML 文件" aria-label="下载讲解页 HTML"
               onClick={() => {
-                if (!page.current) {
-                  onToggle(true);
-                  return;
-                }
-                downloadHtml(explainerHtml(page.current.querySelector(".xp-doc") as HTMLElement, { title: record.title, source: paperTitle }), record.title);
+                if (download()) return;
+                wantDownload.current = true;
+                onToggle(true);
               }}>
               <Download size={14} />
             </button>

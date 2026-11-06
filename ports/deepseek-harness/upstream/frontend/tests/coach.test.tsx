@@ -829,3 +829,91 @@ it("draws a mainline reply as a quest card: chapter, source cards, clickable mar
   fireEvent.click(within(screen.getByRole("group", { name: "快速回答" })).getByRole("button", { name: "仍然明显" }));
   await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "仍然明显", intent: "answer" })));
 });
+
+// ---- the reader's input and selection stay theirs ----
+const sentTo = (branch: string) =>
+  vi.mocked(api).mock.calls.filter(([p, b]) => p === "coach/send/p" && (b as any)?.branch_id === branch).map(([, b]) => b as any);
+
+it("a follow-up inside an explainer page does not carry, or use up, an unrelated PDF selection", async () => {
+  const anchor = { paper_id: "p", source_version: "version", page_index: 1, status: "verified", quote: "an unrelated sentence", rects: [] };
+  const clear = vi.fn();
+  explainerMocks([withExplainer()]);
+  view({ anchor, onClearAnchor: clear });
+  fireEvent.click(await screen.findByRole("button", { name: /支线.*预算为什么要相同/ }));
+  fireEvent.change(await screen.findByLabelText("接着问这一页"), { target: { value: "那误差条呢？" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送追问" }));
+  await waitFor(() => expect(sentTo("x1")).toHaveLength(1));
+  expect(sentTo("x1")[0]).toMatchObject({ intent: "detour", branch_id: "x1", anchor: null, page_image: "" });
+  expect(clear).not.toHaveBeenCalled();
+});
+
+it("keeps the follow-up the reader wrote in an explainer page when the coach refuses it", async () => {
+  explainerMocks([withExplainer()]);
+  const base = vi.mocked(api).getMockImplementation()!;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) => {
+    if (path === "coach/send/p") throw new ApiError("教练正在回复上一条，请稍后再发。", 409);
+    return base(path, body);
+  });
+  view();
+  fireEvent.click(await screen.findByRole("button", { name: /支线.*预算为什么要相同/ }));
+  const box = (await screen.findByLabelText("接着问这一页")) as HTMLTextAreaElement;
+  fireEvent.change(box, { target: { value: "一段认真写下的追问" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送追问" }));
+  await waitFor(() => expect(sentTo("x1")).toHaveLength(1));
+  await act(async () => {});
+  expect(box.value).toBe("一段认真写下的追问");
+  expect(screen.getByText(/教练正在回复上一条/)).toBeTruthy();
+});
+
+it("opening an old read-only conversation does not move the PDF to its first mark", async () => {
+  const { stream } = explainerMocks([]);
+  const onFocus = vi.fn();
+  view({ onFocus });
+  await waitFor(() => expect(stream.emit).toBeTruthy());
+  await act(async () => {
+    stream.emit!({ ...snapshot, messages: [pointing("m0", [focus("f0", 1)])] });
+  });
+  onFocus.mockClear();
+  await act(async () => {
+    stream.emit!({ ...snapshot, conversation_id: "old", read_only: true, messages: [pointing("mold", [focus("fold", 0)])] });
+  });
+  expect(onFocus).not.toHaveBeenCalled();
+});
+
+// ---- the input box says what the coach is given each turn ----
+it("always shows which page (and, when known, which section) is sent with the next message, even with nothing selected", async () => {
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    if (path === "map/p") return { outline: [{ title: "1 Introduction", page_index: 0, depth: 0 }, { title: "2 Method", page_index: 1, depth: 0 }] };
+    return {};
+  });
+  view({ page: 1 });
+  const chips = await screen.findByText("PDF 第 2 页");
+  expect(chips.closest(".coach-context-chips")!.hasAttribute("hidden")).toBe(false);
+  expect(await screen.findByText("1 Introduction → 2 Method")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "移除对话选区" })).toBeNull();
+});
+
+it("shows only the page when the paper's structure is not known, and stays quiet if the map cannot be read", async () => {
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return snapshot;
+    if (path === "map/p") throw new Error("not available");
+    return {};
+  });
+  view({ page: 0 });
+  expect(await screen.findByText("PDF 第 1 页")).toBeTruthy();
+  expect(document.querySelector(".coach-section-chip")).toBeNull();
+});
+
+it("does not offer to send anything from an old read-only conversation", async () => {
+  vi.mocked(api).mockImplementation(async (path: string) => {
+    if (path === "coach/status") return status;
+    if (path.startsWith("coach/conversation/")) return { ...snapshot, read_only: true };
+    return {};
+  });
+  view({ page: 0 });
+  await screen.findByText("已连接本机 CLI");
+  await waitFor(() => expect(document.querySelector(".coach-context-chips")?.hasAttribute("hidden")).toBe(true));
+});

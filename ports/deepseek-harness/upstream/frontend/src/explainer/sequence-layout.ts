@@ -52,7 +52,8 @@ export function layoutSequence(block: SequenceBlock): SeqLayout {
       });
       y += self ? 26 : 16;
     } else if (step.kind === "note") {
-      const xs = step.over.map(cx);
+      // A note that names nobody spans everyone; Math.min() of nothing is Infinity and draws NaN.
+      const xs = (step.over.length ? step.over : block.participants).map(cx);
       const lo = Math.min(...xs) - 54;
       const hi = Math.max(...xs) + 54;
       const lines = wrapText(plain(step.text), FS, hi - lo - 20);

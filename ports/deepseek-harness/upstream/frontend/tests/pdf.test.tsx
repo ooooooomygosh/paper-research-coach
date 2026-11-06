@@ -434,3 +434,43 @@ it("draws restored coach marks without pulling the reader to them", async () => 
   await waitFor(() => expect(document.querySelectorAll('.pdf-page[data-slot="1"] .coach-mark')).toHaveLength(1));
   expect(HTMLElement.prototype.scrollIntoView).not.toHaveBeenCalled();
 });
+
+it("the first jump after scrolling can be undone: it adds a place to come back to", async () => {
+  localStorage.setItem("prc-viewport-scroll:v", JSON.stringify({ zoom: 1, fit: false }));
+  function Harness() {
+    const [page, setPage] = useState(0);
+    return (
+      <PdfReader
+        paper={{ id: "trail", source_version: "v", revision: 1, page_count: 3 }}
+        page={page}
+        setPage={(n) => setPage(n)}
+        onAnchor={vi.fn()}
+        focusAnchor={null}
+      />
+    );
+  }
+  render(<Harness />);
+  await waitFor(() => expect(document.querySelector('.pdf-page[data-page-index="0"]')).toBeTruthy());
+  const box = sized(400);
+  box.scrollTop = 1000; // reading line on page 2
+  fireEvent.scroll(box);
+  await waitFor(() => expect((screen.getByLabelText("阅读页码") as HTMLInputElement).value).toBe("2"));
+  // Jump back to page 1 with the page box (a jump, not a scroll).
+  const input = screen.getByLabelText("阅读页码");
+  fireEvent.change(input, { target: { value: "1" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await waitFor(() => expect((screen.getByLabelText("阅读页码") as HTMLInputElement).value).toBe("1"));
+  expect((screen.getByLabelText("返回上一阅读位置") as HTMLButtonElement).disabled).toBe(false);
+  localStorage.removeItem("prc-viewport-scroll:v");
+});
+
+it("Escape leaves rectangle selection even when it was started from the toolbar button", async () => {
+  render(<Reader version="v" />);
+  const toggle = await screen.findByRole("button", { name: "PDF 框选区域" });
+  await waitFor(() => expect((toggle as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  toggle.focus(); // the button keeps the focus after the click, as in a real browser
+  fireEvent.keyDown(toggle, { key: "Escape" });
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+});
