@@ -105,11 +105,11 @@ npx skills add oooooomygosh/paper-research-coach
 
 把整套工作台内置进 [DeepSeek Harness](docs/DEEPSEEK_HARNESS.md)，用 Harness 当前登录的 `deepseek-account` 调用模型：不需要 API Key，也不需要 Codex CLI。装好后从侧栏“论文研读”进入。
 
-插件版本 **1.1.0**，基于工作台 **2.0.0rc13**，要求 Harness **0.2.1-rc.5**。
+插件版本 **1.2.0**，基于工作台 **2.0.0rc14**，要求 Harness **0.2.1-rc.5**。
 
 | 平台 | 安装 |
 |---|---|
-| Windows x64 | 安装包 `PRC-DSH-1.1.0-win-x64.zip`（约 476 MiB，由维护者构建分发，**不在 Git 里**；仓库的 wheel 与 Skill ZIP 不能代替它）。装好兼容的 Harness 并登录，退出应用后完整解压，运行 `安装.cmd`，重启点“论文研读”；卸载用同包 `卸载.cmd`，论文与学习记录保留 |
+| Windows x64 | 安装包 `PRC-DSH-1.2.0-win-x64.zip`（约 476 MiB，由维护者构建分发，**不在 Git 里**；仓库的 wheel 与 Skill ZIP 不能代替它）。装好兼容的 Harness 并登录，退出应用后完整解压，运行 `安装.cmd`，重启点“论文研读”；卸载用同包 `卸载.cmd`，论文与学习记录保留 |
 | macOS（Apple silicon） | 没有预打包产物，从源码构建并注册进 Harness profile：`ports/deepseek-harness/macos/install-macos.sh`，步骤与限制见 [macOS 说明](ports/deepseek-harness/macos/README.md) |
 
 插件在保留原有阅读工作台的基础上多了两块内容：

@@ -299,3 +299,23 @@ def test_the_model_has_no_tool_to_close_a_side_quest():
 
     names = [t["name"] for t in module.TOOLS]
     assert names and not [n for n in names if "quest" in n]
+
+
+def test_a_sequence_note_must_name_who_it_sits_over():
+    with pytest.raises(DraftError) as caught:
+        parse_draft("## A\n```sequence\nA -> B: hi\nnote ,: oops\n```")
+    assert "L4" in str(caught.value) and "note" in str(caught.value)
+    assert "Correct example" in str(caught.value)
+
+
+def test_markdown_nested_absurdly_deep_is_refused_with_its_line_number():
+    deep = "- " * 200 + "x"
+    with pytest.raises(DraftError) as caught:
+        parse_draft("## Short answer\n" + deep)
+    assert "L2" in str(caught.value) and "nest" in str(caught.value)
+    with pytest.raises(DraftError, match="nest"):
+        parse_draft("## A\n" + ">" * 300 + " quoted")
+    with pytest.raises(DraftError, match="nest"):
+        parse_draft("## A\n```callout warn Careful\n" + "- " * 200 + "x\n```")
+    # real explanations nest a few levels and stay valid
+    parse_draft("## A\n- one\n  - two\n    - three\n      - four\n> a quote\n> > and a reply\n")

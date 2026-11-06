@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import JourneyTree from "../src/JourneyTree";
@@ -65,4 +66,25 @@ it("exports the tree as one static HTML file that keeps the words and opens ever
   expect(html).toContain("第 1 页");
   expect(html.match(/<details[^>]*open/g)?.length).toBe(3);
   expect(html).toContain(".jt-root{}");
+});
+
+it("closing the journey tree returns the keyboard to the button that opened it", async () => {
+  vi.mocked(api).mockResolvedValue(trip);
+  function Host() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>打开复盘树</button>
+        {open && <JourneyTree paperId="p" onClose={() => setOpen(false)} />}
+      </>
+    );
+  }
+  render(<Host />);
+  const opener = screen.getByRole("button", { name: "打开复盘树" });
+  opener.focus();
+  fireEvent.click(opener);
+  const tree = await screen.findByRole("dialog");
+  fireEvent.keyDown(tree, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.activeElement).toBe(opener);
 });

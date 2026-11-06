@@ -1,6 +1,6 @@
 # Sources and notices
 
-The complete workbench is derived from [Paper Research Coach](https://github.com/ooooooomygosh/paper-research-coach), version 2.0.0rc13, MIT, copyright ooooooomygosh. Its original source, skill, tests and license are in `upstream/`. All changes are available in this source directory.
+The complete workbench is derived from [Paper Research Coach](https://github.com/ooooooomygosh/paper-research-coach), version 2.0.0rc14, MIT, copyright ooooooomygosh. Its original source, skill, tests and license are in `upstream/`. All changes are available in this source directory.
 
 DeepSeek Harness 0.2.1-rc.5 supplies the account adapter, LLM runtime, application shell and plugin loader. The plugin does not copy account credentials or implement a separate provider login.
 

@@ -32,7 +32,7 @@ Paper Research Coach **1.2.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Wi
 
 ## 源码组织
 
-这个目录保留已验证的 **2.0.0rc13 内置工作台快照**，与仓库根目录的独立工作台分开。它是完整的适配源码贡献，不会替换独立工作台的 provider 或发布流程。
+这个目录保留已验证的 **2.0.0rc14 内置工作台快照**，与仓库根目录的独立工作台分开。它是完整的适配源码贡献，不会替换独立工作台的 provider 或发布流程。
 
 | 路径 | 内容 |
 |---|---|
@@ -45,6 +45,17 @@ Paper Research Coach **1.2.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Wi
 | `SOURCE_SNAPSHOT.json` | 原项目版本、提交和公开源码文件哈希 |
 
 原仓库与第三方仓库中的 Skill 文档作为随附源码保留；不会自动安装额外代理或服务。后续同步独立工作台需要显式移植并重新验证此快照。
+
+## 同步独立工作台
+
+快照与根目录的独立工作台分开演进，落后时两边的功能就不一致。同步的做法：
+
+1. 取 `SOURCE_SNAPSHOT.json` 里 `upstream.commit`（基线）到新版本之间独立工作台改过的文件。插件没改过的文件直接换成新版本；插件也改过的做三方合并（基线、插件版本、新版本）。根目录的 README 和文档不要带进快照，它们讲的就是这个插件。
+2. 运行下面的 `scripts/verify_source.py`。合并没有文本冲突不等于行为正确，要靠测试确认。
+3. 运行 `python scripts/refresh_snapshot.py write --baseline <新版本的提交>`，更新 `SOURCE_SNAPSHOT.json`（版本、基线、每个文件的哈希、相对基线有改动的文件）。之后任何改动都可以用 `python scripts/refresh_snapshot.py check` 确认这份记录没有过期。
+4. 更新各处写着“基于工作台 x.y.z”的说明（`README.md`、`docs/DEEPSEEK_HARNESS.md`、`功能与验收.md`、`THIRD_PARTY.md`、`distribution/README.txt`）。构建清单里的 `upstreamVersion` 已改为从 `upstream/` 里的包读取，不用再手改。
+
+最近一次同步：独立工作台 **2.0.0rc14**。
 
 ## 开发与验证
 

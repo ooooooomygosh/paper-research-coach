@@ -130,3 +130,33 @@ def test_source_check_reuses_the_hash_until_the_file_changes(store, paper, pdf, 
     with open(pdf, "ab") as f:
         f.write(b"\n% appended")
     assert store.check_source(paper["id"])["status"] == "changed"
+
+
+def test_an_export_cannot_be_steered_outside_the_exports_folder(store, tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    c = client(store)
+    c.headers["Authorization"] = "Bearer test-token"
+    for paper_id in ("../../outside/pwn", "..\\..\\outside\\pwn", "a/b"):
+        r = c.post("/api/export", json={"kind": "comparison", "paper_id": paper_id})
+        assert r.status_code == 400, (paper_id, r.text)
+    assert list(outside.iterdir()) == []
+
+
+def test_a_credential_with_non_ascii_characters_is_refused_not_a_server_error(store):
+    c = client(store)
+    assert c.get("/api/state", headers={"Authorization": "Bearer é".encode("latin-1")}).status_code == 401
+    assert c.get("/api/state", headers={"Cookie": "prc_session=é".encode("latin-1")}).status_code == 401
+    assert c.post("/api/login", json={"token": "é"}).status_code == 401
+
+
+def test_an_empty_token_file_never_lets_a_request_in(store):
+    from paper_research_coach.server import session_token
+
+    (store.root / "session-token").write_text("")  # a crash between create and write, or a full disk
+    token = session_token(store)
+    assert len(token) >= 32  # the unusable file is replaced, not trusted
+    c = TestClient(create_app(store), base_url="http://127.0.0.1:8765")
+    assert c.get("/api/state").status_code == 401
+    assert c.get("/api/state", headers={"Authorization": "Bearer "}).status_code == 401
+    assert c.get("/api/state", headers={"Authorization": "Bearer " + token}).status_code == 200

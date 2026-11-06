@@ -1,3 +1,4 @@
+import { sectionChip, type PaperMap } from "./paper-map";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -159,6 +160,19 @@ export default function CoachPanel({
   latestFocus.current = onFocus;
   const currentAnchor = useRef(anchor);
   currentAnchor.current = anchor;
+  // The paper's headings, found automatically on the server. Only a hint about where the page sits: if it
+  // cannot be read the chips simply show the page.
+  const [paperMap, setPaperMap] = useState<PaperMap>(null);
+  useEffect(() => {
+    let live = true;
+    setPaperMap(null);
+    api("map/" + paper.id)
+      .then((m) => live && setPaperMap(m))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [paper.id, paper.source_version]);
   // Intent and help style are inferred, never configured: a selection is a
   // detour, a reply to a pending mainline question is an answer, and the coach
   // reads requests such as "just explain" from the message itself.
@@ -247,7 +261,8 @@ export default function CoachPanel({
     setBranch(null);
   }, [paper.id]);
   useEffect(() => {
-    if (!snapshot.conversation_id) return;
+    // An old conversation opened for reading is not a coach reply: its marks never move the PDF.
+    if (snapshot.read_only || !snapshot.conversation_id) return;
     const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "focus").map((a) => ({ a, m: m.id })));
     if (seenFocus.current === null) {
       // On load, show the latest marks without moving the PDF.
@@ -262,7 +277,7 @@ export default function CoachPanel({
     // One automatic jump per coach reply: the first place it points at. Later ones wait for a click.
     const first = fresh.find(({ m }) => !jumped.has(m));
     if (first) latestFocus.current?.(first.a, "auto");
-  }, [snapshot.messages, snapshot.conversation_id]);
+  }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
   useEffect(() => {
     if (snapshot.read_only || !snapshot.conversation_id) return;
     const found = snapshot.messages.flatMap((m) => (m.actions || []).filter((a) => a.kind === "explainer"));
@@ -352,12 +367,13 @@ export default function CoachPanel({
     const png = image.toDataURL("image/png");
     return png.length > 3500000 ? image.toDataURL("image/jpeg", 0.85) : png;
   }
+  /** Resolves true when the coach accepted the message, so a caller can keep what the reader wrote if not. */
   async function send(
     content = text,
     retry = false,
     intent = effectiveIntent as string,
     branchId = "",
-  ) {
+  ): Promise<boolean> {
     if (
       snapshot.read_only ||
       status?.state !== "ready" ||
@@ -366,14 +382,19 @@ export default function CoachPanel({
       snapshot.busy ||
       (!retry && intent !== "follow" && !content.trim())
     )
-      return;
+      return false;
     if (pending && !retry) {
       setError("上次发送的结果还未确认。先点击确认上次发送，可避免重复提问。");
-      return;
+      return false;
     }
     let body: any;
+    let accepted = false;
+    // A follow-up inside an explainer page is about that page, not about whatever the reader has
+    // selected in the PDF: it carries no selection and no page image, and leaves the selection alone.
+    const inBranch = !!branchId;
+    const aboutSelection = intent !== "follow" && !inBranch;
     try {
-      if (!retry && intent !== "follow" && includeImage && !canAttachImage)
+      if (!retry && aboutSelection && includeImage && !canAttachImage)
         throw new Error("图表与选区不在同一页，请先回到选区位置。");
       body = retry
         ? JSON.parse(localStorage.getItem(jobKey) || "null")
@@ -382,17 +403,16 @@ export default function CoachPanel({
             conversation_id: snapshot.conversation_id,
             content,
             intent,
-            anchor: intent === "follow" ? null : anchor,
-            page_index:
-              intent === "follow" ? page : contextPage(paper, page, anchor),
+            anchor: aboutSelection ? anchor : null,
+            page_index: aboutSelection ? contextPage(paper, page, anchor) : page,
             source_version: paper.source_version,
             help_mode: "guided",
             model,
             effort,
-            page_image: intent !== "follow" && includeImage ? pageImage() : "",
+            page_image: aboutSelection && includeImage ? pageImage() : "",
             branch_id: branchId,
           };
-      if (!body) return;
+      if (!body) return false;
       // Persist the exact request before crossing the network.
       localStorage.setItem(jobKey, JSON.stringify(body));
       setPending(true);
@@ -400,8 +420,9 @@ export default function CoachPanel({
       setError("");
       atBottom.current = true;
       const result = await api("coach/send/" + paper.id, body);
+      accepted = true;
       localStorage.removeItem(jobKey);
-      if (!alive.current) return;
+      if (!alive.current) return true;
       setPending(false);
       setChosen(result.conversation_id);
       if (currentText.current === body.content) change("");
@@ -427,6 +448,7 @@ export default function CoachPanel({
     } finally {
       if (alive.current) setSending(false);
     }
+    return accepted;
   }
   async function chooseConversation(conversationId: string, fresh = false) {
     if (snapshot.busy || pending || connecting || sending) return;
@@ -552,7 +574,7 @@ export default function CoachPanel({
         remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          a: ({ href, children, ...props }) => {
+          a: ({ href, children, node: _node, ...props }: any) => {
             if (href?.startsWith("#mark-")) {
               const mark = marks.find((x) => x.n === Number(href.slice(6)));
               return mark ? (
@@ -1132,7 +1154,7 @@ export default function CoachPanel({
                     onToggle={(open) => setOpenCards((all) => ({ ...all, [a.id]: open }))}
                     disabled={unavailable || !!snapshot.read_only}
                     disabledHint={snapshot.read_only ? "历史对话为只读" : status?.state !== "ready" ? "教练未连接，连上后可以接着问" : "教练正在回复…"}
-                    onAsk={(question, branchId) => void send(question, false, "detour", branchId)}
+                    onAsk={(question, branchId) => send(question, false, "detour", branchId)}
                     onEnlarge={() => setBranch({ branchId: a.branch_id, pageId: a.id })}
                     onPopout={() => openWindow(a.branch_id, a.id)}
                     quest={questByBranch[a.branch_id]}
@@ -1288,8 +1310,12 @@ export default function CoachPanel({
             确认上次发送 · 使用相同编号恢复
           </button>
         )}
-        <div className="coach-context-chips" hidden={!anchor}>
+        <div className="coach-context-chips" hidden={snapshot.read_only}>
           <span>PDF 第 {(anchor?.page_index ?? page) + 1} 页</span>
+          {(() => {
+            const where = sectionChip(paperMap, anchor?.page_index ?? page);
+            return where && <span className="coach-section-chip" title={where.title}>{where.text}</span>;
+          })()}
           {anchor && (
             <div>
               <button className="anchor-label" onClick={() => onLocate(anchor)}>

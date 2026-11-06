@@ -120,3 +120,27 @@ def test_prc_find_and_the_http_and_cli_paths(located, monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["prc", "--data-dir", str(store.root), "find", "--paper", paper["id"], "decision utility"])
     cli.main()
     assert '"page_index": 0' in capsys.readouterr().out
+
+
+def test_search_finds_a_hyphenated_compound_that_a_line_break_split(tmp_path):
+    """prc_find and prc_show must agree: if a quote can be shown, the phrase can be found."""
+    path = tmp_path / "compound.pdf"
+    c = canvas.Canvas(str(path), pagesize=(600, 800))
+    c.drawString(60, 720, "We build a model that relies on self-")
+    c.drawString(60, 700, "attention rather than recurrence.")
+    c.showPage()
+    c.save()
+    store = Store(tmp_path / "lib")
+    paper = store.add_paper("Compound", str(path))
+    shown = locate.page_quotes(store, paper["id"], 0, ["relies on self-attention rather than"])
+    assert shown["found"], "the quote itself can be shown"
+    result = locate.search(store, paper["id"], "self-attention")
+    assert [h["page_index"] for h in result["hits"]] == [0]
+    assert "self" in result["hits"][0]["snippet"]
+
+
+def test_a_quote_with_a_composed_accent_matches_text_with_a_separate_accent():
+    text = "Création of a modèle"  # as typed: composed letters
+    decomposed = "Création of a modèle"  # as some PDFs deliver them: letter + combining mark
+    assert locate.match(decomposed, "Création of a modèle") is not None
+    assert locate.match(text, "Création of a modèle") is not None

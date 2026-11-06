@@ -4,10 +4,11 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import Notes from "../src/Notes";
-import { put, ApiError } from "../src/api";
+import { api, put, ApiError } from "../src/api";
 vi.mock("../src/api", async (original) => ({
   ...(await original<any>()),
   put: vi.fn(),
@@ -334,4 +335,26 @@ it("shows a kept highlight as the paper's words, not mine, and does not count it
     expect.objectContaining({ id: "m" }),
     expect.anything(),
   );
+});
+
+it("the revision log is a real dialog: named, closed by Escape, and focus returns to its button", async () => {
+  vi.useRealTimers(); // this file fakes timers; findBy/waitFor need real ones
+  Object.defineProperties(HTMLDialogElement.prototype, { // jsdom has no native modal dialog
+    showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
+    close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
+  });
+  vi.mocked(api).mockResolvedValue([
+    { seq: 1, revision: 1, created_at: "2026-09-30T00:00:00Z", data: { content: "first words" } },
+    { seq: 2, revision: 2, created_at: "2026-10-01T00:00:00Z", data: { content: "second words" } },
+  ] as any);
+  const note = { id: "n1", paper_id: "p", revision: 2, author: "user", content: "second words", anchor: null, provenance: "USER", discussed: false, links: [], tags: [] };
+  render(<Notes {...props} notes={[note] as any} />);
+  const opener = screen.getByRole("button", { name: /修订记录/ });
+  opener.focus();
+  fireEvent.click(opener);
+  const dialog = await screen.findByRole("dialog", { name: "修订记录" });
+  expect(dialog.textContent).toContain("first words");
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(document.activeElement).toBe(opener);
 });

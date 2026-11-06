@@ -1,6 +1,6 @@
 # macOS 上的 DeepSeek Harness 插件构建
 
-`PRC-DSH-1.1.0-win-x64.zip` 里是 Windows x64 的 Python 运行库和 `.cmd` 安装器，macOS 用不上。
+`PRC-DSH-1.2.0-win-x64.zip` 里是 Windows x64 的 Python 运行库和 `.cmd` 安装器，macOS 用不上。
 不过这个目录的源码本身是平台无关的：host 走 Node，工作台和翻译是纯 Python，`service.py` 里本来就有
 `sys.platform == "darwin"` 分支，README 只是没有 macOS 的打包与验证记录。这里补上这条路径。
 
@@ -28,11 +28,11 @@ git clone --depth 1 --filter=blob:none --sparse https://github.com/ooooooomygosh
 cd ~/prc-src && git sparse-checkout set ports/deepseek-harness
 
 # 2. 准备翻译资源（字体、doclayout ONNX、tiktoken 词表；仓库不含二进制）
-#    从已验证的 Windows 包取：unzip PRC-DSH-1.1.0-win-x64.zip -d ~/PRC-DSH
+#    从已验证的 Windows 包取：unzip PRC-DSH-1.2.0-win-x64.zip -d ~/PRC-DSH
 
 # 3. 构建并安装
 cd ~/prc-src/ports/deepseek-harness
-bash macos/install-macos.sh --assets-from ~/PRC-DSH/PRC-DSH-1.1.0/package
+bash macos/install-macos.sh --assets-from ~/PRC-DSH/PRC-DSH-1.2.0/package
 ```
 
 脚本依次：复制源码 → 前端构建 → 资源哈希校验 → 建 venv 装依赖（含 `BabelDOC==0.6.4` 与

@@ -511,3 +511,85 @@ def test_authorized_original_note_survives_cli_connection_failure(store, paper):
         assert coach.messages(sent["conversation_id"])[-1]["status"] == "failed"
 
     asyncio.run(run())
+
+
+
+class LostStart(FakeRPC):
+    """thread/start fails without a protocol error (a timeout, Codex exits); thread/list says what exists."""
+
+    broken = True
+    listed: list = []
+
+    async def call(self, method, params):
+        if method == "thread/start" and self.broken:
+            self.calls.append((method, params))
+            raise ValueError("Codex 连接中断，已保留回复与输入。")  # the response, and maybe the thread, is lost
+        if method == "thread/list":
+            self.calls.append((method, params))
+            return {"data": list(self.listed), "nextCursor": None}
+        return await super().call(method, params)
+
+
+def test_reconnecting_settles_a_lost_thread_start_that_created_nothing(store, paper):
+    """Without this, "reconnect and continue" never worked: the paper stayed unconfirmed for good."""
+
+    async def run():
+        coach = Coach(store, LostStart)
+        first = await coach.send(paper["id"], Send(operation_id="a", content="first question"))
+        await drained(coach)
+        assert coach.messages(first["conversation_id"])[-1]["status"] != "completed"
+        assert coach.binding(paper["id"])["creation_state"] == "creating"
+        coach.rpc.broken = False  # Codex is healthy again
+        # Asking again alone stays cautious: it will not start a second thread on a guess.
+        await coach.send(paper["id"], Send(operation_id="b", content="again"))
+        await drained(coach)
+        assert sum(m == "thread/start" for m, _ in coach.rpc.calls) == 1
+        assert coach.binding(paper["id"])["creation_state"] == "creating"
+        # The reader chooses to reconnect: Codex lists no thread for this paper, so nothing was created.
+        await coach.reconnect()
+        assert coach.binding(paper["id"])["creation_state"] == "ready"
+        again = await coach.send(paper["id"], Send(operation_id="c", content="third try"))
+        await drained(coach)
+        last = coach.messages(again["conversation_id"])[-1]
+        assert last["status"] == "completed", last.get("error")
+        assert coach.binding(paper["id"])["thread_id"]
+        await coach.close()
+
+    asyncio.run(run())
+
+
+def test_reconnecting_never_guesses_between_several_unconfirmed_threads(store, paper):
+    async def run():
+        coach = Coach(store, LostStart)
+        coach.rpc.listed = [{"id": "t1"}, {"id": "t2"}]
+        await coach.send(paper["id"], Send(operation_id="a", content="one"))
+        await drained(coach)
+        coach.rpc.broken = False
+        await coach.reconnect()
+        assert coach.binding(paper["id"])["creation_state"] == "creating"  # still unresolved, still no guess
+        again = await coach.send(paper["id"], Send(operation_id="b", content="two"))
+        await drained(coach)
+        assert coach.messages(again["conversation_id"])[-1]["status"] != "completed"
+        assert sum(m == "thread/start" for m, _ in coach.rpc.calls) == 1
+        await coach.close()
+
+    asyncio.run(run())
+
+
+def test_reconnecting_leaves_a_single_found_thread_to_be_resumed(store, paper):
+    async def run():
+        coach = Coach(store, LostStart)
+        coach.rpc.listed = [{"id": "survivor"}]
+        await coach.send(paper["id"], Send(operation_id="a", content="one"))
+        await drained(coach)
+        coach.rpc.broken = False
+        await coach.reconnect()
+        assert coach.binding(paper["id"])["creation_state"] == "creating"  # resumed on the next send, not recreated
+        again = await coach.send(paper["id"], Send(operation_id="b", content="two"))
+        await drained(coach)
+        assert coach.messages(again["conversation_id"])[-1]["status"] == "completed"
+        assert coach.binding(paper["id"])["thread_id"] == "survivor"
+        assert sum(m == "thread/start" for m, _ in coach.rpc.calls) == 1
+        await coach.close()
+
+    asyncio.run(run())

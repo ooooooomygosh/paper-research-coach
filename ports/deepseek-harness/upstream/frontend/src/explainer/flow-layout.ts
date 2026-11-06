@@ -45,32 +45,40 @@ export function layoutFlow(block: FlowBlock): FlowLayout {
   const g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
   g.setGraph({ rankdir: block.dir, nodesep: 26, ranksep: 46, marginx: 10, marginy: 10 });
   g.setDefaultEdgeLabel(() => ({}));
+  // A node's id is its label, and a label is model text from an untrusted paper. dagre keeps nodes in
+  // plain objects, so a label such as "constructor" or "__proto__" would break (or pollute) them.
+  // Give dagre our own ids and keep the labels in a Map, which has no such special names.
+  const key = new Map<string, string>();
   const info = new Map<string, ReturnType<typeof size>>();
-  for (const n of block.nodes) {
+  block.nodes.forEach((n, i) => {
     const s = size(n.label, n.shape);
+    key.set(n.id, `n${i}`);
     info.set(n.id, s);
-    g.setNode(n.id, { width: s.w, height: s.h });
-  }
+    g.setNode(`n${i}`, { width: s.w, height: s.h });
+  });
   block.groups.forEach((grp, i) => {
     const id = `\u0000group${i}`;
     g.setNode(id, { label: grp.name });
-    for (const m of grp.members) g.setParent(m, id);
+    for (const m of grp.members) if (key.has(m)) g.setParent(key.get(m)!, id);
   });
+  // An edge that names a node we do not have is kept in the list (so edges line up) but not laid out.
+  const drawn = (e: FlowBlock["edges"][number]) => key.has(e.from) && key.has(e.to);
   block.edges.forEach((e, i) => {
+    if (!drawn(e)) return;
     const label = plain(e.label);
-    g.setEdge(e.from, e.to, label
+    g.setEdge(key.get(e.from)!, key.get(e.to)!, label
       ? { width: Math.ceil(textWidth(label, EDGE_FS)) + 10, height: 16, labelpos: "c" }
       : {}, String(i));
   });
   dagre.layout(g);
 
   const nodes: Placed[] = block.nodes.map((n) => {
-    const p = g.node(n.id);
+    const p = g.node(key.get(n.id)!);
     const s = info.get(n.id)!;
     return { id: n.id, lines: s.lines, shape: n.shape, hi: n.hi, x: p.x - s.w / 2, y: p.y - s.h / 2, w: s.w, h: s.h };
   });
   const edges: PlacedEdge[] = block.edges.map((e, i) => {
-    const p = g.edge({ v: e.from, w: e.to, name: String(i) });
+    const p = drawn(e) ? g.edge({ v: key.get(e.from)!, w: key.get(e.to)!, name: String(i) }) : {};
     const pts: { x: number; y: number }[] = p.points ?? [];
     const label = plain(e.label);
     return {
