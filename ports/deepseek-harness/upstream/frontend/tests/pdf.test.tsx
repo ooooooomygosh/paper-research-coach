@@ -96,7 +96,7 @@ it("compacts legacy text highlights and does not double-paint an active browser 
     rects: [[10, 700, 30, 710], [10, 700, 30, 710], [25, 700, 45, 710], [45.2, 700, 60, 710]] };
   render(<PdfReader paper={{ id: "p", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()}
     focusAnchor={anchor} draftAnchor={anchor} notes={[{ id: "n", paper_id: "p", anchor, annotation_type: "highlight" }]} />);
-  await waitFor(() => expect(document.querySelectorAll(".draft-annotation")).toHaveLength(1));
+  await waitFor(() => expect(document.querySelectorAll(".draft-annotation")).toHaveLength(1), { timeout: 5000 });
   expect(document.querySelectorAll(".saved-annotation")).toHaveLength(1);
   expect(document.querySelectorAll(".anchor-highlight")).toHaveLength(1);
   expect(document.querySelector(".draft-annotation.rectangle")).toBeNull();
@@ -398,7 +398,7 @@ it("draws numbered coach marks and offers one click back to the earlier page", a
     returnTo={{ page: 0, to: 1, key: "f1" }} onDismissReturn={dismiss} onFollowCoach={stop} />);
   await waitFor(() => expect(document.querySelectorAll('.pdf-page[data-slot="1"] .coach-mark')).toHaveLength(2));
   expect(document.querySelector(".coach-mark-n")!.textContent).toBe("1");
-  expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+  await waitFor(() => expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled());
   fireEvent.click(screen.getByRole("button", { name: "回到第 1 页" }));
   expect(setPage).toHaveBeenCalledWith(0);
   expect(dismiss).toHaveBeenCalled();

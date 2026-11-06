@@ -163,7 +163,7 @@ export default function TranslationLibrary({
         (r: any) => r.outcome === "existing",
       ).length;
       setNotice(
-        `已加入 ${added} 篇${existing ? `，${existing} 篇已有译文或正在处理` : ""}。可以关闭网页，后台会继续翻译。`,
+        `已加入 ${added} 篇${existing ? `，${existing} 篇已有译文或正在处理` : ""}。可以切换页面或关闭面板；完全退出 Harness 会保存进度，重启后继续。`,
       );
       setSelected(new Set(failures.map((r: any) => r.paper_id)));
       if (failures.length)

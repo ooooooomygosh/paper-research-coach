@@ -12,7 +12,7 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 SLUG = f"PRC-DSH-{VERSION}-win-x64"
 ARCHIVE_FOLDER = f"PRC-DSH-{VERSION}"
 OMIT_PARTS = {"__pycache__", "node_modules", ".git", ".pytest_cache", ".ruff_cache", ".vite", ".DS_Store"}
@@ -35,7 +35,7 @@ def excluded(path, relative):
 def copy_inputs(stage, include_runtime=True):
     # Only product code, public upstream source and portable dependencies are allowed.
     allow = ["host", "client", "locale", "icon.svg", "package.json", "cordis.patch.yml", "runtime",
-             "THIRD_PARTY.md", "功能与验收.md", "upstream", "integrations", "scripts/prepare_integrations.py"]
+             "THIRD_PARTY.md", "功能与验收.md", "docs", "upstream", "integrations", "scripts/prepare_integrations.py"]
     if not include_runtime:
         allow.remove("runtime")
     count = 0

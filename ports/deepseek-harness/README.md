@@ -1,14 +1,16 @@
 # Paper Research Coach · DeepSeek Harness 内置版
 
-Paper Research Coach **1.1.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Windows x64 分发包；macOS 走源码构建，见 [`macos/README.md`](macos/README.md)），从 Harness 侧栏的“论文研读”进入。文献阅读、分析、知识库构建和互动讲解统一调用 Harness 当前登录账户的 `deepseek-account` 模型接口，无需另填 API Key 或启动 Codex CLI。插件名称继续使用 **Paper Research Coach**。
+Paper Research Coach **1.2.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Windows x64 分发包；macOS 走源码构建，见 [`macos/README.md`](macos/README.md)），从 Harness 侧栏的“论文研读”进入。文献阅读、分析、知识库构建和互动讲解统一调用 Harness 当前登录账户的 `deepseek-account` 模型接口，无需另填 API Key 或启动 Codex CLI。插件名称继续使用 **Paper Research Coach**。
 
-这是第三方适配版。仓库里只发 Windows x64 的安装 ZIP；macOS 不发预打包产物，用 [`macos/install-macos.sh`](macos/install-macos.sh) 从源码构建并注册进 Harness profile，步骤和限制见 [`macos/README.md`](macos/README.md)。两个平台都在 Harness 0.2.1-rc.5 上跑过。其他 Harness 版本尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。
+这是第三方适配版。仓库里只发 Windows x64 的安装 ZIP；macOS 不发预打包产物，用 [`macos/install-macos.sh`](macos/install-macos.sh) 从源码构建并注册进 Harness profile，步骤和限制见 [`macos/README.md`](macos/README.md)。两个平台都在 Harness 0.2.1-rc.5 上跑过。已有版本的适配记录见上述平台说明；本次界面改版的验证范围见下文。其他 Harness 版本尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。
 
 ## 功能
 
 - 保留原版 React 工作台的 PDF 阅读、八章主线、任务卡、支线讲解、复盘树、笔记与证据定位、翻译、Zotero/目录同步、研究脉络、想法与导出。
 - **知识库学习**：导入 PDF、DOCX、PPTX、EPUB 和文本材料，提取并映射来源；生成六模块学习页、概念与术语、方法库、练习与错题；保存单元进度、笔记、历史版本，支持有出处的追问、停止/恢复构建及 HTML/Markdown/知识库导出。
 - **交互式讲解**：从问题、论文页或知识库取材，生成包含流程图、时序图、树、公式、表格和问答的互动页面；支持 Markdown 编辑、主题切换、修订、版本保存和离线 HTML 导出。
+- **阅读界面与翻译入口**：顶部集中阅读、知识库、讲解、翻译与显示原文；控件图标有独立 SVG 源文件，按钮和边框取消高光。讲解成品优先显示，修改要求按需展开。翻译面板可操作当前论文和批量后台队列，切换页面不会取消任务；完全退出 Harness 后停止计算，已保存进度可恢复。
+- **标准阅读与可操作讲解**：讲解界面一键导出结合七个阅读环节与本项目方法论的阅读提示；导出本身不调用模型。可另选概念、步骤、比较、参数、证据五类组件，由登录账户生成结构化内容；页内操作在本地运行，带着状态继续提问前仍可编辑。匹配的原文依据保留版本与页码，可定位当前论文。
 - 修复 PDF 文本选区出现大量重叠方框的问题：按行合并、去重；文字采用柔和高亮，手动框选保留边框，浮层避让原文。
 - 教练默认 **DeepSeek Flash + high 思考深度**；模型未声明的档位不会提交，失败时说明具体原因（额度、限流、上下文），并把诊断写进 `~/.dsh/paper-research-coach/logs/`。
 
@@ -16,11 +18,13 @@ Paper Research Coach **1.1.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Wi
 
 文本提取覆盖和逐字引文校验不等于独立语义完整性审查；扫描页、图像和版面细节需要另行核对。练习答案为模型生成的参考答案，进度不代表掌握度。MOBI/AZW 需要另行安装 Calibre。
 
+参数探索仅支持有范围和单位的线性、幂函数与指数函数教学示意，不复算论文实验。已有讲解沿用图文文档模式，历史版本只读且保留。阅读逻辑、交互契约、验证范围与后续开发方案见 [阅读改版说明](docs/READING_REDESIGN.md)。
+
 ## 安装分发包
 
 本目录提供源码，不在 Git 中存放约 476 MiB 的安装 ZIP、Python 运行库、翻译模型或字体。仓库首页的独立工作台 wheel/Skill ZIP 也不是 Harness 插件安装包。
 
-维护者使用下方脚本构建后，会生成 `dist/PRC-DSH-1.1.0-win-x64.zip`。将整个 ZIP 发给接收方；接收方安装并登录兼容的 Harness，退出应用及托盘后完整解压，双击 `安装.cmd`，再启动 Harness。检查和卸载分别使用 `检查安装包.cmd`、`卸载.cmd`。升级旧版时，先用旧包卸载，再安装新版；论文和学习记录保留。
+维护者使用下方脚本构建后，会生成 `dist/PRC-DSH-1.2.0-win-x64.zip`。将整个 ZIP 发给接收方；接收方安装并登录兼容的 Harness，退出应用及托盘后完整解压，双击 `安装.cmd`，再启动 Harness。检查和卸载分别使用 `检查安装包.cmd`、`卸载.cmd`。升级旧版时，先用旧包卸载，再安装新版；论文和学习记录保留。
 
 安装器在接收方机器上核对宿主版本、逐项校验文件、备份并更新应用包和插件清单，不包含开发者的应用包或账户配置。受保护的应用目录会按需请求 Windows 管理员授权。卸载保留论文、笔记和账户数据；具体操作见 [distribution/README.txt](distribution/README.txt)。
 

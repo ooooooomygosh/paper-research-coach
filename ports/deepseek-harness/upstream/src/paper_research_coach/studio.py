@@ -22,27 +22,35 @@ callout 示例：```callout info 关键判断\n解释条件与边界。\n```
 
 
 class Studio:
-    def __init__(self, store, jobs, account, context):
+    def __init__(self, store, jobs, account, context, sources=None):
         self.store, self.jobs, self.account, self.context = store, jobs, account, context
+        self.sources = sources
 
     def create(self, payload):
         question = str(payload.get("question", "")).strip()
+        presentation = payload.get("presentation", "document")
+        if presentation not in ("document", "components"):
+            raise ValueError("未知的讲解形式。")
         return self.store.create("studio", {"title": str(payload.get("title") or question[:70] or "新的交互式讲解")[:200],
             "question": question[:16000], "source": str(payload.get("source", ""))[:250000],
             "theme": payload.get("theme", "paper"), "template": payload.get("template", "doc"),
             "language": payload.get("language", "zh"), "context": payload.get("context") or {},
-            "state": "draft", "published": None, "history": [], "storage": {}, "archived": False})
+            "presentation": presentation, "state": "draft", "published": None, "history": [], "storage": {}, "archived": False})
 
     def update(self, item_id, payload):
         if self.jobs.active(item_id):
             raise ValueError("页面正在生成，请先停止后编辑。")
-        allowed = {key: payload[key] for key in ("source", "question", "title", "theme", "template", "language", "context", "archived") if key in payload}
+        allowed = {key: payload[key] for key in ("source", "question", "title", "theme", "template", "language", "context", "archived", "presentation") if key in payload}
+        if "presentation" in allowed and allowed["presentation"] not in ("document", "components"):
+            raise ValueError("未知的讲解形式。")
         if len(str(allowed.get("source", ""))) > 250000 or len(str(allowed.get("question", ""))) > 16000:
             raise ValueError("草稿或问题过长。")
         return self.store.patch("studio", item_id, allowed | {"state": "draft"}, payload.get("revision"))
 
     async def render(self, item_id, source=None):
         document = self.store.get("studio", item_id)
+        if document.get("presentation") == "components":
+            raise ValueError("交互组件由账户生成；编辑 Markdown 请切换到图文文档。")
         source = document["source"] if source is None else source
         result = await self.account.render(source, document["theme"], document["template"], document["language"])
         version = identifier("page-")
@@ -66,6 +74,8 @@ class Studio:
         self.store.patch("studio", item_id, {"question": question})
 
         async def work(job_id):
+            if document.get("presentation") == "components":
+                return await self.generate_components(item_id, document, question, payload, job_id)
             context = await self.context(document.get("context", {}), question)
             prompt = question + ("\n\n以下是用户选定的来源材料：\n" + context if context else "")
             if document["source"]:
@@ -88,3 +98,51 @@ class Studio:
             return {"studio_id": item_id, "version": result["published"]["version"]}
 
         return self.jobs.start(item_id, "studio", work)
+
+    async def generate_components(self, item_id, document, question, payload, job_id):
+        from .interactive_page import InteractivePage, INSTRUCTIONS, grounded_page, markdown, render_page
+        context = dict(document.get("context", {}))
+        sources = await self.sources(context, question) if self.sources else []
+        if sources and sources[0].get("context"):
+            context = sources[0]["context"]
+            self.store.patch("studio", item_id, {"context": context})
+        prompt = question + "\n\n选定来源（仅覆盖这些片段）：\n" + json.dumps(sources, ensure_ascii=False)
+        if document.get("source"):
+            prompt += "\n\n当前文字草稿（供修订使用，不是核验来源；与旧组件冲突时优先遵循当前草稿和本次问题）：\n" + document["source"]
+        if document.get("component_spec"):
+            previous = {key: value for key, value in document["component_spec"].items() if key in InteractivePage.model_fields}
+            prompt += "\n\n当前组件（根据本次问题修订，重新核对来源）：\n" + json.dumps(previous, ensure_ascii=False)
+        self.jobs.progress(job_id, stage="使用 Harness 账户生成交互组件", total=2, done=0)
+        for attempt in range(2):
+            text = await self.account.text(prompt, INSTRUCTIONS + ("\n语言：English" if document["language"] == "en" else ""),
+                                           InteractivePage.model_json_schema(), model=payload.get("model", ""))
+            try:
+                if len(text) > 250000:
+                    raise ValueError("交互组件内容过长。")
+                page = grounded_page(text, sources)
+                break
+            except (ValueError, TypeError) as error:
+                if attempt:
+                    raise ValueError("交互组件未通过校验，旧页面已保留：" + str(error)) from None
+                prompt += "\n\n修复上次输出的结构或引用，保留有效内容：\n" + str(error)[:1500] + "\n上次输出：\n" + text[:250000]
+                self.jobs.progress(job_id, stage="修订组件结构与原文依据", done=0)
+        # Recheck the bound source before publishing a result produced asynchronously.
+        if sources and self.sources:
+            await self.sources(context, question)
+        page["language"] = document["language"]
+        self.jobs.progress(job_id, stage="渲染并保存交互组件", done=1)
+        version = identifier("page-")
+        directory = self.store.directory("studio", item_id) / version
+        directory.mkdir()
+        content = markdown(page)
+        (directory / "page.html").write_text(render_page(page, version), encoding="utf-8")
+        (directory / "page.md").write_text(content, encoding="utf-8")
+        write_json(directory / "page.json", page)
+        write_json(directory / "render.json", {"format": "components", "kind": page["kind"], "schema_version": page["schema_version"]})
+        published = {"version": version, "title": page["title"], "created_at": now(), "warnings": [], "format": "components",
+                     "kind": page["kind"], "context": context, "source_anchor": page["source_anchor"]}
+        latest = self.store.get("studio", item_id)
+        self.store.patch("studio", item_id, {"source": content, "component_spec": page, "title": page["title"], "state": "ready", "published": published,
+                                            "history": latest["history"] + ([latest["published"]] if latest["published"] else [])})
+        self.jobs.progress(job_id, done=2)
+        return {"studio_id": item_id, "version": version, "format": "components"}

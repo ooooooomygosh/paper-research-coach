@@ -24,8 +24,8 @@ def run(args, cwd=ROOT):
 # a --deselect string would be compared with test ids that use backslashes on Windows and match nothing.
 posix_only = ['--ignore', ROOT / 'upstream/tests/test_install_script.py'] if os.name == 'nt' else []
 run([sys.executable, '-X', 'utf8', '-m', 'pytest', 'upstream/tests',
-     'tests/test_studio.py', 'tests/test_learning.py', 'tests/test_distribution.py', '-q', '--tb=short', *posix_only])
-run([node, '--test', 'tests/host.test.mjs', 'tests/studio.test.mjs'])
+     'tests/test_studio.py', 'tests/test_learning.py', 'tests/test_distribution.py', 'tests/test_interactive.py', 'tests/test_port_runtime.py', '-q', '--tb=short', *posix_only])
+run([node, '--test', 'tests/host.test.mjs', 'tests/studio.test.mjs', 'tests/model-defaults.test.mjs', 'tests/interactive-runtime.test.mjs'])
 frontend = ROOT / 'upstream/frontend'
 run([node, 'node_modules/typescript/bin/tsc', '--noEmit'], frontend)
 run([node, 'node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=4'], frontend)

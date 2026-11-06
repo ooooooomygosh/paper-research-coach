@@ -10,6 +10,8 @@ The bundled translation worker uses **BabelDOC 0.6.4**, AGPL-3.0. Its Python sou
 
 The explainer syntax and writing checks include MIT-licensed contributions adapted from Answer me with HTML; see `upstream/docs/THIRD_PARTY_ANSWER_ME_WITH_HTML.md`. React, PDF.js, KaTeX, Lucide and other frontend dependencies retain their original licenses. Exact frontend dependencies are recorded in `upstream/frontend/package-lock.json`; Python versions are recorded in `runtime/requirements.lock.txt`.
 
+Version 1.2.0 stores the Lucide control glyphs as independent SVG files in `upstream/frontend/src/icons/`, with the original ISC notice (including MIT-licensed Feather portions) in that directory's `LICENSE.txt`. The local React adapters only consume these bundled assets. The standard-reading prompt is an attributed synthesis of the public Nanjing University machine-learning reading guide and this project's METHOD.md, not a verbatim reproduction or an official template. Source links and adaptation details are in [the reading redesign notes](docs/READING_REDESIGN.md).
+
 Version 1.1.0 also embeds two fixed source revisions:
 
 - [Learn from Materials](https://github.com/dmoshehun-prog/learn-from-materials), v1.1.0, commit `f8849746d85c5ebe8556fdb8f388783ac7483c8b`, MIT. Original `LICENSE.md` and `NOTICE.md`, extraction scripts, canonical method validators and learning templates are retained in `integrations/learn-from-materials`. `scripts/prc_render_page.py` is a generated adaptation permitting a genuinely empty action-rule set when the canonical method library contains no rules. PRC uses its own real processing/citation report and does not claim that upstream human or independent content review has run.

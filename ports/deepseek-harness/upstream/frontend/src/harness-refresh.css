@@ -1,0 +1,40 @@
+/* Shared matte chrome. Source emphasis inside the PDF stays in the reader. */
+button, input, textarea, select, .surface, .toast, .reading-drawer, .workspace-main, .workspace-method-card { box-shadow: none !important; background-image: none !important; }
+button { border-radius: 6px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { box-shadow: none !important; outline: 2px solid var(--text-2); outline-offset: 2px; }
+.prc-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; flex: 0 0 18px; }
+.prc-icon svg { width: 18px; height: 18px; stroke: currentColor; }
+.topbar, .reading-open .topbar { min-height: 60px; height: auto; flex-wrap: wrap; gap: 8px; padding-block: 9px; }
+.topbar-title { flex: 1; min-width: 100px; }
+.workspace-shortcuts { margin-right: 0; flex-wrap: wrap; flex-shrink: 1; }
+.workspace-shortcuts button { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 7px 9px; background: var(--surface); border: 1px solid var(--line); }
+.workspace-shortcuts button[aria-pressed=true] { border-color: var(--line-strong); background: var(--surface-2); color: var(--text); }
+.workspace-shell { padding: 20px; width: 100%; max-width: none; }
+.workspace-heading { gap: 12px; padding: 0 0 15px; }
+.workspace-heading h1 { font-size: 18px; font-weight: 500; line-height: 1.5; font-family: inherit; margin: 0; letter-spacing: normal; }
+.workspace-heading .workspace-picker { max-width: min(360px, 50vw); border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 6px; padding: 7px; }
+.workspace-layout { display: block; }
+.workspace-main { border: 0; background: transparent; border-radius: 0; padding: 0; }
+.workspace-main h2 { font-size: 18px; }
+.workspace-main h3 { font-size: 15px; font-weight: 500; }
+.workspace-empty { min-height: 220px; padding: 24px 12px; }
+.workspace-controls { align-items: end; gap: 10px; margin-block: 12px; }
+.workspace-question { margin-top: 12px; }
+.workspace-unit, .workspace-exercise, .workspace-method-card, .workspace-editor, .artifact-frame { border-radius: 6px; }
+.workspace-source-layout { min-height: 0; overflow: auto; }
+.workspace-source-layout.with-source { display: grid; grid-template-columns: minmax(300px, 44fr) minmax(0, 56fr); flex: 1; }
+.workspace-original { min-height: 500px; height: calc(100dvh - 90px); position: sticky; top: 0; border-right: 1px solid var(--line); }
+.workspace-original .reader { height: 100%; min-width: 0; }
+.global-translation { position: fixed; right: 16px; top: 76px; bottom: 18px; width: min(610px, calc(100vw - 32px)); z-index: 100; overflow: auto; padding: 18px; background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; box-shadow: none; }
+.global-translation > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.global-translation h2 { margin: 0; font-size: 18px; font-weight: 500; }
+.global-translation-tabs { display: flex; flex-direction: row; gap: 8px; margin: 15px 0; }
+.global-translation-tabs button { width: auto; }
+.global-translation-tabs button[aria-pressed=true] { background: var(--surface-2); color: var(--text); }
+.translation-queue-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.studio-output-form { min-width: 150px; }
+.studio-requirements { border-block: 1px solid var(--line); padding-block: 10px; margin-bottom: 14px; }
+.studio-requirements > summary { cursor: pointer; font-size: 13px; color: var(--text-2); }
+.workspace-artifact-actions > label { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+@media(max-width:1050px) { .workspace-source-layout.with-source { grid-template-columns: minmax(0,1fr); } .workspace-original { position: static; height: 430px; min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); } .topbar .workspace-shortcuts { order: 2; flex-basis: 100%; width: 100%; margin: 0; } .topbar .reading-toolbar { margin-left: auto; } .global-translation { top: 132px; } }
+@media(max-width:650px) { .workspace-shell { padding: 14px; } .workspace-heading { flex-wrap: wrap; } .workspace-heading .workspace-picker { max-width: 100%; } .global-translation { top: 160px; } .workspace-original { height: 350px; } }

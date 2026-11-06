@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUp, CornerUpLeft, ExternalLink, MapPin } from "lucide-react";
+import { ArrowUp, CornerUpLeft, ExternalLink, MapPin } from "../glyphs";
 import type { Row } from "../api";
 import { ExplainerView } from "./ExplainerDoc";
 import { useBranch } from "./useBranch";

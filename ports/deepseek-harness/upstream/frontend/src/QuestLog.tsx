@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Check, CircleDot, Circle, GitBranch, Network, Pause, X } from "lucide-react";
+import { Check, CircleDot, Circle, GitBranch, Network, Pause, X } from "./glyphs";
 import type { ExplainerSummary } from "./explainer/types";
 
 const STATUS: Record<string, string> = { open: "进行中", done: "已弄懂", parked: "先放一放" };

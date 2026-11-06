@@ -14,7 +14,7 @@ import "./pdf-text-layer.css";
 import "./reading-experience.css";
 import "./pdf-controls.css";
 import { boundZoom, MIN_ZOOM, MAX_ZOOM, usePdfZoom, type ZoomFocus } from "./usePdfZoom";
-import { Scan, ZoomIn, ZoomOut, Download, Maximize } from "lucide-react";
+import { Scan, ZoomIn, ZoomOut, Download, Maximize } from "./glyphs";
 import { anchorFor, visibleAnchor, type Row } from "./api";
 import PdfNavigation from "./PdfNavigation";
 import PdfPage, { type Mark, type Viewport } from "./PdfPage";

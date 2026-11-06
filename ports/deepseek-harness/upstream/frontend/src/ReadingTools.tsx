@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState, useRef } from "react";
-import { X } from "lucide-react";
+import { X } from "./glyphs";
 import { api, id, anchorQuote, type Row } from "./api";
 import { hasTranslation } from "./TranslationLibrary";
 import { selectionPopoverPosition, type Bounds } from "./highlightGeometry";

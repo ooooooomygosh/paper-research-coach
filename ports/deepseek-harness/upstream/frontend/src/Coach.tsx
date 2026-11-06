@@ -14,7 +14,7 @@ import {
   ChevronUp,
   ScrollText,
   Network,
-} from "lucide-react";
+} from "./glyphs";
 import BranchPanel from "./explainer/BranchPanel";
 import MainlineFigure from "./explainer/MainlineFigure";
 import ExplainerCard from "./explainer/ExplainerCard";

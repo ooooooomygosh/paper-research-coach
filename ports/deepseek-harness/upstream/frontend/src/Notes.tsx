@@ -6,7 +6,7 @@ import {
   MapPin,
   History,
   Link2,
-} from "lucide-react";
+} from "./glyphs";
 import { api, put, id, anchorQuote, isBareMark, location, sameAnchor, ApiError, type Row } from "./api";
 export default function Notes({
   paper,

@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-paper-research-coach",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Paper Research Coach full workbench, built into DeepSeek Harness with account authentication",

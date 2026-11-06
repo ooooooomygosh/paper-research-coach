@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Pause, RotateCcw } from "lucide-react";
+import { Check, Pause, RotateCcw } from "../glyphs";
 import { api } from "../api";
 import type { Quest } from "./types";
 

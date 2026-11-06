@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "./glyphs";
 
 /** Keep a page-number draft separate from the persisted, zero-based PDF cursor. */
 export default function PageNavigation({ page, count, onChange, labelPrefix = "" }: {
