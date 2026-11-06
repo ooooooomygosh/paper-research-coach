@@ -77,7 +77,7 @@ PDF 提取复用内置 PDFium，支持中文文字层和逐页定位；原版提
   确保使用当前登录用户自己的账户和数据目录。
 
 来源与许可
-原项目：https://github.com/ooooooomygosh/paper-research-coach（2.0.0rc13）
+原项目：https://github.com/ooooooomygosh/paper-research-coach（2.0.0rc14）
 学习功能：https://github.com/dmoshehun-prog/learn-from-materials（1.1.0，MIT）
 交互页面：https://github.com/QingYunA/answer-me-with-html（0.5.10，MIT）
 固定源码版本与嵌入式适配说明见 package/integrations/SOURCES.json 和 package/THIRD_PARTY.md。

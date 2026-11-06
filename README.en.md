@@ -105,11 +105,11 @@ Without npx: download `paper-research-coach-skill-*.zip` from [Releases](https:/
 
 The whole workbench, built into [DeepSeek Harness](docs/DEEPSEEK_HARNESS.md) and calling models through the signed-in `deepseek-account`: no API key, no Codex CLI. It opens from the “论文研读” entry in the sidebar.
 
-Plugin **1.1.0**, workbench **2.0.0rc13**, Harness **0.2.1-rc.5**.
+Plugin **1.2.0**, workbench **2.0.0rc14**, Harness **0.2.1-rc.5**.
 
 | Platform | Install |
 |---|---|
-| Windows x64 | The `PRC-DSH-1.1.0-win-x64.zip` package (about 476 MiB) is built and handed out by the maintainer and is **not in Git**; the repo's wheel and Skill ZIP cannot stand in for it. Install and sign in to a compatible Harness, quit it, unzip the package, run `安装.cmd`, restart, then open “论文研读”. `卸载.cmd` uninstalls and keeps papers and learning records |
+| Windows x64 | The `PRC-DSH-1.2.0-win-x64.zip` package (about 476 MiB) is built and handed out by the maintainer and is **not in Git**; the repo's wheel and Skill ZIP cannot stand in for it. Install and sign in to a compatible Harness, quit it, unzip the package, run `安装.cmd`, restart, then open “论文研读”. `卸载.cmd` uninstalls and keeps papers and learning records |
 | macOS (Apple silicon) | No prebuilt package; build from source and register it into a Harness profile with `ports/deepseek-harness/macos/install-macos.sh`. Steps and limits: [macOS notes](ports/deepseek-harness/macos/README.md) |
 
 On top of the existing reader, the plugin adds two things:

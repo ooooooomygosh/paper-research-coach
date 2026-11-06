@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -13,6 +14,14 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.2.0"
+
+
+def embedded_workbench_version() -> str:
+    """The workbench version inside upstream/, read from the package so a typed-in constant cannot go stale."""
+    text = (ROOT / "upstream/src/paper_research_coach/__init__.py").read_text(encoding="utf-8")
+    return re.search(r'__version__\s*=\s*"([^"]+)"', text).group(1)
+
+
 SLUG = f"PRC-DSH-{VERSION}-win-x64"
 ARCHIVE_FOLDER = f"PRC-DSH-{VERSION}"
 OMIT_PARTS = {"__pycache__", "node_modules", ".git", ".pytest_cache", ".ruff_cache", ".vite", ".DS_Store"}
@@ -131,7 +140,7 @@ def manifest(stage):
         files[relative.as_posix()] = {"size": size, "sha256": digest(file)}
         total += size
     value = {"name": "paper-research-coach-deepseek-harness", "version": VERSION, "hostVersion": "0.2.1-rc.5",
-             "platform": "win32-x64", "upstreamVersion": "2.0.0rc13", "fileCount": len(files), "unpackedBytes": total,
+             "platform": "win32-x64", "upstreamVersion": embedded_workbench_version(), "fileCount": len(files), "unpackedBytes": total,
              "buildTime": datetime.now(timezone.utc).isoformat(), "files": files}
     (stage / "RELEASE.json").write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Manifest: {len(files)} files, {total / 1048576:.1f} MiB, no account/profile/data/backups", flush=True)
