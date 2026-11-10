@@ -39,7 +39,7 @@ jobs:
   # The distribution suite is excluded because it drives the Windows installer,
   # which imports _winapi and patches app.asar junctions.
   source-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       PYTHONUTF8: '1'
       PYTHONPATH: upstream/src

@@ -21,7 +21,7 @@ writeFileSync(path.join(profileDir, 'package.json'), JSON.stringify({name: 'pape
 writeFileSync(path.join(profileDir, 'cordis.patch.yml'), JSON.stringify([
   {id: 'web-runtime', name: '@deepseek-ai/dsh-web-app', config: {openBrowser: false, printUrl: false}},
   {id: 'desktop-product-telemetry', disabled: true}, {id: 'product-analytics', disabled: true},
-  {id: 'paper-research-coach', config: {dataDir: path.join(pkg, '.test-data')}},
+  {id: 'paper-research-coach', config: {dataDir: path.join(pkg, '.test-data'), updateHome: path.join(pkg, '.test-update-home')}},
 ]));
 const anchor = path.join(reference, 'node_modules/@deepseek-ai/dsh/package.json');
 const profile = loadProfileDirectory('dsh', profileDir, anchor);

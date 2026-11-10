@@ -103,7 +103,7 @@ function bridgeLog(dataDir, line) {
 }
 
 export async function apply(ctx, config = {}) {
-  const updateHome = process.env.DSH_HOME || path.join(homedir(), '.dsh');
+  const updateHome = config.updateHome || process.env.DSH_HOME || path.join(homedir(), '.dsh');
   const updateData = config.dataDir || path.join(updateHome, 'paper-research-coach');
   let hostVersion = config.hostVersion || '';
   try { hostVersion ||= JSON.parse(readFileSync(path.join(process.env.DSH_APP || '/Applications/DeepSeek Harness.app', 'Contents/Resources/app/dsh/package.json'), 'utf8')).version; } catch {}
