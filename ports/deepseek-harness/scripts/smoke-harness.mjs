@@ -42,6 +42,11 @@ try {
     const data = JSON.parse(text);
     return data;
   };
+  const pluginUpdate = await api('plugin-update');
+  const expectedVersion = JSON.parse((await import('node:fs')).readFileSync(path.join(pkg, 'package.json'), 'utf8')).version;
+  assert.equal(pluginUpdate.current_version, expectedVersion);
+  assert.equal(typeof pluginUpdate.auto, 'boolean');
+  console.log(JSON.stringify({test:'dsh-plugin-update-status', version:pluginUpdate.current_version, auto:pluginUpdate.auto}));
   const state = await api('state');
   const status = await api('coach/status');
   console.log(JSON.stringify({test: 'actual-harness-runtime', state: status.state, account: status.message, models: status.models.map(m => m.model), papers: state.papers.length}));
