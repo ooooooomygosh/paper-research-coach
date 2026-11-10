@@ -117,7 +117,7 @@ def check_pdf_controls(browser, store, paper, port, token, output):
         e.dispatchEvent(new MouseEvent('mouseup', {bubbles: true}));
     }""")
     page.get_by_role('button', name='保留标记', exact=True).click()
-    page.get_by_role('button', name='已保留在 PDF', exact=True).wait_for()
+    page.get_by_role('button', name='已保存批注', exact=True).wait_for()
     page.get_by_label('关闭译文', exact=True).click()
     page.evaluate('window.getSelection().removeAllRanges()')
     page.screenshot(animations='disabled', path=str(output / 'pdf-annotations-dual.png'))

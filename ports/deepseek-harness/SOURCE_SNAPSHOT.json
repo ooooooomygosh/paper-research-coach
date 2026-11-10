@@ -16,7 +16,7 @@
     "LICENSE": "bd1a5627691fa06fb9ffa79aa7bd0b2827a0e36c9d827f45f268ea06b4264060",
     "README.md": "f677efba88c17118791ed44e36f48ffda1195a3e878391ed99316fb9be8bb246",
     "THIRD_PARTY.md": "b004bdbe523cced35db629b4a8bc1bf00d96b11c9a069640720101ff6ac65e77",
-    "client/client.js": "c84b9cec5f68b1637336af16bdbf2109071e651f533e527d20d712251a72a407",
+    "client/client.js": "6457725cdcf460d989305130e6dd259b319778d24eebb4b1ce5445c66729466c",
     "cordis.patch.yml": "a553ebbf74162efcdfd764c8ed17c3a0362235d7e14c02be9d3f50352eccf188",
     "distribution/README.txt": "95f2ee4f7c1323427434bebc0b43749b3720bfbfb379fde9babb2e48a012c120",
     "distribution/installer.py": "a1bb49b313a7f4b0fedc7efbbf8478636ed0e712958c1315dfa26a0d464e16af",
@@ -816,7 +816,7 @@
     "upstream/frontend/package-lock.json": "e241319dd074bcdf46970be4b021a4c32ba295ed1ccf53152131cffd182eb11a",
     "upstream/frontend/package.json": "d3fc1a1529c75716839eb024e1c028b2f638e5a077a34d4c952087209fc88477",
     "upstream/frontend/src/ArtifactFrame.tsx": "6f4ad4e4166cf3e9637ca68e6b24fa6aa1aa72aa22871764149e3c3a4bb34de8",
-    "upstream/frontend/src/Coach.tsx": "3558065ffdd46e82896013202ba862c5d3ce14b487e5e4e9e63be995e4220110",
+    "upstream/frontend/src/Coach.tsx": "e2da98bc22bd2fba3ca7a9c0f11cff38d4103c4de88756d4c6b836590f49e44a",
     "upstream/frontend/src/Dialog.tsx": "617f016864bd58035acbcce1c5f9b3db63d5583cb64340362bea4c3f126db86f",
     "upstream/frontend/src/GlobalTranslation.tsx": "6565e551c20b5f2654e53ff0cbe35194560455343c62927b6e9068da7b4733b1",
     "upstream/frontend/src/Icon.tsx": "c70ee64ebea98863d7e4d1fd5732a5ff9a36ae84ead0230a15f830cc8c8b3531",
@@ -833,7 +833,7 @@
     "upstream/frontend/src/PdfPage.tsx": "5b86cbccd78ba0b6837db34ef9ec0fa30172d32325a710039336ac35995674a1",
     "upstream/frontend/src/PdfReader.tsx": "370294bd0f84e0180339beb41d3cc4b75309ed58f426da597db0cba71a9b262b",
     "upstream/frontend/src/QuestCard.tsx": "223db69df30894ad6201395a0228e4025ed3d8071243dea84593062219f996d4",
-    "upstream/frontend/src/QuestLog.tsx": "a0f1ebe39fca8e163d93ef783bf32a89e57a8c7ee312fb2d4e354a2746f2bbc4",
+    "upstream/frontend/src/QuestLog.tsx": "1fdd817919e5f688bdc9008cb9cf5c77fa36b970060772a89150531a2e16e409",
     "upstream/frontend/src/ReadingPlan.tsx": "ef3dc2c0566fefec9cf8d41ef3bf2d320c342e6c020d27fb56fddfb12a904f88",
     "upstream/frontend/src/ReadingPromptButton.tsx": "3930dcedfafdfa7ca35b0c013df2a67299ef5b6952d5e5a0ec03f350feea4c69",
     "upstream/frontend/src/ReadingTools.tsx": "427ac9f25267e40e805fcc204b205013a7a06e33315280420cc561423d5d30d4",
@@ -942,7 +942,7 @@
     "upstream/frontend/src/workbench-polish.css": "a0899572ca0d93a087d03fd25fdedc84fc336670ce157148f1d87902a34616cf",
     "upstream/frontend/src/workspace-api.ts": "819e3b2a94e91afb4d689d2f5d251b7b7c06441f763989a11f7e11398bf164b7",
     "upstream/frontend/src/workspace.css": "2b4eed4e8838d467a05864c30f7af1f506ce45296c37094a9797ad45d5f28ce0",
-    "upstream/frontend/tests/coach.test.tsx": "2a73f4e3429d3ea9b634c806143cc0568f752b3f0675b928f3d5109a6e849e85",
+    "upstream/frontend/tests/coach.test.tsx": "bec796fd7e80edbf0af5881f5ce5cc18b1933742b47708137412cf1d8fdc1258",
     "upstream/frontend/tests/dialog-focus.test.tsx": "1d0a40b39f1a478c02616abc1600927988b9a0f2d0d326b97fc6370afb479b3a",
     "upstream/frontend/tests/explainer-card.test.tsx": "f0e48805ad4b2c48d73389feb1ff9ed447f146a3934d2f4a153e6c362ee6b2e2",
     "upstream/frontend/tests/explainer-input.test.tsx": "b07dc97b09f072eed6ac2f93472d9b09fa8f7c071662613b46e019d37dac6cbf",
@@ -971,10 +971,10 @@
     "upstream/pyproject.toml": "51b44e41098764a69654792d897a63012a1177130e2f0b97fc7280863db8ca19",
     "upstream/scripts/build_explainer_fixtures.py": "0dbdb05998317e7e084b9f5d14f4ecb57520a3c5280e1c6321d9b15ba46d31d7",
     "upstream/scripts/bump_version.py": "b02e1e23ac38558dfb5c128dc4c17ef18aa5732852e001be301421f32023e41f",
-    "upstream/scripts/capture_showcase.py": "e77c21bacf030bc49a1838ac7243a7ab25b487efa68d4d1d6303efa01f2761d2",
-    "upstream/scripts/capture_transformer_demo.py": "a0dd5b3ee686bfd433cb38ccbbb7b5c9e7d0362d99e1523bb0887e38d82f6a93",
+    "upstream/scripts/capture_showcase.py": "3417e4ca6fec3576d12200d6fd3fcb634d83a6596dc3b8a6d36eaf0c4f93b628",
+    "upstream/scripts/capture_transformer_demo.py": "b240bd3ac99b75bfaa66d331c641492879cf6d184b9a24acab304c05d5d3cbe6",
     "upstream/scripts/check_docs.py": "2232f01673342afb2549d388881fb6e04f746fb33f7c37bd819d9be8be63fd8f",
-    "upstream/scripts/check_pdf_controls.py": "7a47b0780b59fdf0579e8425779529318521957d35e54722ffa63b0261190a0f",
+    "upstream/scripts/check_pdf_controls.py": "fb3b47d2c78af0636fd42d57fb3c171ea0be034d56bf688f2c872ddae93c02d8",
     "upstream/scripts/install.ps1": "b6011256e5211af70334b46860f7d0940d4728fc2a4e011cd7c188ca32857262",
     "upstream/scripts/install.sh": "365e7e34694c239e8b07ef70f2abbb558398ac43cfe923daee10249fe8630cf8",
     "upstream/scripts/open-workbench.command": "e4dfdcd5e1ae57226b9900b7c896bd38fb0ac0cc46218323ef8220eaff4dd906",
@@ -1519,6 +1519,10 @@
       "change": "added"
     },
     {
+      "path": "frontend/tests/coach.test.tsx",
+      "change": "modified"
+    },
+    {
       "path": "frontend/tests/highlight-geometry.test.tsx",
       "change": "added"
     },
@@ -1548,6 +1552,18 @@
     },
     {
       "path": "frontend/vite.config.ts",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/capture_showcase.py",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/capture_transformer_demo.py",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/check_pdf_controls.py",
       "change": "modified"
     },
     {

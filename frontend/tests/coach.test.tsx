@@ -996,3 +996,19 @@ it("reports history-loading failures explicitly and retries without creating an 
   broken=false;fireEvent.click(screen.getByRole("button",{name:"重新读取对话"}));
   expect(await screen.findByText("Saved response evidence")).toBeTruthy();
 });
+
+
+it("keeps legacy takeaways visible in the log while the primary route stays four phases", async () => {
+  const receipts=[{step:"orient",takeaway:"旧阅读目标原话",page_index:0},{step:"insight",takeaway:"旧贡献判断原话",page_index:0}];
+  const oldFlow={status:"active",current:"model",label:"问题设定",steps:[{id:"orient",label:"阅读目标"},{id:"insight",label:"独特贡献"},{id:"model",label:"问题设定"}],completed:receipts};
+  const phases=[{id:"orient",label:"判断是否值得读",tasks:[]},{id:"mechanism",label:"理解关键机制",tasks:[]},{id:"evidence",label:"核查证据与边界",tasks:[]},{id:"judgment",label:"形成并回忆自己的判断",tasks:[]}];
+  const restored={...snapshot,reading_flow:oldFlow,reading_plan:{plan_version:2,revision:1,status:"active",depth:"understand",current_phase:"mechanism",current_task:0,phases,legacy_receipts:receipts}};
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? restored : path==="coach/status" ? status : {});
+  view();
+  await waitFor(()=>expect(screen.getAllByText(/理解关键机制/).length).toBeGreaterThan(0));
+  expect(document.querySelectorAll(".coach-progress-track li")).toHaveLength(4);
+  fireEvent.click(screen.getAllByRole("button",{name:"任务日志"})[0]);
+  expect(await screen.findByText("收获：旧贡献判断原话")).toBeTruthy();
+  expect(screen.getByText(/历史核查 2\/3/)).toBeTruthy();
+  expect(document.querySelectorAll(".coach-progress-track li")).toHaveLength(4);
+});

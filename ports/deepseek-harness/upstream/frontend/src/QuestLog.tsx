@@ -23,8 +23,9 @@ export function chapterOf(q: ExplainerSummary) {
  * The quest log: the eight mainline chapters with their state and takeaway, and under each one
  * the side quests opened while it was the current chapter. Nothing here is a score.
  */
-export default function QuestLog({ flow, quests, onClose, onOpenQuest, onPage, onJourney }: {
+export default function QuestLog({ flow, quests, onClose, onOpenQuest, onPage, onJourney, legacy = false }: {
   flow: any;
+  legacy?: boolean;
   quests: SideQuest[];
   onClose: () => void;
   onOpenQuest: (q: SideQuest) => void;
@@ -81,7 +82,7 @@ export default function QuestLog({ flow, quests, onClose, onOpenQuest, onPage, o
       <header className="quest-log-head">
         <div>
           <span className="branch-kicker">任务日志</span>
-          <h2>主线 {Object.keys(completed).length}/{steps.length || 8} 章 · 支线 {quests.length} 条{quests.length ? `（弄懂 ${done}）` : ""}</h2>
+          <h2>{legacy ? "历史核查" : "主线"} {Object.keys(completed).length}/{steps.length || 8} 章 · 支线 {quests.length} 条{quests.length ? `（弄懂 ${done}）` : ""}</h2>
         </div>
         <span className="quest-log-tools">
           {onJourney && (

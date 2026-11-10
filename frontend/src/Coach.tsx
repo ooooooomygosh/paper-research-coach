@@ -1540,7 +1540,8 @@ export default function CoachPanel({
       </div>
       {logOpen && (
         <QuestLog
-          flow={flow}
+          legacy={!!plan?.legacy_receipts?.length}
+          flow={plan?.legacy_receipts?.length ? snapshot.reading_flow : flow}
           quests={sideQuests}
           onClose={() => setLogOpen(false)}
           onOpenQuest={openQuest}
