@@ -115,11 +115,23 @@ root = pathlib.Path(sys.argv[1])
 lines = (root / "runtime/requirements.lock.txt").read_text().splitlines()
 (root / "runtime/macos-constraints.txt").write_text("\n".join(line for line in lines if re.match(r"^[A-Za-z0-9_.-]+==", line))+"\n")
 PYLOCK
+# Automatic DSH updates may reuse a COPY of the old environment only when the
+# exact dependency lock agrees. It is never a writable link to the running version.
+RUNTIME_REUSED=0
+if [ -n "${PRC_DSH_RUNTIME_FROM:-}" ] && [ ! -d "$PAYLOAD/runtime/venv" ] \
+   && cmp -s "$PAYLOAD/runtime/requirements.lock.txt" "$PRC_DSH_RUNTIME_FROM/runtime/requirements.lock.txt" \
+   && [ -x "$PRC_DSH_RUNTIME_FROM/runtime/venv/bin/python3" ]; then
+  cp -a "$PRC_DSH_RUNTIME_FROM/runtime/venv" "$PAYLOAD/runtime/venv"
+  RUNTIME_REUSED=1
+fi
+if [ "$RUNTIME_REUSED" != "1" ]; then
 [ -x "$PAYLOAD/runtime/venv/bin/python3" ] || uv venv "$PAYLOAD/runtime/venv" --python 3.12
 uv pip install --constraint "$PAYLOAD/runtime/macos-constraints.txt" --python "$PAYLOAD/runtime/venv/bin/python3" \
   fastapi uvicorn httpx filelock pypdf PyYAML platformdirs packaging pypdfium2 pillow "PyPDF2==3.0.1" "keyring>=25,<26" "fonttools>=4.60,<5"
 # 中文/双语 PDF。bitstring 必须 <5：BabelDOC 0.6.4 仍 from bitstring import BitStream
 uv pip install --constraint "$PAYLOAD/runtime/macos-constraints.txt" --python "$PAYLOAD/runtime/venv/bin/python3" "BabelDOC==0.6.4" "bitstring<5"
+
+fi
 
 say "5/8 Python 侧自检"
 PYTHONPATH="$PAYLOAD/upstream/src" "$PAYLOAD/runtime/venv/bin/python3" - <<'PY'

@@ -968,13 +968,15 @@ class Coach:
                 section=section,
             )
             plan = reading_v2.snapshot(self.store, paper, session)
-            if plan["status"] == "not_started" and body.intent in ("follow", "answer"):
+            if plan["revision"] == 0 and plan["status"] not in ("stale", "completed") and body.intent in ("follow", "answer"):
                 plan = reading_v2.update(self.store, paper, session, {"action":"start"}, "plan-start:" + message["id"], intent=body.intent)
             if inputs and isinstance(inputs[0], dict) and "text" in inputs[0]:
                 old_guide = reading.turn_guide(reading.snapshot(session, paper), body.intent)
                 if old_guide and len(inputs) > 1 and inputs[1].get("text") == old_guide:
                     inputs.pop(1)
-                inputs[0]["text"] += reading_v2.guide(plan, body.intent)
+                v2_guide = reading_v2.guide(plan, body.intent)
+                if v2_guide:
+                    inputs.insert(1, {"type":"text", "text":v2_guide})
             conversation["source_version"] = paper["source_version"]
             answer["context_scope"] = {"page_index": body.context_page_index(), "notes_included": 0, "notes_total": len(self.store.list("note", pid)), "history_messages_included": 0, "automatic_characters": prefix_length, "retrieval_on_demand": True}
             if body.page_image and not body.image_context:
@@ -1162,9 +1164,21 @@ class Coach:
             session = self.store.list("session", pid)[0]
             plan = reading_v2.snapshot(self.store, self.store.get("paper", pid), session)
             if plan["status"] == "active" and state.get("intent", "detour") != "detour" and args.get("pending_question", "").strip():
-                result = reading_v2.update(self.store, self.store.get("paper", pid), session,
-                    {"action":"task", "question":args["pending_question"]}, operation_id, intent=state.get("intent", "detour"))
-                state["answer"]["task"] = {"question":args["pending_question"][:400], "choices":args.get("choices", [])[:4]}
+                choices = [" ".join(str(c).split())[:80] for c in args.get("choices") or [] if str(c).strip()][:4]
+                data = {**session, "next_action":args["next_action"], "pending_question":args["pending_question"],
+                        "choices": choices if len(choices) >= 2 else []}
+                with self.store.connect() as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    table = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reading_plan_operations'").fetchone()
+                    prior = db.execute("SELECT result FROM reading_plan_operations WHERE id=?", (operation_id,)).fetchone() if table else None
+                    if prior:
+                        result = json.loads(prior[0])
+                    else:
+                        self.store.put("session", data, session["revision"], origin="reading-plan", connection=db)
+                        result = reading_v2.update(self.store, self.store.get("paper", pid), session,
+                            {"action":"task", "question":args["pending_question"]}, operation_id,
+                            intent=state.get("intent", "detour"), connection=db)
+                state["answer"]["task"] = {"question":args["pending_question"][:400], "choices":data["choices"]}
                 return {"reading_plan":result}
             flow = reading.snapshot(session, self.store.get("paper", pid))
             if state.get("intent", "detour") == "detour" and flow["status"] == "active":

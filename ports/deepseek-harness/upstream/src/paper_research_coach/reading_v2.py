@@ -1,6 +1,7 @@
 """Goal-based reading plans, separate from immutable legacy eight-step receipts."""
 from __future__ import annotations
 import json
+from contextlib import nullcontext
 from .models import now
 from .store import Conflict
 
@@ -17,13 +18,35 @@ def _schema(db):
     db.execute("CREATE TABLE IF NOT EXISTS reading_plans_v2(paper_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, data TEXT NOT NULL)")
     db.execute("CREATE TABLE IF NOT EXISTS reading_plan_operations(id TEXT PRIMARY KEY, result TEXT NOT NULL)")
 
+LEGACY_KEYS = ("orient", "insight", "model", "method", "evidence", "synthesis", "transfer", "recall")
+LEGACY_PHASES = {"orient":("orient",0), "insight":("orient",1), "model":("mechanism",0),
+                 "method":("mechanism",2), "evidence":("evidence",0), "synthesis":("judgment",0),
+                 "transfer":("judgment",0), "recall":("judgment",1), "talk":("judgment",1)}
+
 def _fresh(paper, session):
+    legacy = session.get("reading_flow", {})
+    receipts = legacy.get("completed", [])
+    same_source = not legacy.get("source_version") or legacy["source_version"] == paper["source_version"]
+    prefix = [r.get("step") for r in receipts] == list(LEGACY_KEYS[:len(receipts)]) and len(receipts) <= 8
+    step = session.get("stage", "orient")
+    if same_source and prefix and legacy.get("status") == "active" and receipts:
+        step = LEGACY_KEYS[min(len(receipts),7)]
+    phase, task = LEGACY_PHASES.get(step, ("orient",0)) if same_source else ("orient",0)
+    pending = session.get("pending_question", "") if same_source else ""
+    status = "not_started"
+    if same_source and (legacy.get("status") == "active" or pending or step not in ("orient", "insight")):
+        status = "active"
+    if same_source and legacy.get("status") == "completed" and prefix and len(receipts) == 8:
+        phase, task, status = "judgment", 1, "completed"
     return dict(plan_version=2, paper_id=paper["id"], source_version=paper["source_version"], revision=0,
-                depth=session.get("depth", "understand"), goal=session.get("goal", ""), status="not_started",
-                current_phase="orient", current_task=0, pending_question=session.get("pending_question", ""),
+                depth=session.get("depth", "understand"), goal=session.get("goal", ""), status=status,
+                current_phase=phase, current_task=task, pending_question=pending,
                 phases=[dict(id=k, label=l, tasks=list(t)) for k,l,t in PHASES], coverage=[], attempts=[],
-                legacy_receipts=session.get("reading_flow", {}).get("completed", []), bridge=None, return_point=None,
-                started_at="", updated_at=session.get("updated_at", ""))
+                legacy_receipts=receipts, legacy_source_version=legacy.get("source_version", ""),
+                legacy_return_point={"stage":session.get("stage", "orient"), "cursor":session.get("cursor"),
+                    "pending_question":session.get("pending_question", ""), "next_action":session.get("next_action", "")},
+                bridge=None, return_point=None,
+                started_at=legacy.get("started_at", "") if same_source else "", updated_at=session.get("updated_at", ""))
 
 def snapshot(store, paper, session):
     with store.connect() as db:
@@ -35,13 +58,13 @@ def snapshot(store, paper, session):
         return {**plan, "status":"stale", "needs_recheck":True}
     return plan
 
-def update(store, paper, session, args, operation_id, *, read_pages=(), answer="", intent="detour"):
+def update(store, paper, session, args, operation_id, *, read_pages=(), answer="", intent="detour", connection=None):
     action = args.get("action")
     allowed = {"start", "navigate", "task", "complete", "pause", "resume", "finish", "bridge", "return"}
     if action not in allowed:
         raise ValueError("未知阅读动作")
-    with store.connect() as db:
-        db.execute("BEGIN IMMEDIATE")
+    with (nullcontext(connection) if connection is not None else store.connect()) as db:
+        if not db.in_transaction: db.execute("BEGIN IMMEDIATE")
         _schema(db)
         prior = db.execute("SELECT result FROM reading_plan_operations WHERE id=?", (operation_id,)).fetchone()
         if prior:
@@ -126,6 +149,7 @@ def guide(plan, intent):
     if plan["status"] in ("not_started", "stale"): return ""
     return ("\n【四阶段软引导 v2】当前建议：" + task + "\n" + json.dumps({k: plan[k] for k in ("plan_version", "revision", "status", "depth", "goal", "current_phase", "current_task", "pending_question", "coverage", "bridge")}, ensure_ascii=False) +
             "\n使用 prc_reading_plan 管理当前目标。四阶段可以跳转、暂放；旧八步仅作覆盖证据，勿调用旧完成工具来凑进度。"
+            "继续时先复用已保存目标、待答问题与最近真实回答，必要时读取对话；不要重复入门、重置目标或要求重译。"
             "每轮一个认知动作，贡献先记作者主张，读完机制与证据再核实。卡住仅补一个必要背景，用另一例示范后返回。"
             "用户要直接讲解就立即讲；当前是局部提问时保留主线问题。帮助偏好不等于能力；点击弄懂和AI文本不算用户表现。"
             "recall 必须有本轮真实回忆作答；已看解答的复述须记受助。研究拓展只在需要时进行。")

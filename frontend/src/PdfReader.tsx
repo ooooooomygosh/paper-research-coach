@@ -465,6 +465,13 @@ export default function PdfReader({
     return a && a.page_index != null ? { page: a.page_index as number, rects: (a.rects || []) as number[][] } : null;
   }, [draftAnchor, paper.id, paper.source_version, derived, rendition?.job_id]);
 
+  // Stable for every page placeholder: scrolling must not invalidate memoized pages.
+  const noteContext = useRef({ notes, onLocateNote });
+  noteContext.current = { notes, onLocateNote };
+  const openNote = useCallback((id: string) => {
+    const ctx = noteContext.current, note = ctx.notes.find(n => n.id === id);
+    if (note) ctx.onLocateNote?.(note.anchor, id);
+  }, []);
   const active = (i: number) => (i >= range[0] - 1 && i <= range[1] + 1) || Math.abs(i - page) <= 1;
   const scan = scanPages.has(page);
 
@@ -562,7 +569,7 @@ export default function PdfReader({
                   sourceVersion={derived ? documentKey : paper.source_version}
                   derived={derived ? documentKey : undefined}
                   notes={notesByPage.get(i) || NONE}
-                  onNote={(id) => { const note = notes.find(n => n.id === id); if (note) onLocateNote?.(note.anchor, id); }}
+                  onNote={openNote}
                   focusRects={focus?.page === i ? focus.rects : NONE}
                   draftRects={draft?.page === i ? draft.rects : NONE}
                   marks={coachMarks?.page_index === i && (derived ? coachMarks.document_version === rendition?.document_version : !coachMarks.document_version) ? coachMarks.marks : NONE}

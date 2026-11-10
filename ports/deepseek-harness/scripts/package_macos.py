@@ -51,6 +51,14 @@ def main():
                     archive.write(file, file.relative_to(stage.parent))
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     output.with_suffix(".zip.sha256").write_text(digest + "  " + output.name + "\n")
+    release_manifest = {"schema_version": 1, "version": version, "tag": "dsh-v" + version,
+        "host_versions": ["0.2.1-rc.5", "0.2.2-rc.1"],
+        "assets": {"darwin-arm64": {"name": output.name, "sha256": digest, "size": output.stat().st_size}}}
+    release_file = output.parent / "dsh-release.json"
+    release_file.write_text(json.dumps(release_manifest, ensure_ascii=False, indent=2) + "\n")
+    manifest_hash = hashlib.sha256(release_file.read_bytes()).hexdigest()
+    (output.parent / "SHA256SUMS").write_text(digest + "  " + output.name + "\n" + manifest_hash + "  dsh-release.json\n")
+
     with zipfile.ZipFile(output) as archive:
         if archive.testzip():
             raise ValueError("ZIP integrity check failed")

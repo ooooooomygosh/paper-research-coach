@@ -26,12 +26,15 @@ export function useLearningSurface(root: RefObject<HTMLElement | null>, initial 
     const measure = () => {
       const r = host?.getBoundingClientRect(), header = host?.querySelector(".topbar")?.getBoundingClientRect();
       const left = (r?.width ? r.left : 0) + 12, top = Math.max(r?.top || 0, header?.bottom || 0) + 12;
-      setBounds({left, top, width:Math.max(1,(r?.width || window.innerWidth)-24), height:Math.max(100,window.innerHeight-top-12)});
+      const next = {left, top, width:Math.max(1,(r?.width || window.innerWidth)-24), height:Math.max(100,window.innerHeight-top-12)};
+      setBounds(old => Object.keys(next).every(key => old[key as keyof typeof old] === next[key as keyof typeof next]) ? old : next);
     };
-    measure(); const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    let frame = 0;
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; measure(); }); };
+    measure(); const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
     if (host) observer?.observe(host);
-    window.addEventListener("resize", measure);
-    return () => { observer?.disconnect(); window.removeEventListener("resize", measure); };
+    window.addEventListener("resize", schedule);
+    return () => { cancelAnimationFrame(frame); observer?.disconnect(); window.removeEventListener("resize", schedule); };
   }, []);
   const wide = bounds.width >= 1120, leftWidth = splitWidth(bounds.width, ratio);
   useEffect(() => {

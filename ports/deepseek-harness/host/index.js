@@ -4,7 +4,8 @@ import {spawn} from 'node:child_process';
 import {appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync} from 'node:fs';
 import {homedir} from 'node:os';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {pluginUpdater} from './plugin-updater.js';
 import {createInterface} from 'node:readline';
 import {pipeline} from 'node:stream/promises';
 import {modelState, modelStream, safeFailure, effortFor} from './model.js';
@@ -102,6 +103,29 @@ function bridgeLog(dataDir, line) {
 }
 
 export async function apply(ctx, config = {}) {
+  const updateHome = process.env.DSH_HOME || path.join(homedir(), '.dsh');
+  const updateData = config.dataDir || path.join(updateHome, 'paper-research-coach');
+  let hostVersion = config.hostVersion || '';
+  try { hostVersion ||= JSON.parse(readFileSync(path.join(process.env.DSH_APP || '/Applications/DeepSeek Harness.app', 'Contents/Resources/app/dsh/package.json'), 'utf8')).version; } catch {}
+  const updates = pluginUpdater({packageDir, dataDir: updateData, home: updateHome,
+    executable: resolveInterpreter(packageDir, config), hostVersion});
+  if (!config._update_bootstrapped) {
+    try {
+      const prepared = await updates.run('apply');
+      if (prepared.package_dir && path.resolve(prepared.package_dir) !== packageDir) {
+        try {
+          const next = await import(pathToFileURL(path.join(prepared.package_dir, 'host/index.js')).href);
+          return await next.apply(ctx, {...config, _update_bootstrapped: true, _update_just_installed: !!prepared.changed});
+        } catch (error) {
+          const restored = await updates.run('rollback');
+          const previous = await import(pathToFileURL(path.join(restored.package_dir, 'host/index.js')).href);
+          return await previous.apply(ctx, {...config, _update_bootstrapped: true});
+        }
+      }
+    } catch (error) { bridgeLog(updateData, 'DSH update deferred: ' + error.message); }
+  }
+  updates.start();
+  ctx.effect(() => () => updates.stop());
   const restoreNetwork = await followWindowsProxy(ctx);
   if (restoreNetwork) ctx.effect(() => restoreNetwork);
   const dataDir = config.dataDir || path.join(process.env.DSH_HOME || path.join(homedir(), '.dsh'), 'paper-research-coach');
@@ -145,19 +169,29 @@ export async function apply(ctx, config = {}) {
       child.stderr.on('data', () => {});
       child.once('exit', () => {address = undefined; startup = undefined; bridge?.close();});
       address = {host: '127.0.0.1', port};
+      if (updates.status().state === 'applied') await updates.run('confirm');
       return address;
     })().catch(error => {startup = undefined; bridge?.close(); child?.kill(); throw error;});
     return startup;
   };
+
+  // Validate a just-installed version now, even if the reader opens no paper
+  // before quitting. No account/model request is needed for backend readiness.
+  if (config._update_just_installed) {
+    try { await start(); }
+    catch (error) { updates.stop(); throw error; }
+  }
 
   const proxy = async (req, res) => {
     const connection = ctx.get('connection');
     const rejection = connection.requestRejection({headers: req.headers});
     if (rejection) {res.writeHead(rejection); res.end(); return;}
     try {
-      const target = await start();
       const url = new URL(req.url || '/', 'http://127.0.0.1');
       const relative = url.pathname.slice(PREFIX.length) || '/';
+      if (relative === '/api/plugin-update' && req.method === 'GET') return json(res, 200, updates.status());
+      if (relative === '/api/plugin-update/check' && req.method === 'POST') return json(res, 200, updates.check());
+      const target = await start();
       const headers = {...req.headers, host: `127.0.0.1:${target.port}`, authorization: `Bearer ${backendToken}`};
       delete headers.cookie; delete headers.origin; delete headers.connection;
       const upstream = httpRequest({...target, path: relative + url.search, method: req.method, headers}, response => {

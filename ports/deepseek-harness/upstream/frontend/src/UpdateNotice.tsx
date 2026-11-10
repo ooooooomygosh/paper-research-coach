@@ -138,7 +138,7 @@ export function UpdateRow({ update, variant = "row" }: { update: UpdateState; va
 export function UpdateSettings({ update }: { update: UpdateState }) {
   const info = update.info;
   if (!info) return null;
-  if (info.managed_by) return <div className="update-settings"><p>当前版本 <b>{info.current}</b></p><small>内置插件由 {info.managed_by} 加载和管理。</small></div>;
+  if (info.managed_by) return <PluginUpdateSettings kernelVersion={info.current} />;
   return (
     <div className="update-settings">
       <p>
@@ -153,4 +153,51 @@ export function UpdateSettings({ update }: { update: UpdateState }) {
       <UpdateRow update={update} />
     </div>
   );
+}
+
+
+type PluginUpdateInfo = {
+  current_version: string;
+  state: "idle" | "checking" | "downloading" | "staged" | "installing" | "applied" | "error" | "rolled_back" | "unsupported";
+  staged_version: string | null;
+  available: boolean;
+  auto: boolean;
+  message: string;
+  error?: string;
+};
+
+/** DSH packages are verified and staged by the host, never installed as wheels. */
+export function PluginUpdateSettings({ kernelVersion }: { kernelVersion?: string }) {
+  const [status, setStatus] = useState<PluginUpdateInfo | null>(null);
+  const [error, setError] = useState("");
+  const checking = useRef(false);
+  useEffect(() => {
+    let disposed = false;
+    const read = async () => {
+      try { const value = await api("plugin-update"); if (!disposed) { setStatus(value); setError(""); } }
+      catch (e) { if (!disposed) setError(e instanceof Error ? e.message : "插件版本信息暂不可用。"); }
+    };
+    void read();
+    const timer = window.setInterval(() => void read(), 3000);
+    return () => { disposed = true; window.clearInterval(timer); };
+  }, []);
+  const busy = checking.current || ["checking", "downloading", "installing"].includes(status?.state || "");
+  async function check() {
+    if (checking.current) return;
+    checking.current = true;
+    setError("");
+    try { setStatus(await api("plugin-update/check", {})); }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { checking.current = false; }
+  }
+  return <div className="update-settings" aria-label="DSH 插件版本与更新">
+    <p>DSH 插件版本 <b>{status?.current_version || "正在读取…"}</b></p>
+    {status?.state === "staged" && <p role="status">更新 <b>{status.staged_version}</b> 已准备；下次完全退出 Harness 并重新打开时安装。</p>}
+    {status?.message && <p role={status.state === "error" ? "alert" : "status"}>{status.message}</p>}
+    <button disabled={busy} onClick={() => void check()}>{busy ? "正在检查或准备更新…" : "检查 DSH 插件更新"}</button>
+    <a href="https://github.com/ooooooomygosh/paper-research-coach/releases" target="_blank" rel="noopener noreferrer">版本说明与安装包</a>
+    <p><small>macOS Apple silicon 自动检查兼容的 DSH 发布包，校验后暂存；阅读过程中不替换运行中的版本。不支持的平台保持当前版本。</small></p>
+    {kernelVersion && <small>工作台内核 {kernelVersion}；插件更新由 Harness 管理，不使用独立工作台安装器。</small>}
+    {error && <p role="alert">{error}</p>}
+  </div>;
 }

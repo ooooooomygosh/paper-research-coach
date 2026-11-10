@@ -552,7 +552,7 @@ it("explains an unavailable coach instead of showing a perpetual connecting stat
     return {};
   });
   view();
-  const notice = await screen.findByRole("status");
+  const notice = await screen.findByText(/AI 带读暂未连接/);
   expect(notice.textContent).toContain("AI 带读暂未连接");
   expect(screen.getByText("未连接")).toBeTruthy();
   expect(screen.queryByText("连接中")).toBeNull();
@@ -945,4 +945,54 @@ it("freezes send-time navigation identity for a delayed evidence response", asyn
     pointing("delayed-answer", [{ ...focus("late"), request_message_id: "user-turn", navigation_intent: "detour" }]),
   ] }); });
   expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "late", navigation_token: "original-position", navigation_intent: "detour" }), "auto");
+});
+
+
+it("shows four soft phases before any conversation is started", async () => {
+  view();
+  await waitFor(() => expect(document.querySelectorAll(".coach-progress-track li")).toHaveLength(4));
+});
+
+const persistedFour = [
+  {id:"old-u1",role:"user",status:"completed",intent:"follow",content:"Continue saved session"},
+  {id:"old-a1",role:"assistant",status:"completed",intent:"follow",content:"Saved goal checkpoint"},
+  {id:"old-u2",role:"user",status:"completed",intent:"answer",content:"Saved learner answer"},
+  {id:"old-a2",role:"assistant",status:"completed",intent:"answer",content:"Saved response evidence"},
+];
+const restoredHistory = { ...snapshot, messages:persistedFour, read_only:false };
+it("automatically restores the canonical four-message history without connecting or creating a thread", async () => {
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? restoredHistory : path==="coach/status" ? status : {});
+  view();
+  expect(await screen.findByText("Saved response evidence")).toBeTruthy();
+  expect(screen.getByText("Saved learner answer")).toBeTruthy();
+  expect(screen.queryByText("一边读原文，一边一步步形成判断")).toBeNull();
+  expect(vi.mocked(api).mock.calls.some(([path])=>path.includes("coach/connect") || path.includes("coach/send"))).toBe(false);
+});
+it("restores persisted history even if the native event-stream constructor fails", async () => {
+  vi.stubGlobal("EventSource", class {constructor(){throw new Error("Unsupported event carrier");}});
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? restoredHistory : path==="coach/status" ? status : {});
+  view();
+  expect(await screen.findByText("Saved response evidence")).toBeTruthy();
+  expect(vi.mocked(api).mock.calls.some(([path])=>path.startsWith("coach/conversation/"))).toBe(true);
+});
+it("does not replace a restored stream history with a late empty bootstrap response", async () => {
+  let carrier:any, resolve!:(value:any)=>void;
+  vi.stubGlobal("EventSource", class {onmessage:any;close(){}constructor(){carrier=this;}});
+  const pending = new Promise<any>(r=>{resolve=r;});
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? pending : path==="coach/status" ? status : {});
+  view();
+  await act(async()=>{carrier.onmessage({data:JSON.stringify(restoredHistory)});});
+  expect(screen.getByText("Saved response evidence")).toBeTruthy();
+  await act(async()=>{resolve(snapshot);await pending;});
+  expect(screen.getByText("Saved response evidence")).toBeTruthy();
+  expect(screen.queryByText("一边读原文，一边一步步形成判断")).toBeNull();
+});
+it("reports history-loading failures explicitly and retries without creating an empty conversation", async () => {
+  let broken=true;
+  vi.mocked(api).mockImplementation(async path=>{if(path.startsWith("coach/conversation/")){if(broken)throw new Error("Network unavailable");return restoredHistory;}return path==="coach/status" ? status : {};});
+  view();
+  expect(await screen.findByText("暂时未能读取已保存对话，原记录仍保留。")).toBeTruthy();
+  expect(screen.queryByText("一边读原文，一边一步步形成判断")).toBeNull();
+  broken=false;fireEvent.click(screen.getByRole("button",{name:"重新读取对话"}));
+  expect(await screen.findByText("Saved response evidence")).toBeTruthy();
 });

@@ -77,3 +77,38 @@ def test_mock_coach_tools_cannot_mark_an_incomplete_understanding_round_done(sto
     result = coach.tool_call(state, "prc_reading_plan", {"action":"finish", "reason":"enough for today"}, "finish")
     assert result["reading_plan"]["status"] == "ended"
     assert session(store,paper)["reading_flow"]["completed"] == []
+
+
+@pytest.mark.parametrize("stage,count,phase,task", [("model",2,"mechanism",0),("method",3,"mechanism",2),("evidence",4,"evidence",0),("recall",7,"judgment",1)])
+def test_legacy_resume_preserves_return_point_without_claiming_mastery(store,paper,stage,count,phase,task):
+    old = {**session(store,paper), "stage":stage, "pending_question":"Exact saved question", "next_action":"Exact next action",
+           "cursor":{"page_index":1}, "reading_flow":{"status":"active", "source_version":paper["source_version"],
+           "started_at":"2026-01-01T00:00:00Z", "completed":[{"step":k} for k in v2.LEGACY_KEYS[:count]]}}
+    fresh=v2._fresh(paper,old)
+    assert (fresh["current_phase"],fresh["current_task"]) == (phase,task)
+    assert fresh["pending_question"] == "Exact saved question"
+    assert fresh["legacy_return_point"]["cursor"] == {"page_index":1}
+    assert fresh["legacy_return_point"]["next_action"] == "Exact next action"
+    assert fresh["coverage"] == [] and fresh["attempts"] == []
+    assert fresh["legacy_receipts"] == old["reading_flow"]["completed"]
+
+
+def test_changed_source_does_not_reuse_old_pending_question(store,paper):
+    old={**session(store,paper),"stage":"method","pending_question":"old question", "reading_flow":{"status":"active","source_version":"old-hash","completed":[]}}
+    p=v2._fresh(paper,old)
+    assert p["current_phase"] == "orient" and not p["pending_question"]
+    assert p["legacy_return_point"]["pending_question"] == "old question"
+
+
+def test_legacy_next_action_retry_is_idempotent_for_session_and_v2_plan(store,paper):
+    from test_coach import FakeRPC
+    from paper_research_coach.coach import Coach
+    coach=Coach(store,FakeRPC)
+    state={"conversation":{"paper_id":paper["id"]},"stop":False,"answer":{"id":"a"},"message":{"content":"answer"},"intent":"answer"}
+    coach.tool_call(state,"prc_reading_plan",{"action":"start"},"start")
+    args={"stage":"orient","next_action":"Inspect one result","pending_question":"Which result?","choices":["A","B"]}
+    first=coach.tool_call(state,"prc_next_action",args,"task")
+    revision=session(store,paper)["revision"]
+    assert coach.tool_call(state,"prc_next_action",args,"task")==first
+    assert session(store,paper)["revision"]==revision
+    assert session(store,paper)["choices"]==["A","B"]

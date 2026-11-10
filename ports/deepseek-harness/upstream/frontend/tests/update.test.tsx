@@ -113,3 +113,19 @@ it("after a background install offers only a short reload, and the switch turns 
   await waitFor(() => expect(api).toHaveBeenCalledWith("update/settings", { auto: false }));
   await waitFor(() => expect((screen.getByRole("checkbox", { name: /自动安装新版本/ }) as HTMLInputElement).checked).toBe(false));
 });
+
+it("shows the actual DSH version and stages updates without calling the standalone installer", async () => {
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "plugin-update/check") return { current_version: "1.3.1", state: "staged", staged_version: "1.3.2", available: true, auto: true, message: "已校验并准备更新。" };
+    if (path === "plugin-update") return { current_version: "1.3.1", state: "idle", staged_version: null, available: false, auto: true, message: "当前版本可用。" };
+    return { current: "2.0.0rc14", disabled: true, managed_by: "DeepSeek Harness", available: false };
+  });
+  function Settings() { return <UpdateSettings update={useUpdate(true)} />; }
+  render(<Settings />);
+  expect(await screen.findByText("1.3.1")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "检查 DSH 插件更新" }));
+  expect(await screen.findByText(/下次完全退出 Harness/)).toBeTruthy();
+  expect(screen.getByText("1.3.2")).toBeTruthy();
+  expect(vi.mocked(api).mock.calls.some(([path]) => path === "update/apply" || path === "update/settings")).toBe(false);
+  expect(reload).not.toHaveBeenCalled();
+});

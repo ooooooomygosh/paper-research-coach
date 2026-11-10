@@ -148,6 +148,9 @@ export default function CoachPanel({
   const [connecting, setConnecting] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
   const [routeOpen, setRouteOpen] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [historyRetry, setHistoryRetry] = useState(0);
   // An open branch explainer: a reader's question answered beside the paper.
   const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
   // Explainer pages live in the conversation as cards: which ones are open.
@@ -183,7 +186,7 @@ export default function CoachPanel({
   // Intent and help style are inferred, never configured: a selection is a
   // detour, a reply to a pending mainline question is an answer, and the coach
   // reads requests such as "just explain" from the message itself.
-  const effectiveIntent = replyIntent(snapshot.reading_plan?.status === "active" ? snapshot.reading_plan : snapshot.reading_flow, anchor, "auto");
+  const effectiveIntent = replyIntent(snapshot.reading_plan || snapshot.reading_flow, anchor, "auto");
   const canAttachImage = imageMatchesPage(paper, page, anchor);
   const scroll = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -198,43 +201,42 @@ export default function CoachPanel({
     };
   }, []);
   useEffect(() => {
-    let disposed = false;
-    const events = new EventSource(
-      "/api/coach/events/" +
-        paper.id +
-        (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
-    );
+    let disposed = false, loading = false, streamVersion = 0;
+    let events: EventSource | null = null, fallback = 0;
+    setHistoryLoaded(false);
+    setHistoryError("");
     const apply = (s: Snapshot) => {
-      if (!disposed) setSnapshot(s);
+      if (!s || !Array.isArray(s.messages)) throw new Error("阅读对话返回格式无效，请重新读取。");
+      if (!disposed) {
+        // History is append-only. A late bootstrap response must not erase a newer SSE snapshot.
+        setSnapshot(old => old.conversation_id === s.conversation_id && old.messages.length > s.messages.length ? old : s);
+        setHistoryLoaded(true); setHistoryError("");
+      }
     };
-    events.onmessage = (e) => {
+    const load = async () => {
+      if (disposed || loading) return;
+      loading = true;
+      const atVersion = streamVersion;
       try {
-        apply(JSON.parse(e.data));
-      } catch {}
+        const s = await api("coach/conversation/" + paper.id + (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""));
+        if (atVersion === streamVersion) apply(s);
+      } catch (e) {
+        if (!disposed) { setError(String(e)); setHistoryError(String(e)); }
+      } finally { loading = false; }
     };
-    void api(
-      "coach/conversation/" +
-        paper.id +
-        (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
-    )
-      .then(apply)
-      .catch((e) => {
-        if (!disposed) setError(String(e));
-      });
-    // A reconnect always reads durable state; it never resends a model turn.
-    events.onopen = () =>
-      void api(
-        "coach/conversation/" +
-          paper.id +
-          (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
-      )
-        .then(apply)
-        .catch(() => {});
-    return () => {
-      disposed = true;
-      events.close();
-    };
-  }, [paper.id, chosen]);
+    const poll = () => { if (!fallback) fallback = window.setInterval(() => { if (!document.hidden) void load(); }, 4000); };
+    // Bootstrap does not depend on SSE availability or a successful manual model connection.
+    void load();
+    try {
+      events = new EventSource("/api/coach/events/" + paper.id + (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""));
+      events.onmessage = e => { try { const s = JSON.parse(e.data); apply(s); streamVersion++; } catch { poll(); } };
+      events.onopen = () => { if (fallback) { clearInterval(fallback); fallback = 0; } void load(); };
+      events.onerror = () => { poll(); void load(); };
+    } catch { poll(); }
+    const focus = () => { if (!document.hidden) void load(); };
+    window.addEventListener("focus", focus);
+    return () => { disposed = true; events?.close(); clearInterval(fallback); window.removeEventListener("focus", focus); };
+  }, [paper.id, chosen, historyRetry]);
   useEffect(() => {
     let disposed = false;
     const update = () =>
@@ -524,8 +526,16 @@ export default function CoachPanel({
     "prompt-only": "提示后作答",
     independent: "本次独立作答",
   };
-  const plan = snapshot.reading_plan;
-  const flow = plan && plan.status !== "not_started" ? {
+  const legacyOnly = !snapshot.reading_plan && ["active", "completed"].includes(snapshot.reading_flow?.status);
+  const plan = legacyOnly ? null : snapshot.reading_plan || {
+    plan_version:2, revision:0, status:"not_started", depth:context.session?.[0]?.depth || "understand",
+    goal:context.session?.[0]?.goal || "", current_phase:"orient", current_task:0, pending_question:"",
+    phases:[{id:"orient",label:"判断是否值得读",tasks:["说出本次要判断的问题"]},
+      {id:"mechanism",label:"理解关键机制",tasks:["举一个输入输出例子"]},
+      {id:"evidence",label:"核查证据与边界",tasks:["认清一处比较条件"]},
+      {id:"judgment",label:"形成并回忆自己的判断",tasks:["用自己的话解释"]}],
+  };
+  const flow = plan ? {
     ...snapshot.reading_flow, status: plan.status, pending_question: plan.pending_question,
     current: plan.current_phase, label: plan.phases.find((p: any) => p.id === plan.current_phase)?.label,
     steps: plan.phases, completed: [], goal: plan.goal,
@@ -1054,7 +1064,11 @@ export default function CoachPanel({
         role="log"
         aria-label="阅读对话记录"
       >
-        {!snapshot.messages.length && (
+        {!historyLoaded && <div className="coach-history-status" role="status">
+          {historyError ? "暂时未能读取已保存对话，原记录仍保留。" : "正在恢复这篇论文的阅读记录…"}
+          {historyError && <button onClick={() => setHistoryRetry(n => n + 1)}>重新读取对话</button>}
+        </div>}
+        {historyLoaded && !snapshot.messages.length && (
           <div className="coach-welcome">
             <h3>一边读原文，一边一步步形成判断</h3>
             <ol className="coach-howto">

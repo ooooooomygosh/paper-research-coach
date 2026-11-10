@@ -13,7 +13,7 @@ from .server import create_app
 from .store import Store
 
 
-def main():
+def _serve():
     app = create_app(Store(Path(os.environ["PRC_DATA"])), os.environ["PRC_SESSION_TOKEN"])
     from .migrate_legacy import migrate
     migrate(app.state.store, app.state.coach)
@@ -41,6 +41,14 @@ def main():
         await task
 
     asyncio.run(serve())
+
+
+def main():
+    from filelock import FileLock
+    directory = Path(os.environ["PRC_DATA"]) / "plugin-updates"
+    directory.mkdir(parents=True, exist_ok=True)
+    with FileLock(str(directory / "reader.lock"), timeout=0):
+        _serve()
 
 
 if __name__ == "__main__":

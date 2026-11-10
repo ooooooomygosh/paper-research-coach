@@ -568,7 +568,7 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     @app.get("/api/update")
     def update_status():
         if os.environ.get("PRC_EMBEDDED") == "1":
-            return {"current": __version__, "available": False, "disabled": True, "auto": False, "managed_by": "DeepSeek Harness", "job": {"state": "idle", "message": "内置插件随 DeepSeek Harness 一起更新。"}}
+            return {"current": __version__, "available": False, "disabled": True, "auto": False, "managed_by": "DeepSeek Harness", "job": {"state": "idle", "message": "DSH 插件使用专属更新通道；工作台内核不单独升级。"}}
         return {**updater.check(store), "auto": updater.auto_enabled(store), "job": dict(app.state.update_job)}
 
     @app.post("/api/update/settings")
