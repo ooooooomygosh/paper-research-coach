@@ -83,3 +83,8 @@ detour 是临时提问、选区讨论、笔记评论或图表疑问。直接回�
 八步约束的是“完整跟读已完成”的含义，不是强迫每篇都读完。skim 的目标是决定是否继续：发现与任务无关、关键材料不可得、收益不足或今天疲劳，可以保留当前步骤并暂停，记录一条停止理由和一个重启条件。不要为了进度条把剩余步骤批量标为完成。
 
 控制台的“已核查”及步骤依据用于回到证据，不是学习评分。用户可展开依据并跳回对应 PDF 页。页码是当前版本的物理 PDF 页索引；换版后不得把旧记录伪装成新证据。
+
+
+## Version 2 and plain-text reading
+
+The eight items above are evidence coverage dimensions. Default to four revisitable phases (relevance, mechanism, evidence/boundaries, own judgment/recall), one action per turn, with skim/understand/reconstruct as separate depths. Only a resumed legacy software round needs the ordered eight-step API. Plain-text hosts follow the soft phases without pretending to persist a software plan. Keep an initial contribution provisional, add one prerequisite bridge when needed, and preserve local-question return points.

@@ -32,6 +32,7 @@ def test_help_mode_is_per_turn_not_a_rewrite_of_user_words(store, paper):
 def test_default_help_keeps_existing_retry_fingerprints():
     body = Send(operation_id="legacy", content="old request")
     old = body.model_dump()
+    old.pop("image_context")
     old.pop("help_mode")
     old.pop("branch_id")  # added later; empty means the request is the same as before
     assert body.fingerprint_data() == old
@@ -47,3 +48,24 @@ def test_help_mode_validation_and_cross_page_images(anchor):
     with pytest.raises(ValidationError, match="同一页"):
         Send(operation_id="x", content="question", anchor=anchor, page_index=1, page_image="data:image/png;base64,eA==")
     assert Send(operation_id="x", content="question", anchor=anchor, page_index=0).page_index == 0
+
+
+def test_rendition_image_identity_is_independent_of_source_page():
+    context = {"job_id": "job", "view": "dual", "document_version": "a" * 64, "page_index": 3}
+    body = Send(operation_id="image", page_index=0, page_image="data", image_context=context)
+    assert body.image_context.page_index == 3
+    assert body.fingerprint_data()["image_context"]["document_version"] == "a" * 64
+
+
+def test_translated_image_uses_display_page_and_rejects_other_file(anchor):
+    import pytest
+    from paper_research_coach.runtime_prompt import turn_input
+    context = {"job_id": "job", "view": "dual", "document_version": "a" * 64, "page_index": 3, "quote": "译文", "rects": [[1, 2, 3, 4]]}
+    selection = {**anchor, "page_index": None, "rects": [], "quote": "", "status": "unresolved", "rendition": context}
+    body = Send(operation_id="translated", content="解释图", anchor=selection, page_index=0, page_image="image", image_context=context)
+    inputs, _ = turn_input(body)
+    assert "译本第 4 页" in inputs[0]["text"]
+    assert "尚非核实原文" in inputs[0]["text"]
+    assert any("译文" in item.get("text", "") for item in inputs)
+    with pytest.raises(ValueError):
+        Send(operation_id="wrong-image", anchor=selection, page_image="image", image_context={**context, "document_version": "b" * 64})

@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .models import Anchor
+from .models import Anchor, RenditionAnchor
 
 HelpMode = Literal["guided", "hint", "explain", "challenge"]
 HELP_INSTRUCTIONS = {
@@ -27,14 +27,18 @@ class Send(BaseModel):
     model: str = Field(default="", max_length=160)
     effort: str = Field(default="", max_length=30)
     page_image: str = Field(default="", max_length=4000000)
+    image_context: RenditionAnchor | None = None
     source_version: str = Field(default="", max_length=120)
     # A follow-up question inside an open branch explainer (its first page's id).
     branch_id: str = Field(default="", pattern=r"^[a-zA-Z0-9_-]{0,80}$")
 
     @model_validator(mode="after")
     def image_matches_selection(self):
+        # Translated images must carry the same display identity as their selection.
+        if self.page_image and self.image_context and self.anchor and not self.anchor.rendition:
+            raise ValueError("译本截图需要重新选择对应页面中的内容。")
         # An image is of page_index, not an arbitrary previously selected page.
-        if self.page_image and self.anchor and self.anchor.page_index != self.page_index:
+        if self.page_image and self.anchor and ((self.image_context and self.anchor.rendition and (self.image_context.job_id, self.image_context.view, self.image_context.document_version, self.image_context.page_index) != (self.anchor.rendition.job_id, self.anchor.rendition.view, self.anchor.rendition.document_version, self.anchor.rendition.page_index)) or (not self.image_context and self.anchor.page_index != self.page_index)):
             raise ValueError("页面图像与选区不在同一页，请回到选区页后附图。")
         return self
 
@@ -42,6 +46,8 @@ class Send(BaseModel):
         # Default requests retain pre-help-mode fingerprints across upgrades,
         # so a durable retry cannot accidentally become a second model turn.
         skip = {k for k, v in (("help_mode", self.help_mode == "guided"), ("branch_id", not self.branch_id)) if v}
+        if self.image_context is None:
+            skip.add("image_context")
         return self.model_dump(exclude=skip)
 
     def context_page_index(self):

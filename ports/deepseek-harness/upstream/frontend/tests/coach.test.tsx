@@ -111,6 +111,7 @@ it("records learning consent separately and shows source-bound feedback without 
   fireEvent.click(screen.getByText("核对原文证据"));
   expect(locate).toHaveBeenCalledWith(observation.anchor);
   fireEvent.click(screen.getByText("阅读设置与连接"));
+  expect(screen.getByLabelText("教练模型").closest("details")).toHaveProperty("open", false);
   fireEvent.click(
     screen.getByLabelText("记录实际回答与学习反馈，帮助下次调整讲解"),
   );
@@ -405,7 +406,7 @@ it("questions about a selection are detours that never advance the pending mainl
   expect(sentBodies()[1].intent).toBe("detour");
 });
 
-it("binds text to the selected page, disables a different page image and consumes only the submitted selection", async () => {
+it("binds text to the selected page and retains the submitted selection after sending", async () => {
   const anchor = {
     paper_id: "p",
     source_version: "version",
@@ -422,7 +423,9 @@ it("binds text to the selected page, disables a different page image and consume
     target: { value: "解释这一句" },
   });
   fireEvent.click(screen.getByLabelText("发送给论文教练"));
-  await waitFor(() => expect(clear).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(sentBodies()).toHaveLength(1));
+  expect(clear).not.toHaveBeenCalled();
+  expect(screen.getByText("已附上选中文字")).toBeTruthy();
   expect(sentBodies()[0]).toMatchObject({
     page_index: 0,
     anchor,
@@ -594,7 +597,7 @@ it("keeps the mainline step, its button and the pending question in the panel wh
   expect(drawer.querySelector(".coach-mainline")).toBeNull();
   expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
   expect(screen.queryByText("问题设定", { selector: ".coach-route li" })).toBeNull();
-  fireEvent.click(screen.getByTitle("查看八步路线与核查依据"));
+  fireEvent.click(screen.getByTitle("查看阅读路线与核查依据"));
   expect(screen.getByLabelText("八步阅读路线")).toBeTruthy();
   drawer.remove();
 });
@@ -916,4 +919,30 @@ it("does not offer to send anything from an old read-only conversation", async (
   view({ page: 0 });
   await screen.findByText("已连接本机 CLI");
   await waitFor(() => expect(document.querySelector(".coach-context-chips")?.hasAttribute("hidden")).toBe(true));
+});
+
+
+it("freezes send-time navigation identity for a delayed evidence response", async () => {
+  const { stream } = explainerMocks([]);
+  vi.stubGlobal("EventSource", class {
+    onmessage: any; onopen: any;
+    constructor() { stream.emit = (s) => this.onmessage?.({ data: JSON.stringify(s) }); }
+    close() {}
+  });
+  const base = vi.mocked(api).getMockImplementation()!;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) => path === "coach/send/p" ? { conversation_id: "c", message_id: "user-turn" } : base(path, body));
+  let navigation = "original-position";
+  const onFocus = vi.fn();
+  view({ onFocus, getNavigationSnapshot: () => navigation });
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "解释这处依据" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送给论文教练" }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "解释这处依据" })));
+  await waitFor(() => expect(screen.getByLabelText("发给论文教练的消息").textContent).toBe(""));
+  navigation = "reader-moved";
+  await act(async () => { stream.emit!({ ...snapshot, messages: [
+    { id: "user-turn", role: "user", content: "解释这处依据", intent: "detour", status: "completed" },
+    pointing("delayed-answer", [{ ...focus("late"), request_message_id: "user-turn", navigation_intent: "detour" }]),
+  ] }); });
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "late", navigation_token: "original-position", navigation_intent: "detour" }), "auto");
 });

@@ -116,7 +116,9 @@ class Workspace:
 
 def mount_workspace(app, workspace):
     from .learning import mount_learning
+    from .paper_study import mount_paper_study
     mount_learning(app, workspace)
+    mount_paper_study(app, workspace)
     @app.get("/api/workspace")
     def state():
         return workspace.state()

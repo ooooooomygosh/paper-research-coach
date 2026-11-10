@@ -8,7 +8,7 @@ import type { ExplainerRecord, ExplainerSummary } from "./types";
 export function useBranch(paper: Row, branchId: string, firstPageId = "") {
   const [pages, setPages] = useState<ExplainerSummary[]>([]);
   const [records, setRecords] = useState<Record<string, ExplainerRecord>>({});
-  const [currentId, setCurrentId] = useState(firstPageId);
+  const [currentId, setCurrentId] = useState(() => { try { return sessionStorage.getItem("prc-branch-page:" + branchId) || firstPageId; } catch { return firstPageId; } });
   const [busy, setBusy] = useState(false);
   const [conversationId, setConversationId] = useState("");
   const [error, setError] = useState("");

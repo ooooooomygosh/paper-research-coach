@@ -22,6 +22,7 @@ from .models import Commit, uid
 from .store import Conflict, Store, NotFound
 from .translation import (
     SelectionRequest,
+    ResolveAnchorRequest,
     Translation,
     TranslationBatch,
     TranslationRequest,
@@ -421,6 +422,10 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     async def translation_pdf(job_id: str, kind: str):
         return FileResponse(translation.artifact(job_id, kind), media_type="application/pdf")
 
+    @app.post("/api/translation/jobs/{job_id}/resolve-anchor")
+    async def translation_resolve_anchor(job_id: str, body: ResolveAnchorRequest):
+        return await asyncio.to_thread(translation.resolve_anchor, job_id, body)
+
     @app.post("/api/translation/jobs/{job_id}/selection")
     async def translation_selection(job_id: str, body: SelectionRequest):
         return await asyncio.to_thread(translation.selection, job_id, body)
@@ -591,6 +596,18 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
     def system_restart():
         threading.Timer(0.3, restart_self).start()
         return {"restarting": app.state.server is not None}
+
+    @app.post("/api/reading/{paper_id}/plan")
+    async def reading_plan_action(paper_id: str, request: Request):
+        from . import reading_v2
+        data = await request.json()
+        if data.get("action") not in ("start", "navigate", "pause", "resume", "finish", "return"):
+            raise ValueError("该动作只能由带读过程核查后记录")
+        operation_id = data.get("operation_id")
+        if not isinstance(operation_id, str) or not 1 <= len(operation_id) <= 160:
+            raise ValueError("需要有效的操作编号")
+        return reading_v2.update(store, store.get("paper", paper_id), store.list("session", paper_id)[0], data,
+                                 "reading-ui:" + paper_id + ":" + operation_id, intent="answer")
 
     @app.post("/api/coach/send/{paper_id}")
     async def coach_send(paper_id: str, body: Send):

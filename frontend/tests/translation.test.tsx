@@ -111,6 +111,7 @@ it("retains the request identifier when translation start loses its response", a
     />,
   );
   await screen.findByLabelText("翻译模型");
+  expect(screen.getByLabelText("翻译模型").closest("details")).toHaveProperty("open", false);
   fireEvent.click(screen.getByText("生成整篇双语 PDF"));
   await screen.findByRole("alert");
   const first = vi
@@ -139,13 +140,16 @@ it("keeps translated geometry when a source match arrives and saves an unmapped 
   const rendition = { job_id: "translated", view: "dual", document_version: "a".repeat(64), page_index: 0, quote: "", rects: [[650, 100, 800, 200]] };
   const anchor = { paper_id: "p", source_version: "v", page_index: null, rects: [], status: "unresolved", rendition };
   const mark = vi.fn().mockResolvedValue(undefined);
-  render(<TranslationPopover selection={{ anchor, view: "dual", x: 10, y: 10 }} job={{ id: "translated", state: "completed" }} onClose={vi.fn()} onSource={vi.fn()} onDiscuss={vi.fn()} onMark={mark} />);
+  const discuss = vi.fn();
+  render(<TranslationPopover selection={{ anchor, view: "dual", x: 10, y: 10 }} job={{ id: "translated", state: "completed" }} onClose={vi.fn()} onSource={vi.fn()} onDiscuss={discuss} onMark={mark} />);
   expect(screen.getByRole("dialog", { name: "区域批注" })).toBeTruthy();
   fireEvent.click(screen.getByText("保留标记"));
-  await screen.findByText("已保留在 PDF");
+  await screen.findByText("已保存批注");
   expect(mark).toHaveBeenCalledWith(anchor);
   expect(vi.mocked(api)).not.toHaveBeenCalled();
-  expect((screen.getByText("讨论这处") as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByText("讨论这处") as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByText("讨论这处"));
+  expect(discuss).toHaveBeenCalledWith(expect.objectContaining({status:"unresolved", rendition}));
 });
 
 it("preserves both source evidence and the exact translated selection for marking", async () => {
@@ -157,6 +161,6 @@ it("preserves both source evidence and the exact translated selection for markin
   render(<TranslationPopover selection={{ anchor, view: "mono", x: 10, y: 10 }} job={{ id: "translated", state: "completed" }} onClose={vi.fn()} onSource={vi.fn()} onDiscuss={vi.fn()} onMark={mark} />);
   await screen.findByText("中文对应句");
   fireEvent.click(screen.getByText("保留标记"));
-  await screen.findByText("已保留在 PDF");
+  await screen.findByText("已保存批注");
   expect(mark).toHaveBeenCalledWith({ ...original, rendition });
 });

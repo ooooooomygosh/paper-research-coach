@@ -30,7 +30,7 @@ async function linkTarget(doc: PDFDocumentProxy, dest: any): Promise<{ page: num
 function PdfPage({
   doc, index, zoom, width, height, active, paperId, sourceVersion, derived,
   notes, focusRects, draftRects, draftRectangle = false, marks, revealMarks = false, region, searchTerm,
-  onBaseSize, onReady, onScan, onRegion, onLink, suppressUntil,
+  onBaseSize, onReady, onScan, onRegion, onLink, onNote, suppressUntil,
 }: {
   doc: PDFDocumentProxy;
   index: number;
@@ -54,6 +54,7 @@ function PdfPage({
   onScan: (index: number, empty: boolean) => void;
   onRegion: (index: number, rect: ClientRect, element: HTMLElement) => void;
   onLink: (page: number, top: number | null) => void;
+  onNote?: (id: string) => void;
   suppressUntil: { current: number };
 }) {
   const element = useRef<HTMLDivElement>(null);
@@ -191,6 +192,13 @@ function PdfPage({
           <button key={i} type="button" className="pdf-link" style={style} title={`跳到第 ${l.page! + 1} 页`} aria-label={`跳到第 ${l.page! + 1} 页`}
             onClick={() => onLink(l.page!, l.top ?? null)} />
         );
+      })}
+      {ready && onNote && noteBands.map((n, i) => {
+        const position = box(n.rects[0]);
+        return position ? <button key={n.id} type="button" className="pdf-note-entry"
+          aria-label={`打开批注 ${i + 1}`} title="打开批注"
+          style={{ position: "absolute", zIndex: 6, right: 2, top: position.top, width: 26, height: 26, borderRadius: 13, background: "#fff3c4", border: "1px solid #9b7722", color: "#493710", cursor: "pointer" }}
+          onClick={() => onNote(n.id)}>{i + 1}</button> : null;
       })}
       {ready && noteBands.flatMap((n) => n.rects.map((r, i) => {
         const style = box(r);

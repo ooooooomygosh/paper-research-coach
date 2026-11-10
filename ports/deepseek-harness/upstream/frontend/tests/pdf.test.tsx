@@ -406,7 +406,7 @@ it("draws numbered coach marks and offers one click back to the earlier page", a
   expect(stop).toHaveBeenCalledWith(false);
 });
 
-it("never draws coach marks on a translated layout", async () => {
+it("does not draw unversioned source marks on a translated layout", async () => {
   const rendition = { job_id: "job", view: "mono" as const, document_version: "a".repeat(64) };
   render(<PdfReader paper={{ id: "p", source_version: "v", revision: 1, page_count: 3 }} page={0} setPage={vi.fn()} onAnchor={vi.fn()} focusAnchor={null}
     derived documentKey="job:mono" rendition={rendition} coachMarks={{ page_index: 0, marks: [{ n: 1, rects: [[1, 2, 30, 40]] }] }} />);
@@ -473,4 +473,14 @@ it("Escape leaves rectangle selection even when it was started from the toolbar 
   toggle.focus(); // the button keeps the focus after the click, as in a real browser
   fireEvent.keyDown(toggle, { key: "Escape" });
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
+});
+
+
+it("draws only coach marks resolved for the current translated file", async () => {
+  const rendition = { job_id: "job", view: "mono" as const, document_version: "a".repeat(64) };
+  const props = { paper: { id: "translated-marks", source_version: "v", revision: 1, page_count: 3 }, page: 0, setPage: vi.fn(), onAnchor: vi.fn(), focusAnchor: null, derived: true, documentKey: "job:mono", rendition };
+  const node = render(<PdfReader {...props} coachMarks={{ page_index: 0, document_version: rendition.document_version, marks: [{ n: 1, rects: [[1, 2, 30, 40]] }] }} />);
+  await waitFor(() => expect(document.querySelector(".coach-mark")).toBeTruthy());
+  node.rerender(<PdfReader {...props} coachMarks={{ page_index: 0, document_version: "b".repeat(64), marks: [{ n: 1, rects: [[1, 2, 30, 40]] }] }} />);
+  expect(document.querySelector(".coach-mark")).toBeNull();
 });

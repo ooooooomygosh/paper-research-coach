@@ -20,3 +20,8 @@ src/paper_research_coach/static/
 src/paper_research_coach/licenses/
 .claude/
 .agents/
+
+# Local verification environments and private installation reports
+.venv*/
+artifacts/
+logs/

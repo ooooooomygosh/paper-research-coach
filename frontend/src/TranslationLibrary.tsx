@@ -211,7 +211,9 @@ export default function TranslationLibrary({
         生成后即可阅读，句子对应继续在后台完成。
       </p>
       {profile && (
-        <div className="form-grid translation-profile">
+        <details className="translation-advanced">
+          <summary>批量翻译高级设置</summary>
+          <div className="form-grid translation-profile">
           <label>
             翻译模型
             <select
@@ -302,11 +304,11 @@ export default function TranslationLibrary({
               ))}
             </select>
           </label>
-        </div>
+          </div>
+          <p className="muted small">请求并发由所有论文共享；已有任务保持启动时的模型，并发设置立即生效。</p>
+        </details>
       )}
-      <p className="muted small">
-        请求并发由所有论文共享。已有任务保持启动时的模型；并发设置立即生效。关闭网页不影响任务，电脑和本机工作台需保持运行。
-      </p>
+      <p className="muted small">关闭面板不影响已提交任务；完全退出应用会停止计算，已保存进度可以恢复。</p>
       {!profile?.component?.ready && profile && (
         <p role="status">请先安装 BabelDOC 翻译组件。</p>
       )}

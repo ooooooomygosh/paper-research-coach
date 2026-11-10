@@ -324,7 +324,7 @@
     }
     function fit() {
       if (!viewport.clientWidth || !stageWidth) return;
-      setScale(Math.min(1,Math.max(.65,(viewport.clientWidth-24)/stageWidth)));
+      setScale(Math.min(1,Math.max(.8,(viewport.clientWidth-24)/stageWidth)));
       viewport.scrollLeft=0;
     }
     function focus(id) {

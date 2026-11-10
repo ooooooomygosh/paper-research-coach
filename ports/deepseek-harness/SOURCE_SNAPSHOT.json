@@ -4,7 +4,7 @@
   "upstream": {
     "url": "https://github.com/ooooooomygosh/paper-research-coach",
     "version": "2.0.0rc14",
-    "commit": "820016322796a06c66514312f764e8b6a4fc79cf"
+    "commit": "a4706616ebd778fa123bfa747d80faf53830232b"
   },
   "host": {
     "name": "DeepSeek Harness",
@@ -12,14 +12,16 @@
     "platform": "win32-x64"
   },
   "sourceFiles": {
-    ".gitignore": "bf22d454a4736c902140cff76ef1c3674e3d2721fba236b1f6f2a5597b456d34",
+    ".gitignore": "7b4443eef0effd4e6fbd1a5757f8f35afb3b5573ac6a44f2bb8f3889fd9eaa92",
     "LICENSE": "bd1a5627691fa06fb9ffa79aa7bd0b2827a0e36c9d827f45f268ea06b4264060",
-    "README.md": "d94ece4d0b6d1b769b82dc622bf1d2df10792695607454b8e02859239a228dd9",
+    "README.md": "e111d14933972250a38373594be64d5c95d44567f5954cdaf29c07f850c2f051",
     "THIRD_PARTY.md": "b004bdbe523cced35db629b4a8bc1bf00d96b11c9a069640720101ff6ac65e77",
     "client/client.js": "c84b9cec5f68b1637336af16bdbf2109071e651f533e527d20d712251a72a407",
     "cordis.patch.yml": "a553ebbf74162efcdfd764c8ed17c3a0362235d7e14c02be9d3f50352eccf188",
     "distribution/README.txt": "95f2ee4f7c1323427434bebc0b43749b3720bfbfb379fde9babb2e48a012c120",
     "distribution/installer.py": "611e8b5594a93a34a28acf205c9b959777fe358db5d05c44b44f551ad946fb8c",
+    "docs/BILINGUAL-READING.md": "2ed805e411c7c280c93067d785565af009ddc7f26ccea965a0b16c138fd7861b",
+    "docs/PAPER_STUDY.md": "8879738234d086722072672888e3af179a00a40946a869771df815cadccf3d3f",
     "docs/READING_REDESIGN.md": "95a20d81096826d08141d6ee9f42d90d3a87186474019e821de52ed2b8362322",
     "host/index.js": "d9e30e34fe5aa89d173872efa43b28286255da807a609c90d56e0c82fec44bee",
     "host/model.js": "4ae4c4561c5c046697046b101cca810cee597b6a858af169030f847e3234471e",
@@ -285,7 +287,7 @@
     "integrations/answer-me-with-html/src/templates/sheet.js": "d1b3e9e9c424c7555b2f083a13b61f88d9d50002ef9219e1c79f1b4e9d794d4c",
     "integrations/answer-me-with-html/src/theme-market.js": "5b0da2b6625e5274f735ddbc2419d5fa251acf34c4ac3c0cd5a580901954f991",
     "integrations/answer-me-with-html/src/themes/3b1b.js": "c789295c3c39de661ecd9914a9e73789dff4b55cab1631e18d368e79a2b83985",
-    "integrations/answer-me-with-html/src/themes/base.css": "2889a998b9af9c064b289a593458bec62e8485f16355c7c195b122e516eadc62",
+    "integrations/answer-me-with-html/src/themes/base.css": "2a6d9c89173d63104cfc3f2e015d669574f9839c9401eb36aa734df915a64075",
     "integrations/answer-me-with-html/src/themes/blueprint.js": "816c809aed06cece75effa47dfb1c196cdc0abf9c266095f0b832467fd301745",
     "integrations/answer-me-with-html/src/themes/catalog-rules.js": "5185f4e12af11307bf70168624aa099d18409fd4720cde6fc6644d423016c6e3",
     "integrations/answer-me-with-html/src/themes/catalog.js": "7943a5fee953282d6aacad8e2f31ff86156912a9cc06b19ec75c6fd0a161e32c",
@@ -699,7 +701,7 @@
     "integrations/learn-from-materials/templates/framework-routing.js": "4700449471b48f56f99a03b96680ba2ca5fff6554244b4fd7e857bc1875db0fe",
     "integrations/learn-from-materials/templates/graph-motion.js": "a865fe93a0ccd333be09d8936e9f3e0ce1795b5eeddf36503599118c1a9a4979",
     "integrations/learn-from-materials/templates/graph-studio.css": "5a73bbfec24768e1c7d5ce1570207bd4b58856fe9e79cd5c4534fd3e8e6d5b76",
-    "integrations/learn-from-materials/templates/graph-studio.js": "36d53deaaa3ea41281c24c78e3d3ec418b26625561489fe02d3683ec0f4a062a",
+    "integrations/learn-from-materials/templates/graph-studio.js": "a2265e361f967026052f28aca791d226d2eaa3cf39f748b494abbf2f2a106147",
     "integrations/learn-from-materials/templates/hover-bridge.js": "ebbdb5be21939c7214b8e20f6bdbb04cb7517f8a40301bd5d983e87adfc48828",
     "integrations/learn-from-materials/templates/liquid-finish.css": "a70224dc244ba7cbf80c4b57c6cfabc085d265a5c543a53511c4227587be4396",
     "integrations/learn-from-materials/templates/locales/en.txt": "9fbdf93a51966d98c70f6d00566488b86c1e7fb53ebb86ddb8f7db9ef823e994",
@@ -707,7 +709,7 @@
     "integrations/learn-from-materials/templates/methodology.js": "5453d025f94d4ce7224dc83dd3af5e0497d9712b2862a599bed6c25913a54299",
     "integrations/learn-from-materials/templates/reader-layout.css": "42356789301b5a1732700a010428e77cf335129e3020862505cc5210f5f1b783",
     "integrations/learn-from-materials/templates/relationship-mindmap.css": "7b7abd44d94ff6231be01be0cd80d66d25a4c7b33859f7f18466d76bb485c3f4",
-    "integrations/learn-from-materials/templates/relationship-mindmap.js": "927d20e308c54fc3d4ca7e222a1cee731bc2cc07de19d637c2eacd6ec2a130c6",
+    "integrations/learn-from-materials/templates/relationship-mindmap.js": "fc71c11a6e8eabc5b2f1b130d016674d621886748d275981f3a9b4f9ad8cf13c",
     "integrations/learn-from-materials/templates/scroll-chain.js": "e8b67efd83b5718b547bb82e82865e254c7304e28ea36c436826b756073f8b74",
     "integrations/learn-from-materials/templates/source-presentation.js": "1e804a230924a8f1e6c24e3a2f03386830fe466636063b8c8b7a79ead9c9c06f",
     "integrations/learn-from-materials/templates/themes/README.md": "71aeaeb4c7550f6eadb2b41d86ac3c417f802721bc368f4f3fbe7cb6e27ed326",
@@ -720,20 +722,22 @@
     "locale/zh.json": "7ad8f0add12abbc496674b2eaff1f0624a5cbf3eb3e32b6e28c81c434eb67844",
     "macos/README.md": "39e73ddb1bb44a6896b591c5ba94d960e50d9c9fc5209e1db327e71f807fe84a",
     "macos/import-legacy.sh": "dd786ad6c9cbbc598364865a10f2ea4061aff2fe473098df0360a4a3532131b7",
-    "macos/install-macos.sh": "fc6cd510dcbb022db1dcd125a8d64bc37ec620e5e63cff40b872000c89966d8f",
+    "macos/install-macos.sh": "71e806cf01e80ba1347aa5d323e0d36a0a888da4a9aa6a3dfeaee852b02e5fe8",
     "macos/uninstall-macos.sh": "5344e8da24da21bcf93631019f14663faa1929ed65b1ef22eab9484da3d36e6f",
-    "package.json": "927f2d5b0372f3f0891cdf5e20edc193353ef13875206ef06cd50b13ee5c7a5d",
+    "package.json": "3c719466d5c6e7313a66af8d2d8ae2b3e8335a6933a07b9c210020b989e88b5f",
     "runtime/ASSET-MANIFEST.json": "57de2bf90c66bc2da69e33178ba8b617beb1d3a64806c4480fdbda8d17013d91",
     "runtime/MSVC-NOTICE.txt": "10b476d0ab3791f0abbad7129e0fff4389e8c58699c6dcf30dfbae1244aceecf",
     "runtime/requirements.lock.txt": "e60f29b8ea951e8631e559b8d611414071b1cae8c97c38ba55fb3fb6421e9465",
     "scripts/build_release.py": "24467ba943f5283fed5255ded4cf7ea35b4bc9faf4c8373e0d47e9301cf564e9",
+    "scripts/check_learning_surface.py": "51801617aff0af97839b76db0cc552598f65d24b2170c19a3dbc9b1af4d871ff",
     "scripts/elevated_install.py": "d8726d19ab7e02593c9f3f072e1d852db9771fdbe0231c3266bfce1f8c315c7a",
     "scripts/install_builtin.py": "e3d224c1b831c57bcc1f8caaec8a3b16dc4dfa1de295c8af2b92361cf9ec8266",
+    "scripts/package_macos.py": "fe665b4143732965b0017a6ff71741e8a30feddec16767bf3ab13b7bee0e36f7",
     "scripts/prepare_bundle.py": "a917a90f8ff1a43d945dcc0c26b04492b558da21d4c396c7337800135f1ee18a",
     "scripts/prepare_integrations.py": "3832225fa402acae06f5d862f637264ed11b7295ce2a432532d869a08636b8aa",
     "scripts/prepare_runtime.py": "6e60bd9e6dc7da5f31e9a04d2b5aad84f094dc92a23f1e86dec492a319afd4bf",
     "scripts/refresh_snapshot.py": "77651d02446de822afb078405a08ff457de40e66ff5d5dacbadc38c76db7db61",
-    "scripts/smoke-harness.mjs": "9357941b4300b4e3c188ec8eb116d7eb2c08d188b98507450af730b69ade5873",
+    "scripts/smoke-harness.mjs": "7516ab991aed6eaccc84893deda527ce0f3b6a100dc7fe19b051a44a7c2d11c6",
     "scripts/smoke-learning.mjs": "2d32dfbb7f0a4d4ce02c374f8c516d6c467166da7880ee43e9322e952dd9e1f2",
     "scripts/verify_source.py": "34249bdf875d0f80c4b9b633e4103f321d373470c5e579d6a9c6073c0efa8a13",
     "tests/distribution_integration.py": "a82b316c553c67f6e23e13436b1d22e12371f72dc5654ecf0c5d2daa1e8fe4ec",
@@ -745,6 +749,8 @@
     "tests/test_distribution.py": "5c3508da5185e020294e50796b74e188af8bc495bf46bb193e4f4ce6cc418862",
     "tests/test_interactive.py": "e54213d87c9659a6543e35c8ecdfe3993e2d9c2b6dcaaca90519d6a614e765a9",
     "tests/test_learning.py": "50351a48d1b2eefedeea857a428a5fb5bea3b5ce4253d341cc718a3d4f6b2f11",
+    "tests/test_paper_study.py": "c06093f2ff6f8240b79d2694a89977543c6584f88e15a3e8e19764f5d8245f3e",
+    "tests/test_paper_study_api.py": "e043178639243eac7d7cd1a775b506448fba00b844485a75d5ed3389db9a691e",
     "tests/test_port_runtime.py": "e760d20adc05e58120a9753fb22aff3116fb4ea5536b93463cb63f4d0210937f",
     "tests/test_studio.py": "c1c117db6de56381871a058fa4c94980effe3bf9205e6cf5483597bb91a3bf63",
     "upstream/.claude-plugin/marketplace.json": "606ce1868ad868afbd06983b26dbff6983371c64e6f34b448e60cb6e689c2a08",
@@ -769,7 +775,7 @@
     "upstream/docs/FINAL-REVIEW.md": "0d68c38b487bba250441cd5e186993112abd95fe94cf1a0645d7330d1c979989",
     "upstream/docs/HUMAN-TRIAL.md": "2c9f188e4fc3a943417ec7735b841fdd037bc1ead7976a14cdc0dd40933d9d4e",
     "upstream/docs/METHOD.en.md": "e0d40819b83059cf0e71a6c849d75bbe4fd7e422dc9e836d552e30cf6649c59d",
-    "upstream/docs/METHOD.md": "990adbb55ee21191ab137c5c7e197691a6cbbb201c886d47d1b07c6135b6eef0",
+    "upstream/docs/METHOD.md": "34f7e085fb22fc4ec6cd517c6de39efc7746549b5d0c0b53b222b2e978620641",
     "upstream/docs/QUICKSTART.md": "c60a77f98a32c99d3ae9f35ef1bbdbbbcacc820048f480e4813654748cf4687c",
     "upstream/docs/SECURITY.md": "2f1ee423b9b41b0edd555d47ef91fd624dfd4970d119188a210898bb9945c421",
     "upstream/docs/SHOWCASE.md": "d1aa98410a657bc92dca377a424c0ed1c3918bd5aa036fefdfdfaf2bc1789c7e",
@@ -805,8 +811,8 @@
     "upstream/frontend/index.html": "a18ef9121479b62bb470a6bedf1b3289927f69c36aa42eabdb416a82c9467d51",
     "upstream/frontend/package-lock.json": "fb56f73316ba04133469f37018a80bba7f7f7c8795a13b3c767e2717084f0cd9",
     "upstream/frontend/package.json": "f950bf40949b3cb5f7d1ba383df8fddc4e9a05b714cbcd68926620a191c0024b",
-    "upstream/frontend/src/ArtifactFrame.tsx": "6b2b05de580524493b5109fc72e4d05f002fb8a3896cd49fcb1a85972dda8ff1",
-    "upstream/frontend/src/Coach.tsx": "83270b888448e6ded98f04a2d9ba20730488d96a0cf540c6482394bcad1b082e",
+    "upstream/frontend/src/ArtifactFrame.tsx": "6f4ad4e4166cf3e9637ca68e6b24fa6aa1aa72aa22871764149e3c3a4bb34de8",
+    "upstream/frontend/src/Coach.tsx": "4a89d1fafebac90710336cfb3ff419d4c1f267ce1d6a7f68a5d02f0bd567da14",
     "upstream/frontend/src/Dialog.tsx": "617f016864bd58035acbcce1c5f9b3db63d5583cb64340362bea4c3f126db86f",
     "upstream/frontend/src/GlobalTranslation.tsx": "6565e551c20b5f2654e53ff0cbe35194560455343c62927b6e9068da7b4733b1",
     "upstream/frontend/src/Icon.tsx": "c70ee64ebea98863d7e4d1fd5732a5ff9a36ae84ead0230a15f830cc8c8b3531",
@@ -814,38 +820,40 @@
     "upstream/frontend/src/JourneyTree.tsx": "bb791edee951bdd0e1a1e97e1d24b05c3cb3e57566a3686aa6c675508ae2a690",
     "upstream/frontend/src/LearningWorkspace.tsx": "6444dabfc669d956c3bd2350ddf4b69f257e91dc2f8ce7545a7e905f127fb5fe",
     "upstream/frontend/src/MethodsLibrary.tsx": "8af4862422439bdaff785ac82338c285b2cb96b4161533e5c62feb53442b7e07",
-    "upstream/frontend/src/Notes.tsx": "17727df8b52289ed5218b6f6f1356cc4ae84e54d730a1d4b61cc420e85e44b29",
+    "upstream/frontend/src/Notes.tsx": "c5c24bbf02f7b4295f59c0f840c4f7eb8020230fd1fdbb0cb254975240e49855",
     "upstream/frontend/src/PageNavigation.tsx": "1eea7ffc0d9ca5bbff7e532c0122d5560b3ba857164ec6504ecc4ebe98f53a48",
     "upstream/frontend/src/Panels.tsx": "252a1278d68c5886458d3b2bed28b3e2fe8283dbb9d53b9e26daca029e505d75",
     "upstream/frontend/src/PaperDialogs.tsx": "a2a8dff5eac01027a6ab0a1b376d522a8931133171d09b1a9eba76e5ed0c743c",
+    "upstream/frontend/src/PaperStudy.tsx": "fa7a2fa38c7a61edfb22953457e729419b7413d6014d3c7a9659b88f41afc383",
     "upstream/frontend/src/PdfNavigation.tsx": "33ec0836add6d912d0d7a503d94ee9c756855231f72a61284cbe9c99e779cb20",
-    "upstream/frontend/src/PdfPage.tsx": "1e90b3a929af42d0fee9a21dbe5661b6753c7b351f195227fe1c76a8f94651fd",
-    "upstream/frontend/src/PdfReader.tsx": "27aa8385cfe509a52f88bc5937c8eaeac7901093b7c762cfaf81528a3b0e64c0",
+    "upstream/frontend/src/PdfPage.tsx": "5b86cbccd78ba0b6837db34ef9ec0fa30172d32325a710039336ac35995674a1",
+    "upstream/frontend/src/PdfReader.tsx": "5058b69d8887c507e3fc1da280e1d03021954240c4e898c52bef0bd99841ad04",
     "upstream/frontend/src/QuestCard.tsx": "223db69df30894ad6201395a0228e4025ed3d8071243dea84593062219f996d4",
     "upstream/frontend/src/QuestLog.tsx": "a0f1ebe39fca8e163d93ef783bf32a89e57a8c7ee312fb2d4e354a2746f2bbc4",
+    "upstream/frontend/src/ReadingPlan.tsx": "ef3dc2c0566fefec9cf8d41ef3bf2d320c342e6c020d27fb56fddfb12a904f88",
     "upstream/frontend/src/ReadingPromptButton.tsx": "3930dcedfafdfa7ca35b0c013df2a67299ef5b6952d5e5a0ec03f350feea4c69",
-    "upstream/frontend/src/ReadingTools.tsx": "34203864561c81f99e3cae08008b7b6a2b8539bb515706c266b35f2b9349061c",
-    "upstream/frontend/src/TranslationLibrary.tsx": "01ad5702cd36df7bee209ff4f6e814c6de632214c5cc12487687313518d424c3",
+    "upstream/frontend/src/ReadingTools.tsx": "427ac9f25267e40e805fcc204b205013a7a06e33315280420cc561423d5d30d4",
+    "upstream/frontend/src/TranslationLibrary.tsx": "1ca4fc3fe69a7f9c8f3136cb9ceb6097911b57a880ff589a7ec65a4943eb7f69",
     "upstream/frontend/src/UpdateNotice.tsx": "dbdc6bb68f1920fa25e44e897ef0a49f3ee606a680ba183078962a16dbce7acd",
     "upstream/frontend/src/Welcome.tsx": "59a35d0898adf3a849e2111a13a9f40fc6fef214bea66c9bb684b98864396dfe",
     "upstream/frontend/src/Workspace.tsx": "23caa68192c602aa20788b403dcf5e8c7d8f19ad975ddc1008a5a0e3cdcc6da3",
     "upstream/frontend/src/api.ts": "df9312baec8e10c226e9ca302560b223f860715683064d17ec2e260217f3964c",
     "upstream/frontend/src/assets/standard-reading.txt": "2c211bf5d341e746093db11cd70eb8e08157c5490ee2cad8f8b0502d1a246b84",
     "upstream/frontend/src/explainer/BlockBoundary.tsx": "9ae266aa953e31866cba6c401e70f30e696fe97e5e5c9021718f69ea925baaa7",
-    "upstream/frontend/src/explainer/BranchPanel.tsx": "41ba296863a6af2a379db8acfadd7a7bc423b84344d8ffe6989aa4582a77bab9",
-    "upstream/frontend/src/explainer/Diagrams.tsx": "bea13bc9ebae0e20f47cdffd90924ea1e7b3842810195f56d75da0365340d4fb",
+    "upstream/frontend/src/explainer/BranchPanel.tsx": "c076f999ccf6f7331bea3af369ef528a69c24e39de16bb8881c9655d8529b2d0",
+    "upstream/frontend/src/explainer/Diagrams.tsx": "936be87a26afc9b77614bffb8584482e7240fb6c89c8bcb6dd57bffd3966d848",
     "upstream/frontend/src/explainer/ExplainerCard.tsx": "2a255f4e2f6f4e86d9b46ea3e3b706e78d460cfb4ce725181c06534c267fee39",
     "upstream/frontend/src/explainer/ExplainerDoc.tsx": "04992b47d84e1260607637c260c2eff58059472b69e285d72a6611b6ef2460b1",
     "upstream/frontend/src/explainer/Inline.tsx": "82cd305d306fe9cae519801cf26e492206230c7181eacba8b186c9a9c8525acc",
     "upstream/frontend/src/explainer/MainlineFigure.tsx": "439f8df99a1a61191d1c5b4f55cfe6eaddae40aa047f2da19357de934929f7cd",
     "upstream/frontend/src/explainer/QuestControls.tsx": "4c708d9b7df7c4c991a00f3dc93d3196ea491aec8634810488bf94022d4c00aa",
-    "upstream/frontend/src/explainer/explainer.css": "ed258372b0d23daf60312930d3697fa3c9e401ffddb08f64576fa5fab43fa861",
+    "upstream/frontend/src/explainer/explainer.css": "8412439db9bf3cb0dc8e02896f124757ef884748730ee80fb8404a46cf423c32",
     "upstream/frontend/src/explainer/exportHtml.ts": "a02c26e5152ff131a864da6d1cfd9920975b8589df9e8f5dfcace655fe82e0b5",
     "upstream/frontend/src/explainer/flow-layout.ts": "2a8c432627ff861a5256119d442a60c2c09bbfae31f35064cd76b0fc9394f013",
     "upstream/frontend/src/explainer/measure.ts": "c5a90a4c6a193f39c9bc49b6454eb39f7b2b9c1a0f311a92c2f22ecd0ed87fe4",
     "upstream/frontend/src/explainer/sequence-layout.ts": "2fdffb36fc4b614ce4924d490da97755b84609170e23aca8ac834135054c77ec",
     "upstream/frontend/src/explainer/types.ts": "228c5d2d493501b3c531250ed468c77df6921dccc4c5b858c250cf8425fcfbb0",
-    "upstream/frontend/src/explainer/useBranch.ts": "b03348e4f148c0de1dddab9ed164cb8a741797b062848466efa5c96c03e2544d",
+    "upstream/frontend/src/explainer/useBranch.ts": "b34c356b6d45c00b1ea9aba8538f8e63d8678a227cac3e0d6956d90ab33e0b8e",
     "upstream/frontend/src/glyphs.tsx": "949499d37e80ace8fa4d4fea82e36d0791b734ae8f5dae58c0b003264872af06",
     "upstream/frontend/src/harness-entry.ts": "beac25d68769528848690d7dc42c065e86c4f41cb7c7416a49c86532176fe95c",
     "upstream/frontend/src/harness-refresh.css": "0174a7bffa5e7aca7515994e7977100474f6eddd2cc531a813939762ee14dee7",
@@ -915,37 +923,42 @@
     "upstream/frontend/src/launch.ts": "ed77ac148284c7421f1eecbc69a74a018abd5141eadd6650f2aa9848d042493d",
     "upstream/frontend/src/library-search.ts": "a953d7ff9093138b6b80786c595a0562847b18f7b9d536325e471358c5f9114f",
     "upstream/frontend/src/main-embedded.tsx": "2e4524aeca9e17a518d6259de375dce612e4ca3f6e1a7710b84304707169b232",
-    "upstream/frontend/src/main.tsx": "d8f4171b9d7c707deccf9bdf6e333e1013c0b46eca1145933625373385127c6f",
+    "upstream/frontend/src/main.tsx": "022d1c78b0496907dcaf9a7ca57b7142a7172dfa5b25644b9783bd8f3ce3c24d",
     "upstream/frontend/src/onboarding.css": "c9489f6e859153ee27dfaab7bd7d0aed297d6277a0c9b745b2b57739ee5c81b7",
     "upstream/frontend/src/paper-map.ts": "2ab5fe6c213becb98c7361bd6dee02e9dc78819ce50602dee433c988df43d5a3",
     "upstream/frontend/src/pdf-controls.css": "38a052eb778b8d9f1d26bace47c9784aa0fe6926bb1346d29b30cd18ac98df30",
     "upstream/frontend/src/pdf-text-layer.css": "6313432f6a486643be55670f63caba96b9304202448ba4aee41a8eb4cb353d16",
     "upstream/frontend/src/quiet-reading.css": "6d0cafdb0f58a13d3281384813b952804077bfb11a0d51e3d90dfa7ba7158d7f",
-    "upstream/frontend/src/reading-context.ts": "82a98f579f3fb69841605edd25e445a43e60b6a82c17ccc9e229d727958fef4b",
+    "upstream/frontend/src/reading-context.ts": "77b2dca7ca1f6e8e7867ea3456d3fb018e5984924d19790c0e5c67effbf97ec6",
     "upstream/frontend/src/reading-experience.css": "4a9dd5bd5399db740047a2b1b8fe0d0eb174bfd30d502dd9c20d8df0b5a91537",
     "upstream/frontend/src/style.css": "b1bd00148abba6e746464c25a722e51ecf1880958d83c4bfc050aab6d59f9811",
+    "upstream/frontend/src/useLearningSurface.tsx": "694f02b4301fbc179eff63ec0e8a766b633199523a7235337db12c661a9df776",
     "upstream/frontend/src/usePdfZoom.ts": "92a152b1a2bfe000ba7d3c283fac6fcf30fe95124a0a15dc3ad869e5a95b8c31",
     "upstream/frontend/src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
     "upstream/frontend/src/workbench-polish.css": "a0899572ca0d93a087d03fd25fdedc84fc336670ce157148f1d87902a34616cf",
     "upstream/frontend/src/workspace-api.ts": "819e3b2a94e91afb4d689d2f5d251b7b7c06441f763989a11f7e11398bf164b7",
-    "upstream/frontend/src/workspace.css": "5685f9b6d5fbe9a3587313545e2e30d28e8268260c7d7b7bb32d3b83a05d3b17",
-    "upstream/frontend/tests/coach.test.tsx": "b2725ca388354be0bc406c09c38af1a86a21fd1e372b76debbeb8bc74e28e1eb",
+    "upstream/frontend/src/workspace.css": "2b4eed4e8838d467a05864c30f7af1f506ce45296c37094a9797ad45d5f28ce0",
+    "upstream/frontend/tests/coach.test.tsx": "8a7aa9c1ad132f00d6d39fed098cfcbe42d2f7455c92839673e949252006aed4",
     "upstream/frontend/tests/dialog-focus.test.tsx": "1d0a40b39f1a478c02616abc1600927988b9a0f2d0d326b97fc6370afb479b3a",
     "upstream/frontend/tests/explainer-card.test.tsx": "f0e48805ad4b2c48d73389feb1ff9ed447f146a3934d2f4a153e6c362ee6b2e2",
     "upstream/frontend/tests/explainer-input.test.tsx": "b07dc97b09f072eed6ac2f93472d9b09fa8f7c071662613b46e019d37dac6cbf",
-    "upstream/frontend/tests/explainer.test.tsx": "5e96050a1671929ebadbedda3b45bc507d125e2e06300f82c0ba16388680805a",
+    "upstream/frontend/tests/explainer.test.tsx": "186e292fec3221a27f76986c672308e932159f2ec02f1705735c7208219fd275",
     "upstream/frontend/tests/highlight-geometry.test.tsx": "a4159d05dc5f8b3a86a17cdf0c98f89eb382f4ba609adea56a24b3b495c2e544",
     "upstream/frontend/tests/journey.test.tsx": "0c427297bb4eb16c3f1333739fad7a99a4fe105c8257b328cd8f0a39d87dd67e",
+    "upstream/frontend/tests/learning-layout.test.tsx": "506d1eb450366f418a062cd0e2091ee3a2f1b0538d70685b92604d4fa4b4f174",
+    "upstream/frontend/tests/learning-surface.test.tsx": "70334f6466aa3902acd09824aed8cedb334c182e390f852227d0d07f80eafac8",
     "upstream/frontend/tests/library.test.tsx": "d9be678c683cbf5a25b4db4b0edf7d4ff80789f5ffe0b962bd8a7292b22508a6",
     "upstream/frontend/tests/navigation.test.tsx": "24e43bca93e684253d382c1da42ddd38be7aacbf9f6093251f1e7d8f4c3b79a5",
     "upstream/frontend/tests/notes.test.tsx": "16b734fab4bfde91e764b4ba85dc6a703879836df15f9bc767c18878a8b4943c",
     "upstream/frontend/tests/onboarding.test.tsx": "656b0015fef3d4beb5be33cf935aade94824457839d4476bea0e68e68d378d72",
     "upstream/frontend/tests/panels.test.tsx": "b636e3f2e9a0df350507da115151481911bb95d3c5750e28bd1f9e2f3a45f585",
     "upstream/frontend/tests/paper-map.test.tsx": "5459ae894f286486ce5ced50343079a9df7e03cf780b0f842fd4d5756f43917f",
-    "upstream/frontend/tests/pdf.test.tsx": "98b7c4629f1449bbc14abb4f22ee7bf2f4c8fc2bb73f11a0a537da5aa903e86a",
+    "upstream/frontend/tests/paper-study.test.tsx": "1d7d72dc48098edac2daa4da72d406d9fdc19200dec820909c6e8fd8c0aea13e",
+    "upstream/frontend/tests/pdf.test.tsx": "362cac826e1bd09c5663d32265932fc40eaf26ddd75d080205ca2e95060c07cb",
+    "upstream/frontend/tests/reading-plan.test.tsx": "4ac001f4e1c6c096a3d5007998f0ca8763cf754ed93550e3852f9e4d567771f1",
     "upstream/frontend/tests/reading-redesign.test.tsx": "11b8c04194868c167eb13b813a8ea2ded2ac423ce9890ed18dade732a7a03612",
-    "upstream/frontend/tests/translation-library.test.tsx": "4e31ae8f521cfd796fa0273c8646c4e46d263554ad61db52b5867d0999f3bc6f",
-    "upstream/frontend/tests/translation.test.tsx": "2d979516a49b0fbbfc240640ca95fa58e17896e59327a3761791276234f4f36e",
+    "upstream/frontend/tests/translation-library.test.tsx": "2aa7cfb11942a10d5220193a8fbdbdf73286e43bd122234e34d0f07524cba424",
+    "upstream/frontend/tests/translation.test.tsx": "66993d484dafc3321d5584df211eeb2a6e557a40b17dddd6afbae86d9dc73d40",
     "upstream/frontend/tests/update.test.tsx": "ffccde47ab41f6c25760924d9b9051ad9f03ac13d675eadb959b5bba6faa73b4",
     "upstream/frontend/tests/workspace.test.tsx": "a57163c7aeffc875055860cb9106efa02d847dea9be2ed11def15d9a7803a016",
     "upstream/frontend/tsconfig.json": "641fecb794c5f9577bcbdc0c2400b931e8996175be470c4582b54dd519811ab8",
@@ -968,7 +981,7 @@
     "upstream/scripts/run_codex_eval.py": "224389eccff1859641c1838aab4771eb4538d23a5a1b4db66fa949ab36724b2d",
     "upstream/scripts/run_host_eval.py": "33c71b3f01855196c468194dfd753244effbba9cbddfd0a4289fe70837a6115c",
     "upstream/scripts/validate_skill.py": "44239f72e93d6f1adbccec17a497bf32515446e9ac07596f2258194d887be2f0",
-    "upstream/skills/paper-research-coach/SKILL.md": "5a0b90c453e1b9b1f76ff243f69fc5a26ac8d393e07ddc982cd0820bcaa9a506",
+    "upstream/skills/paper-research-coach/SKILL.md": "31221b47e3f7fc255a4a93b7fa92237f7c2e9096a87e811e85e5e1b2402beebf",
     "upstream/skills/paper-research-coach/assets/note-transaction.json": "6b577b3dc6e0e6615669b0a1c2cd7e8a200225f39047ab54ef124bee5125add3",
     "upstream/skills/paper-research-coach/assets/session.md": "fee3d9073ade900168a1772d4ea1890689ebe58b68d83a47e2dc73261b3be32e",
     "upstream/skills/paper-research-coach/references/branch.md": "18ba256b5390b7c1a40032579b2cfc7f6e069c225eee657647711f0bf02ea111",
@@ -977,7 +990,7 @@
     "upstream/skills/paper-research-coach/references/notebook.md": "281afb28b6f11f586e9f166a450e222fd8e00e1924af296045ecd5dea9b7713e",
     "upstream/skills/paper-research-coach/references/paper-types.md": "5568eb090ea62f849420d9fb25a34d06b4ac9de6261e714f14ee421d30b3362e",
     "upstream/skills/paper-research-coach/references/questions.md": "f4a5548c89cfed365825e97f2f6d5f12a672735924c043303a4ebb0b8b5f045e",
-    "upstream/skills/paper-research-coach/references/reading-flow.md": "413069641157ab7a748f175b455ee027908e716ce68f5df67d7ab6b6fdaba368",
+    "upstream/skills/paper-research-coach/references/reading-flow.md": "cb147b30f86d0d8aa9242ee565a49d8ee33ae503e75b3f5f8aa93e2dde6c11ec",
     "upstream/skills/paper-research-coach/references/research.md": "a8169e8dc734af33db2107047fe58668570054866004078abc0420363acac69b",
     "upstream/skills/paper-research-coach/references/review-talk.md": "6fa262bab369ba7cdf44a0399c95cd83637c9122f8a8b6f840150f0ddcc7825f",
     "upstream/skills/paper-research-coach/references/selection.md": "6fbe3145114695435b86d145a7ae34c8723f41bc142e910f1720e99daf276466",
@@ -987,9 +1000,9 @@
     "upstream/src/paper_research_coach/__init__.py": "803bc4296b9e266025f61078b8ab69b08b91174bb4c6afa74f750c3269c2186f",
     "upstream/src/paper_research_coach/babeldoc_worker.py": "31ff8b23aa2d8020873625c0e266f6317466306211320bd81bd1d19ba7629354",
     "upstream/src/paper_research_coach/cli.py": "8329d6254a96b958807fffa0c8cb982e10257080cfa0ab0e0831de8a496ac4c0",
-    "upstream/src/paper_research_coach/coach.py": "02ca6707c921f95ef1460c9836174d32e828a2bf3d60279464ab33f6f817d62a",
+    "upstream/src/paper_research_coach/coach.py": "0c7fd0c87945ae4b56f10beb7d01a7a84ecf8593c0ba6566d833a377509bbc33",
     "upstream/src/paper_research_coach/coaching_context.py": "def458e32ce405d94cf4d95111dc18bd464e1ba4c38ce1bca3ee5e9e5db33b4c",
-    "upstream/src/paper_research_coach/coaching_request.py": "9bf69ef17c6ba11789dc783812dcd153ff62137feb4016c6f4ab55efc5705d1d",
+    "upstream/src/paper_research_coach/coaching_request.py": "e83856d785c54780a962241960cc719dcca97a9ef25da4dda2e5179c7c8462b8",
     "upstream/src/paper_research_coach/codex_text.py": "f1dcdc1e640e5990f39a9e3ab88415a27c1402dabc5d2c0fb1fc52540c5d9477",
     "upstream/src/paper_research_coach/demo.py": "23b7af2792a5ee7aec79d7e9614b74900f25cc5051a33a0388121511a3ab1789",
     "upstream/src/paper_research_coach/dsh_bridge.py": "39c0315b926b5639df824ea55946427531020ccfb858faf0bb9ad1515bb03ff0",
@@ -1010,20 +1023,27 @@
     "upstream/src/paper_research_coach/migrate_legacy.py": "909a912a4fc500987d788fcb440ebdd23c555f74765d191379992e11e7216193",
     "upstream/src/paper_research_coach/models.py": "271db57407d6c6020a1203d9558ee849b589336e4ad04666b1a8ee35fe33a01d",
     "upstream/src/paper_research_coach/paper_map.py": "bb38f01911aca8685009d366e76f6ec387c85861af01044635f5565d1b6cd2be",
+    "upstream/src/paper_research_coach/paper_study.py": "94e39e5e091b9bf7758ea618a5332d89ec894109036f87b590e03bad4eaf2f57",
     "upstream/src/paper_research_coach/pdf_visual.py": "c9a790a98f6a9fd554ac749c80d334bfc5be35e2b598990b4aada6f4d91c6ae6",
     "upstream/src/paper_research_coach/reading.py": "9b8e9f8e5cb088d13d6526c33840aa885718471abd2b28597ca8d52f701f4219",
+    "upstream/src/paper_research_coach/reading_v2.py": "15adedf167a57a82c2c0e9238b810ba64bab453eccb2213992d4b1938108f2ca",
     "upstream/src/paper_research_coach/relaunch.py": "ca3454d15b6c893792a7e697ade3ee6235012a8b382ea5587d4cadf57320adcd",
     "upstream/src/paper_research_coach/renditions.py": "dbec6263460e9a8693a2c6e4111bad7c15d7fb0c281fa9cd04278b184c896b00",
-    "upstream/src/paper_research_coach/runtime_prompt.py": "66a9bcf55b1132b64d6de42ca16722290c19bdbf9edc1dab085afca473847c1f",
-    "upstream/src/paper_research_coach/server.py": "15fefb33ab0263be94c4518461d316bd0608110ab5a2114866c02f92b1eabdb1",
+    "upstream/src/paper_research_coach/runtime_prompt.py": "37fcf02f27047eea86378b6bbac11e5152049e8b45248897f49a0c7a39902d6d",
+    "upstream/src/paper_research_coach/server.py": "7beae90832dabfa3dbce5d30e94525964dbc1a9d04266c5d38acb08fc9e1d624",
     "upstream/src/paper_research_coach/service.py": "719ecbb2fd07ddeffe8999b9c9934f13acc60b542ca9284d25c720d9a7813072",
     "upstream/src/paper_research_coach/shortcut.py": "3573dc06d3b41145b830fd7021b72397aafea820de2fb12081d1fb4d7bf36211",
     "upstream/src/paper_research_coach/store.py": "2e1ca0effbb478c9d0bf5c6e5c182791ec5aa1e3eada6e4679af71c619b13123",
     "upstream/src/paper_research_coach/studio.py": "45445d141680d988e32bad9d98efc3976ef1aead2afbf687785e47b27fc8f816",
-    "upstream/src/paper_research_coach/translation.py": "d1f635e987241025076cb49d72b144ca5ad802a8be42bfb3841a58e72666f2c3",
+    "upstream/src/paper_research_coach/study_fonts/IBMPlexSans-OFL.txt": "37784b44044a4ffd9256702b7c0982c37e5c8887ba90c6dca0479aea93dc898d",
+    "upstream/src/paper_research_coach/study_fonts/IBMPlexSans.ttf": "3b031aa4216174205bd8471f88a49b91f093169e9e87bd5262242bc5967fe2e3",
+    "upstream/src/paper_research_coach/study_fonts/Lora-OFL.txt": "1d9a970809ac804b582a6ce7f0ebc4e7fefcbfd7ff6299cad35ee656a21be716",
+    "upstream/src/paper_research_coach/study_fonts/Lora.ttf": "822a6621ccbe8d97d20ac88c1c41f5615c9c2c202eaa75f272cd452aac6475a7",
+    "upstream/src/paper_research_coach/study_fonts/SOURCES.md": "c632fd044f460c48b03aceaabbf94c85279a5673dbf7716954ccec009e34c857",
+    "upstream/src/paper_research_coach/translation.py": "b816038eade385b929382e25db3033e35a32dbf3eb32e124287a9aea3e7ffb98",
     "upstream/src/paper_research_coach/updater.py": "274ad1a1eb95eb1ca986c6959f015bdaaf70902d3066252e365e45b6b20577fe",
     "upstream/src/paper_research_coach/vault.py": "3c776a1b10fefa8552baec6676ca9b1c0dbd0089c932ab077ac9538ab9af9b77",
-    "upstream/src/paper_research_coach/workspace_api.py": "d9946f3712070138831e15e9fb9e2250fdf47df52ed4cf55941ad5c57f63247e",
+    "upstream/src/paper_research_coach/workspace_api.py": "6446ae33f51919375730379153de6c945ba952972b1252055d7d4903652ffe9f",
     "upstream/src/paper_research_coach/workspaces.py": "49c3c218d5a6cbeda653c4ee10176e7749516f2360a737dc4d2555b553718683",
     "upstream/src/paper_research_coach/zotero.py": "98ea7fa82c763ad73c7aed9a26200c5a1a3d3f0ba327578731e19f207309bb92",
     "upstream/tests/conftest.py": "4009c9ea485c57b8ede2d29ae21180abe96e7d503c985b125d12242ba61d9263",
@@ -1044,7 +1064,7 @@
     "upstream/tests/test_cli.py": "fa8c841fc9818bf1c9c859f3dc3a540c6e79cee661d6379e952069fedbc5067e",
     "upstream/tests/test_coach.py": "1199295af787de17285da515e15a842e59f9e77c15174513de86ad4b78e8647f",
     "upstream/tests/test_coaching_context.py": "99bee68410984d4d0929380ac7b398663d382b4e2f03bb62edb58589d03edad3",
-    "upstream/tests/test_coaching_controls.py": "18f735f401cb80ec7bfaccc8dad38b505463887cf488e5e1d7eec6cd06dc6d12",
+    "upstream/tests/test_coaching_controls.py": "ea49b073e883be6aa0c8acd860025f63f00c119e6df8373668003e12d2705c7d",
     "upstream/tests/test_demo.py": "9184a9761b7b8a36c4e62222b84d2fa78b934e1669e124e2440508f1eb817d2f",
     "upstream/tests/test_dsh_bridge.py": "50ae4d907420797cbf0483d28856527dbc6d71a7eaa6b06260ab6c9c9106d649",
     "upstream/tests/test_explainer.py": "3cb8c84cd4679bbffc6456871a03907a729c6894b65ff85e3250a6611d18e293",
@@ -1057,12 +1077,13 @@
     "upstream/tests/test_paper_map.py": "66af30902f61eb1e92b2a528b9ed4aff202b9e08000fb180278cad96121b7740",
     "upstream/tests/test_persistent_reading.py": "176ef030ad65241c0efd64ecd94da4eb1af0f3d235727d8d077bc1528f2a3f22",
     "upstream/tests/test_reading.py": "29edc3d3ec6ac1fd8434770e996474ac722555b6011c82580900991ad94ef885",
+    "upstream/tests/test_reading_v2.py": "3ee1a4b0150c0c704ac3d43c28d02303cd080bcc97d6df5ae2d0267d78149dae",
     "upstream/tests/test_renditions.py": "7ea9f10477009e83247dabba05fa66cc12254e90bfecc409677937e9715ed1ce",
     "upstream/tests/test_server.py": "3b22ad2144d3adf3d1dbcaf82dfe7986f6e40d2811b1a6486bd6735cb482a847",
     "upstream/tests/test_store.py": "f2331447dacd7f33691b663578dbcad788a6485a121fac81d8d97e33d607eb98",
-    "upstream/tests/test_translation.py": "dec56841f97c8d4e99c53ee8d3875d9c047462da0204ad7220e12d7e65d5588b",
+    "upstream/tests/test_translation.py": "6c272aff97655f3ab00ce7229c4836289ec0611c61ffaf9bef0d2223478ebade",
     "upstream/tests/test_translation_queue.py": "85a06d32dbe17498334db07233e22fb56dc8d8d708f3a0bd1d3f47a84128762b",
-    "upstream/tests/test_turn_guide.py": "d0e173c8759d62cf3df9c522c1a430499ed58fc4470d1d0ccf13d41381a9cdc9",
+    "upstream/tests/test_turn_guide.py": "1e07a3d13b2feb8ad7ac8a4041334ce8e8ece91ccd555a52ebf535bcd6346a6e",
     "upstream/tests/test_update.py": "caca0b92cb35639fb07fe6e95a471b04e3362dacdb0cb22c2241d2d6c9a89d4f",
     "upstream/tests/test_vault.py": "33a548a0f38e3f2967aac20c0853efdc65925cb182b5b7df37facc67cddc9b9f",
     "upstream/tests/test_zotero.py": "9740925ace71619a42f492075d706388f0b227891f4037bc5efeac2c7e4cfa77",
@@ -1076,6 +1097,18 @@
   ],
   "hashMode": "sha256; UTF-8 text CRLF normalized to LF; binary bytes unchanged",
   "upstreamChangedFiles": [
+    {
+      "path": "README.en.md",
+      "change": "modified"
+    },
+    {
+      "path": "README.md",
+      "change": "modified"
+    },
+    {
+      "path": "docs/METHOD.md",
+      "change": "modified"
+    },
     {
       "path": "frontend/index.html",
       "change": "modified"
@@ -1129,6 +1162,10 @@
       "change": "modified"
     },
     {
+      "path": "frontend/src/PaperStudy.tsx",
+      "change": "added"
+    },
+    {
       "path": "frontend/src/PdfPage.tsx",
       "change": "modified"
     },
@@ -1143,6 +1180,10 @@
     {
       "path": "frontend/src/QuestLog.tsx",
       "change": "modified"
+    },
+    {
+      "path": "frontend/src/ReadingPlan.tsx",
+      "change": "added"
     },
     {
       "path": "frontend/src/ReadingPromptButton.tsx",
@@ -1177,6 +1218,10 @@
       "change": "modified"
     },
     {
+      "path": "frontend/src/explainer/Diagrams.tsx",
+      "change": "modified"
+    },
+    {
       "path": "frontend/src/explainer/ExplainerCard.tsx",
       "change": "modified"
     },
@@ -1190,6 +1235,14 @@
     },
     {
       "path": "frontend/src/explainer/QuestControls.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "frontend/src/explainer/explainer.css",
+      "change": "modified"
+    },
+    {
+      "path": "frontend/src/explainer/useBranch.ts",
       "change": "modified"
     },
     {
@@ -1469,6 +1522,14 @@
       "change": "modified"
     },
     {
+      "path": "frontend/src/reading-context.ts",
+      "change": "modified"
+    },
+    {
+      "path": "frontend/src/useLearningSurface.tsx",
+      "change": "added"
+    },
+    {
       "path": "frontend/src/workspace-api.ts",
       "change": "added"
     },
@@ -1477,7 +1538,27 @@
       "change": "added"
     },
     {
+      "path": "frontend/tests/coach.test.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "frontend/tests/explainer.test.tsx",
+      "change": "modified"
+    },
+    {
       "path": "frontend/tests/highlight-geometry.test.tsx",
+      "change": "added"
+    },
+    {
+      "path": "frontend/tests/learning-layout.test.tsx",
+      "change": "added"
+    },
+    {
+      "path": "frontend/tests/learning-surface.test.tsx",
+      "change": "added"
+    },
+    {
+      "path": "frontend/tests/paper-study.test.tsx",
       "change": "added"
     },
     {
@@ -1485,8 +1566,20 @@
       "change": "modified"
     },
     {
+      "path": "frontend/tests/reading-plan.test.tsx",
+      "change": "added"
+    },
+    {
       "path": "frontend/tests/reading-redesign.test.tsx",
       "change": "added"
+    },
+    {
+      "path": "frontend/tests/translation-library.test.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "frontend/tests/translation.test.tsx",
+      "change": "modified"
     },
     {
       "path": "frontend/tests/workspace.test.tsx",
@@ -1497,11 +1590,23 @@
       "change": "modified"
     },
     {
+      "path": "skills/paper-research-coach/SKILL.md",
+      "change": "modified"
+    },
+    {
+      "path": "skills/paper-research-coach/references/reading-flow.md",
+      "change": "modified"
+    },
+    {
       "path": "src/paper_research_coach/babeldoc_worker.py",
       "change": "modified"
     },
     {
       "path": "src/paper_research_coach/coach.py",
+      "change": "modified"
+    },
+    {
+      "path": "src/paper_research_coach/coaching_request.py",
       "change": "modified"
     },
     {
@@ -1545,11 +1650,43 @@
       "change": "added"
     },
     {
+      "path": "src/paper_research_coach/paper_study.py",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/reading_v2.py",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/runtime_prompt.py",
+      "change": "modified"
+    },
+    {
       "path": "src/paper_research_coach/server.py",
       "change": "modified"
     },
     {
       "path": "src/paper_research_coach/studio.py",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/study_fonts/IBMPlexSans-OFL.txt",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/study_fonts/IBMPlexSans.ttf",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/study_fonts/Lora-OFL.txt",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/study_fonts/Lora.ttf",
+      "change": "added"
+    },
+    {
+      "path": "src/paper_research_coach/study_fonts/SOURCES.md",
       "change": "added"
     },
     {
@@ -1577,11 +1714,27 @@
       "change": "modified"
     },
     {
+      "path": "tests/test_coaching_controls.py",
+      "change": "modified"
+    },
+    {
       "path": "tests/test_dsh_bridge.py",
       "change": "added"
     },
     {
       "path": "tests/test_launcher.py",
+      "change": "modified"
+    },
+    {
+      "path": "tests/test_reading_v2.py",
+      "change": "added"
+    },
+    {
+      "path": "tests/test_translation.py",
+      "change": "modified"
+    },
+    {
+      "path": "tests/test_turn_guide.py",
       "change": "modified"
     },
     {

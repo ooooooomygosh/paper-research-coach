@@ -1,3 +1,4 @@
+import ReadingPlan from "./ReadingPlan";
 import { sectionChip, type PaperMap } from "./paper-map";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -82,6 +83,7 @@ type Snapshot = {
   canonical_conversation_id?: string;
   thread_id?: string;
   reading_flow?: any;
+  reading_plan?: any;
 };
 
 function prose(text: string) {
@@ -104,6 +106,7 @@ export default function CoachPanel({
   toolsContainer,
   onOpenTools,
   onFocus,
+  getNavigationSnapshot,
 }: {
   paper: Row;
   context: any;
@@ -119,6 +122,7 @@ export default function CoachPanel({
   onOpenTools?: () => void;
   /** The coach pointed at sentences in the PDF ("auto" while a turn runs, "restore" on load). */
   onFocus?: (action: any, how: "auto" | "click" | "restore") => void;
+  getNavigationSnapshot?: () => string;
 }) {
   const key = "prc-chat-draft-" + paper.id;
   const jobKey = "prc-chat-send-" + paper.id;
@@ -156,6 +160,9 @@ export default function CoachPanel({
   const [journeyOpen, setJourneyOpen] = useState(false);
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
+  const navigationByMessage = useRef(new Map<string, string>());
+  const latestNavigation = useRef(getNavigationSnapshot);
+  latestNavigation.current = getNavigationSnapshot;
   const latestFocus = useRef(onFocus);
   latestFocus.current = onFocus;
   const currentAnchor = useRef(anchor);
@@ -176,7 +183,7 @@ export default function CoachPanel({
   // Intent and help style are inferred, never configured: a selection is a
   // detour, a reply to a pending mainline question is an answer, and the coach
   // reads requests such as "just explain" from the message itself.
-  const effectiveIntent = replyIntent(snapshot.reading_flow, anchor, "auto");
+  const effectiveIntent = replyIntent(snapshot.reading_plan?.status === "active" ? snapshot.reading_plan : snapshot.reading_flow, anchor, "auto");
   const canAttachImage = imageMatchesPage(paper, page, anchor);
   const scroll = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -276,7 +283,11 @@ export default function CoachPanel({
     fresh.forEach(({ a }) => seenFocus.current!.add(a.id));
     // One automatic jump per coach reply: the first place it points at. Later ones wait for a click.
     const first = fresh.find(({ m }) => !jumped.has(m));
-    if (first) latestFocus.current?.(first.a, "auto");
+    if (first) {
+      const index = snapshot.messages.findIndex(m => m.id === first.m);
+      const previous = snapshot.messages.slice(0, index).reverse().find(m => m.role === "user");
+      latestFocus.current?.({ ...first.a, navigation_intent: first.a.navigation_intent || (previous?.intent === "follow" || previous?.intent === "answer" ? "mainline" : "detour"), navigation_token: navigationByMessage.current.get(first.a.request_message_id || previous?.id || "") }, "auto");
+    }
   }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
   useEffect(() => {
     if (snapshot.read_only || !snapshot.conversation_id) return;
@@ -338,8 +349,8 @@ export default function CoachPanel({
   };
   useEffect(() => {
     setIncludeImage(
-      !!anchor?.rects?.length &&
-        !anchor?.quote &&
+      !!(anchor?.rendition || anchor)?.rects?.length &&
+        !(anchor?.rendition || anchor)?.quote &&
         imageMatchesPage(paper, page, anchor),
     );
   }, [anchor, page, paper.id, paper.source_version, chosen]);
@@ -354,9 +365,16 @@ export default function CoachPanel({
     setText(value);
     localStorage.setItem(key, value);
   }
+  function imageContext() {
+    const element = document.querySelector<HTMLElement>(`.pdf-page[data-paper-id="${paper.id}"][data-page-index="${page}"]`);
+    if (!element?.dataset.derived) return null;
+    const [job_id, view, document_version] = element.dataset.derived.split(":");
+    if (!job_id || !["mono", "dual"].includes(view) || !/^[a-f0-9]{64}$/.test(document_version || "")) throw new Error("译本身份不可用，请重新打开页面。");
+    return { job_id, view, document_version, page_index: page, rects: [] };
+  }
   function pageImage() {
     const canvas = document.querySelector<HTMLCanvasElement>(
-      `.pdf-page[data-paper-id="${paper.id}"][data-source-version="${paper.source_version}"][data-page-index="${page}"] canvas`,
+      `.pdf-page[data-paper-id="${paper.id}"][data-page-index="${page}"] canvas`,
     );
     if (!canvas) throw new Error("当前页还未打开。稍后重试，或取消附上图表。");
     const image = document.createElement("canvas");
@@ -410,9 +428,17 @@ export default function CoachPanel({
             model,
             effort,
             page_image: aboutSelection && includeImage ? pageImage() : "",
+            ...(aboutSelection && includeImage && imageContext() ? { image_context: imageContext() } : {}),
             branch_id: branchId,
           };
       if (!body) return false;
+      const navigationKey = "prc-navigation:" + body.operation_id;
+      let sentNavigation: string | null = null;
+      try { sentNavigation = sessionStorage.getItem(navigationKey); } catch {}
+      if (!retry && latestNavigation.current) {
+        sentNavigation = latestNavigation.current();
+        try { sessionStorage.setItem(navigationKey, sentNavigation); } catch {}
+      }
       // Persist the exact request before crossing the network.
       localStorage.setItem(jobKey, JSON.stringify(body));
       setPending(true);
@@ -420,17 +446,15 @@ export default function CoachPanel({
       setError("");
       atBottom.current = true;
       const result = await api("coach/send/" + paper.id, body);
+      if (result.message_id && sentNavigation) navigationByMessage.current.set(result.message_id, sentNavigation);
+      try { sessionStorage.removeItem(navigationKey); } catch {}
       accepted = true;
       localStorage.removeItem(jobKey);
       if (!alive.current) return true;
       setPending(false);
       setChosen(result.conversation_id);
       if (currentText.current === body.content) change("");
-      // Do not clear a newer selection made while the request was in flight.
-      if (body.anchor && sameAnchor(currentAnchor.current, body.anchor)) {
-        onClearAnchor();
-        setIncludeImage(false);
-      }
+      // A successful reply does not consume the reader's selection or image preference.
       setSnapshot(
         await api(
           "coach/conversation/" +
@@ -500,7 +524,13 @@ export default function CoachPanel({
     "prompt-only": "提示后作答",
     independent: "本次独立作答",
   };
-  const flow = snapshot.reading_flow;
+  const plan = snapshot.reading_plan;
+  const flow = plan && plan.status !== "not_started" ? {
+    ...snapshot.reading_flow, status: plan.status, pending_question: plan.pending_question,
+    current: plan.current_phase, label: plan.phases.find((p: any) => p.id === plan.current_phase)?.label,
+    steps: plan.phases, completed: [], goal: plan.goal,
+    check: "完成当前一个判断；阶段可以跳转、暂放。",
+  } : snapshot.reading_flow;
   const flowDone = flow?.status === "completed";
   const flowStarted = flow?.status === "active";
   const stepIndex = (flow?.steps || []).findIndex((s: any) => s.id === flow?.current);
@@ -523,16 +553,33 @@ export default function CoachPanel({
     setBranch(null);
     requestAnimationFrame(() => composer.current?.focus());
   };
-  const openWindow = (branchId: string, pageId: string) =>
-    window.open(
-      `/#branch=${encodeURIComponent(branchId)}&page=${encodeURIComponent(pageId)}&paper=${encodeURIComponent(paper.id)}`,
-      "prc-branch-" + branchId,
-      "popup=yes,width=900,height=900",
-    );
+  const branchWindows = useRef(new Map<Window,string>());
+  useEffect(() => {
+    const receive = async (event: MessageEvent) => {
+      const data = event.data;
+      const expectedBranch = branchWindows.current.get(event.source as Window);
+      if (event.origin !== window.location.origin || !expectedBranch || data?.channel !== "prc-branch-locate" || data.paperId !== paper.id || typeof data.pageId !== "string" || !/^[a-zA-Z0-9_-]{1,160}$/.test(data.pageId)) return;
+      try {
+        const saved = await api("coach/explainer/" + data.pageId);
+        if (saved?.paper_id !== paper.id || saved.branch_id !== expectedBranch || saved.anchor?.source_version !== paper.source_version) return;
+        onLocate(saved.anchor);
+      } catch { report("这处依据暂不可定位，请在工作台打开讲解核对。"); }
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [paper.id, paper.source_version, onLocate, report]);
+  const openWindow = (branchId: string, pageId: string) => {
+    const opened = window.open(
+      `/#branch=${encodeURIComponent(branchId)}&page=${encodeURIComponent(sessionStorage.getItem("prc-branch-page:" + branchId) || pageId)}&paper=${encodeURIComponent(paper.id)}`,
+      "prc-branch-" + branchId, "popup=yes,width=900,height=900");
+    for (const saved of branchWindows.current.keys()) if (saved.closed) branchWindows.current.delete(saved);
+    if (opened) branchWindows.current.set(opened, branchId);
+    return opened;
+  };
   const popoutBranch = () => {
     if (!branch) return;
-    openWindow(branch.branchId, branch.pageId);
-    setBranch(null);
+    const opened = openWindow(branch.branchId, branch.pageId);
+    if (!opened) report("独立窗口未打开，讲解仍保留在当前工作台。");
   };
   // The places the coach's latest reply pointed at: the task card's "look here".
   const lastFocus = (() => {
@@ -742,6 +789,8 @@ export default function CoachPanel({
     <>
       <details className="coach-options">
         <summary>阅读设置与连接</summary>
+        <details className="coach-provider-options">
+          <summary>高级：模型与连接</summary>
         <div className="coach-connection">
           <span
             className={
@@ -803,6 +852,7 @@ export default function CoachPanel({
             ))}
           </select>
         </label>
+        </details>
         <label className="check-label">
           <input
             type="checkbox"
@@ -873,7 +923,7 @@ export default function CoachPanel({
           <button
             className="coach-step"
             aria-expanded={routeOpen}
-            title="查看八步路线与核查依据"
+            title="查看阅读路线与核查依据"
             onClick={() => setRouteOpen(!routeOpen)}
           >
             <strong>
@@ -963,7 +1013,7 @@ export default function CoachPanel({
           </button>
         )}
       </div>
-      {routeOpen && route}
+      {routeOpen && (plan ? <ReadingPlan plan={plan} paperId={paper.id} onChange={refresh} /> : route)}
       {status?.state === "login_required" && (
         <div className="coach-login">
           <p>沿用 DeepSeek Harness 中已登录的账户，即可在这里带读。</p>

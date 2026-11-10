@@ -1,5 +1,8 @@
 # Paper Research Coach · DeepSeek Harness 内置版
 
+> 本地开发版 **1.3.0** 已增加当前语言定位、讲解大阅读区、四阶段软路线及双语对照批注 HTML。使用与升级说明见 [双语研读](docs/BILINGUAL-READING.md)。已验证 macOS DSH 0.2.2-rc.1 的真实账户合成材料调用；下文 1.2.0 为既有公开分发记录，未声明发布新的 Windows ZIP。
+
+
 Paper Research Coach **1.2.0** 可内置到 **DeepSeek Harness 0.2.1-rc.5**（Windows x64 分发包；macOS 走源码构建，见 [`macos/README.md`](macos/README.md)），从 Harness 侧栏的“论文研读”进入。文献阅读、分析、知识库构建和互动讲解统一调用 Harness 当前登录账户的 `deepseek-account` 模型接口，无需另填 API Key 或启动 Codex CLI。插件名称继续使用 **Paper Research Coach**。
 
 这是第三方适配版。仓库里只发 Windows x64 的安装 ZIP；macOS 不发预打包产物，用 [`macos/install-macos.sh`](macos/install-macos.sh) 从源码构建并注册进 Harness profile，步骤和限制见 [`macos/README.md`](macos/README.md)。两个平台都在 Harness 0.2.1-rc.5 上跑过。已有版本的适配记录见上述平台说明；本次界面改版的验证范围见下文。其他 Harness 版本尚未验证。插件包不包含 Harness 主程序；模型调用仍需要网络及可用的 Harness 账户。

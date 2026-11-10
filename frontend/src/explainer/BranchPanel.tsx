@@ -1,3 +1,4 @@
+import { useLearningSurface, LearningCompareControls } from "../useLearningSurface";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowUp, CornerUpLeft, ExternalLink, MapPin } from "lucide-react";
@@ -27,8 +28,13 @@ function mainlineLine(point?: { status: string; label: string }) {
 
 export default function BranchPanel({ paper, branchId, firstPageId, standalone, onReturn, onPopout, onLocate, page = 0 }: Props) {
   const { pages, record, currentId, setCurrentId, busy, error, ask } = useBranch(paper, branchId, firstPageId);
-  const [text, setText] = useState("");
+  const storageKey = "prc-branch-ui:" + paper.id + ":" + branchId;
+  const [text, setText] = useState(() => { try { return sessionStorage.getItem(storageKey) || ""; } catch { return ""; } });
+  useEffect(() => { try { sessionStorage.setItem(storageKey, text); } catch {} }, [storageKey, text]);
   const root = useRef<HTMLElement>(null);
+  const surface = useLearningSurface(root, true);
+  const {expanded:large, setExpanded:setLarge, compare, setCompare, fullscreen} = surface;
+  useEffect(() => { try { sessionStorage.setItem("prc-branch-page:" + branchId, currentId || ""); } catch {} }, [currentId, branchId]);
 
   useEffect(() => {
     root.current?.focus({ preventScroll: true });
@@ -48,8 +54,10 @@ export default function BranchPanel({ paper, branchId, firstPageId, standalone, 
   const panel = (
     <aside
       ref={root}
+      style={standalone ? undefined : surface.style}
+      data-paper-visible={compare && !surface.wide && surface.paper ? "true" : undefined}
       tabIndex={-1}
-      className={"branch-panel" + (standalone ? " standalone" : "")}
+      className={"branch-panel" + (standalone ? " standalone" : large ? " learning-large" : "") + (compare ? " learning-compare" : "")}
       role="dialog"
       aria-modal="false"
       aria-label="讲解面板"
@@ -57,16 +65,20 @@ export default function BranchPanel({ paper, branchId, firstPageId, standalone, 
         if (e.key === "Escape" && !e.defaultPrevented) {
           e.preventDefault();
           e.stopPropagation();
-          onReturn();
+          if (!surface.escape()) onReturn();
         }
       }}
     >
+      {!standalone && <LearningCompareControls surface={surface} />}
       <header className="branch-head">
         <div className="branch-title">
           <span className="branch-kicker">{record?.origin === "mainline" ? "主线图解" : "插话讲解"}</span>
           <h2>{record?.title || "正在准备讲解…"}</h2>
         </div>
         <div className="branch-actions">
+          {!standalone && <button onClick={() => { setCompare(false); setLarge(!large); }}>{large ? "收起讲解" : "展开讲解"}</button>}
+          {!standalone && <button aria-pressed={compare} onClick={() => { setLarge(true); surface.setPaper(false); setCompare(!compare); }}>与论文对照</button>}
+          <button onClick={() => void fullscreen()}>全屏</button>
           {onPopout && (
             <button className="branch-icon" title="在新窗口打开" aria-label="在新窗口打开" onClick={onPopout}>
               <ExternalLink size={16} />

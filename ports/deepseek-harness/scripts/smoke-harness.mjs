@@ -25,7 +25,7 @@ writeFileSync(path.join(profileDir, 'cordis.patch.yml'), JSON.stringify([
 ]));
 const anchor = path.join(reference, 'node_modules/@deepseek-ai/dsh/package.json');
 const profile = loadProfileDirectory('dsh', profileDir, anchor);
-process.env.DSH_CLIENT_VERSION = '0.2.1-rc.5';
+process.env.DSH_CLIENT_VERSION = JSON.parse((await import('node:fs')).readFileSync(path.join(reference, 'package.json'), 'utf8')).version;
 console.log('Starting bundled Harness verification');
 const app = await runProfile({environment: loadLayeredEnv('dsh'), profile: 'desktop', resolvedProfile: {profile, installAnchor: anchor}, patchFiles: [], args: ['--no-open', '--host', '127.0.0.1', '--port', '0']});
 const {ctx} = app;

@@ -1,3 +1,4 @@
+import { useLearningSurface, LearningCompareControls } from "./useLearningSurface";
 import React, { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "./glyphs";
 import { workspaceApi, workspaceUrl, versionQuery } from "./workspace-api";
@@ -18,6 +19,8 @@ export default function ArtifactFrame({ kind, id, version, title, onQuestion, re
 }) {
   const frame = useRef<HTMLIFrameElement>(null), box = useRef<HTMLDivElement>(null);
   const [wide, setWide] = useState(false);
+  const surface = useLearningSurface(box);
+  const {expanded, setExpanded} = surface;
   const latest = useRef({ onQuestion, report, onLocate });
   latest.current = { onQuestion, report, onLocate };
   const queue = useRef(Promise.resolve());
@@ -46,11 +49,11 @@ export default function ArtifactFrame({ kind, id, version, title, onQuestion, re
     return () => document.removeEventListener("fullscreenchange", changed);
   }, []);
   async function fullscreen() {
-    try { if (document.fullscreenElement) await document.exitFullscreen(); else await box.current?.requestFullscreen(); }
-    catch { latest.current.report("当前窗口不支持全屏，可收起左侧论文栏扩大页面。"); }
+    await surface.fullscreen();
   }
-  return <div className="artifact-frame" ref={box}>
-    <div className="artifact-toolbar"><span>{title}</span><button onClick={() => void fullscreen()} aria-label={wide ? "退出页面全屏" : "学习页面全屏"}>
+  return <div className={"artifact-frame" + (expanded ? " learning-surface-expanded" : "")} ref={box} tabIndex={-1} style={wide ? undefined : surface.style} data-paper-visible={surface.compare && !surface.wide && surface.paper ? "true" : undefined} onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); surface.escape(); } }}>
+    <LearningCompareControls surface={surface} />
+    <div className="artifact-toolbar"><span>{title}</span><button onClick={surface.expand}>{expanded ? "返回工作台" : "展开讲解"}</button><button onClick={() => { if (!document.querySelector(".workspace-original,.reading-layout") && !latest.current.onLocate) { latest.current.report("请先显示当前论文，再开启论文对照。"); return; } surface.setExpanded(true); surface.setPaper(false); surface.setCompare(!surface.compare); if(!document.querySelector(".workspace-original,.reading-layout")) latest.current.onLocate?.(); }}>与论文对照</button><button onClick={() => void fullscreen()} aria-label={wide ? "退出页面全屏" : "学习页面全屏"}>
       {wide ? <Minimize2 size={15} /> : <Maximize2 size={15} />} 全屏</button></div>
     <iframe key={id + version} ref={frame} title={title} src={workspaceUrl(`/view/${kind}/${id}`) + versionQuery(version)}
       sandbox="allow-scripts allow-forms allow-downloads allow-modals" allow="fullscreen; clipboard-write" />
