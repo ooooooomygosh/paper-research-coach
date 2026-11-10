@@ -739,7 +739,7 @@
     "scripts/prepare_integrations.py": "3832225fa402acae06f5d862f637264ed11b7295ce2a432532d869a08636b8aa",
     "scripts/prepare_runtime.py": "6e60bd9e6dc7da5f31e9a04d2b5aad84f094dc92a23f1e86dec492a319afd4bf",
     "scripts/refresh_snapshot.py": "77651d02446de822afb078405a08ff457de40e66ff5d5dacbadc38c76db7db61",
-    "scripts/smoke-harness.mjs": "7516ab991aed6eaccc84893deda527ce0f3b6a100dc7fe19b051a44a7c2d11c6",
+    "scripts/smoke-harness.mjs": "370e4888313da67de30602c0e0ab39eaf884ea84463f1c4df60c3777955c5fb9",
     "scripts/smoke-learning.mjs": "2d32dfbb7f0a4d4ce02c374f8c516d6c467166da7880ee43e9322e952dd9e1f2",
     "scripts/verify_source.py": "4125a6d26de15bac1676d72c78a4b94b48384cf432b3941a86053ee2a5bafa3f",
     "tests/distribution_integration.py": "a82b316c553c67f6e23e13436b1d22e12371f72dc5654ecf0c5d2daa1e8fe4ec",
