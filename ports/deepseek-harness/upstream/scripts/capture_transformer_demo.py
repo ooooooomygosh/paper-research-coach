@@ -190,6 +190,8 @@ def capture(output: Path, pdf: Path | None, executable: str | None) -> dict:
                     id=reply, intent="detour", step="method", actions=[show, coach.explainer_action(record)])
                 card = page.locator(".xp-card").first
                 card.locator(".xp-grid").wait_for()
+                # A local question preserves the reading position. Explicitly follow the citation.
+                page.locator(".coach-focus-link").filter(has_text="第 4 页 · softmax 会饱和").click()
                 page.locator(".coach-mark").first.wait_for()
                 page.wait_for_timeout(900)
                 card.evaluate("e => e.scrollIntoView({block: 'start'})")

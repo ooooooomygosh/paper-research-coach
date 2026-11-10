@@ -130,6 +130,8 @@ it("the branch panel shows the answer, where the mainline paused, and returns wi
   fireEvent.click(within(dialog).getByRole("button", { name: "回到主线" }));
   expect(onReturn).toHaveBeenCalledTimes(1);
   fireEvent.keyDown(dialog, { key: "Escape" });
+  expect(onReturn).toHaveBeenCalledTimes(1);
+  fireEvent.keyDown(dialog, { key: "Escape" });
   expect(onReturn).toHaveBeenCalledTimes(2);
 });
 
@@ -196,4 +198,16 @@ it("one block that cannot be drawn does not take the whole explainer page down",
   const { container } = render(<ExplainerView doc={doc} />);
   expect(container.textContent).toContain("this panel is fine");
   expect(screen.getByRole("alert").textContent).toContain("这一块画不出来");
+});
+
+
+it("retains the follow-up draft while expanding and collapsing the same explanation", async () => {
+  render(<BranchPanel paper={paper} branchId="b1" firstPageId="b1" onReturn={vi.fn()} />);
+  await screen.findByText("为什么这个比较不公平");
+  const input = screen.getByLabelText("继续追问这一处");
+  fireEvent.change(input, {target:{value:"尚未发送的推导问题"}});
+  fireEvent.click(screen.getByRole("button", {name:"收起讲解"}));
+  fireEvent.click(screen.getByRole("button", {name:"展开讲解"}));
+  expect(screen.getByLabelText("继续追问这一处")).toBe(input);
+  expect((input as HTMLTextAreaElement).value).toBe("尚未发送的推导问题");
 });

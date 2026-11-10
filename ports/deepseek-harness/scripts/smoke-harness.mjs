@@ -21,11 +21,11 @@ writeFileSync(path.join(profileDir, 'package.json'), JSON.stringify({name: 'pape
 writeFileSync(path.join(profileDir, 'cordis.patch.yml'), JSON.stringify([
   {id: 'web-runtime', name: '@deepseek-ai/dsh-web-app', config: {openBrowser: false, printUrl: false}},
   {id: 'desktop-product-telemetry', disabled: true}, {id: 'product-analytics', disabled: true},
-  {id: 'paper-research-coach', config: {dataDir: path.join(pkg, '.test-data')}},
+  {id: 'paper-research-coach', config: {dataDir: path.join(pkg, '.test-data'), updateHome: path.join(pkg, '.test-update-home')}},
 ]));
 const anchor = path.join(reference, 'node_modules/@deepseek-ai/dsh/package.json');
 const profile = loadProfileDirectory('dsh', profileDir, anchor);
-process.env.DSH_CLIENT_VERSION = '0.2.1-rc.5';
+process.env.DSH_CLIENT_VERSION = JSON.parse((await import('node:fs')).readFileSync(path.join(reference, 'package.json'), 'utf8')).version;
 console.log('Starting bundled Harness verification');
 const app = await runProfile({environment: loadLayeredEnv('dsh'), profile: 'desktop', resolvedProfile: {profile, installAnchor: anchor}, patchFiles: [], args: ['--no-open', '--host', '127.0.0.1', '--port', '0']});
 const {ctx} = app;
@@ -42,6 +42,11 @@ try {
     const data = JSON.parse(text);
     return data;
   };
+  const pluginUpdate = await api('plugin-update');
+  const expectedVersion = JSON.parse((await import('node:fs')).readFileSync(path.join(pkg, 'package.json'), 'utf8')).version;
+  assert.equal(pluginUpdate.current_version, expectedVersion);
+  assert.equal(typeof pluginUpdate.auto, 'boolean');
+  console.log(JSON.stringify({test:'dsh-plugin-update-status', version:pluginUpdate.current_version, auto:pluginUpdate.auto}));
   const state = await api('state');
   const status = await api('coach/status');
   console.log(JSON.stringify({test: 'actual-harness-runtime', state: status.state, account: status.message, models: status.models.map(m => m.model), papers: state.papers.length}));

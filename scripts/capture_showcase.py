@@ -156,6 +156,8 @@ def capture(output: Path, executable: str | None = None) -> None:
                 branch.emulate_media(color_scheme="light")
                 panel.get_by_role("button", name="回到主线").click()
                 assert not branch.get_by_role("dialog", name="讲解面板").count()
+                # Returning restores focus on the next animation frame; wait for the contract, not a timer.
+                branch.wait_for_function("() => document.querySelector('[aria-label=\"发给论文教练的消息\"]') === document.activeElement")
                 assert branch.get_by_label("发给论文教练的消息", exact=True).evaluate("e => e === document.activeElement")
                 # Side quest: the reader closes it in their own words; the quest log files it under its chapter.
                 quest = branch.get_by_role("group", name="支线任务").first

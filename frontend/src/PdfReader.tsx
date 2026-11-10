@@ -27,7 +27,7 @@ const READING_LINE = 0.5;
 const NONE: never[] = [];
 
 /** `reveal`: scroll the marks into view (a live reply or a click); restored marks just stay drawn. */
-export type CoachMarks = { id?: string; page_index: number; marks: Mark[]; reveal?: boolean } | null;
+export type CoachMarks = { id?: string; page_index: number; marks: Mark[]; document_version?: string; reveal?: boolean } | null;
 
 export default function PdfReader({
   paper,
@@ -62,7 +62,7 @@ export default function PdfReader({
   onAnchor: (a: any, placement?: { x: number; y: number }) => void;
   focusAnchor: any;
   notes?: Row[];
-  onLocateNote?: (a: any) => void;
+  onLocateNote?: (a: any, noteId?: string) => void;
   toolsContainer?: HTMLElement | null;
   fitRequest?: number;
   fileUrl?: string;
@@ -78,7 +78,7 @@ export default function PdfReader({
   /** Sentences the coach pointed at; drawn only on the original PDF. */
   coachMarks?: CoachMarks;
   /** Set after the coach moved the PDF: offers one click back to where the reader was. */
-  returnTo?: { page: number; to: number; key: string } | null;
+  returnTo?: { page: number; to: number; key: string; scrollTop?: number; scrollLeft?: number; view?: string } | null;
   onDismissReturn?: () => void;
   followCoach?: boolean;
   onFollowCoach?: (on: boolean) => void;
@@ -417,7 +417,7 @@ export default function PdfReader({
     if (!s?.rangeCount || !s.toString().trim()) return;
     const start = (s.anchorNode instanceof Element ? s.anchorNode : s.anchorNode?.parentElement)?.closest<HTMLElement>(".pdf-page");
     const end = (s.focusNode instanceof Element ? s.focusNode : s.focusNode?.parentElement)?.closest<HTMLElement>(".pdf-page");
-    // A note anchors to one page; a selection that crosses pages is left alone.
+    if (start && end && start !== end) { setError("批注暂支持单页，请分别选择两页的内容。"); return; }
     if (!start || start !== end || !start.querySelector(".textLayer")?.contains(s.anchorNode)) return;
     const index = Number(start.dataset.slot);
     if (!viewports.current[index]) return;
@@ -465,6 +465,13 @@ export default function PdfReader({
     return a && a.page_index != null ? { page: a.page_index as number, rects: (a.rects || []) as number[][] } : null;
   }, [draftAnchor, paper.id, paper.source_version, derived, rendition?.job_id]);
 
+  // Stable for every page placeholder: scrolling must not invalidate memoized pages.
+  const noteContext = useRef({ notes, onLocateNote });
+  noteContext.current = { notes, onLocateNote };
+  const openNote = useCallback((id: string) => {
+    const ctx = noteContext.current, note = ctx.notes.find(n => n.id === id);
+    if (note) ctx.onLocateNote?.(note.anchor, id);
+  }, []);
   const active = (i: number) => (i >= range[0] - 1 && i <= range[1] + 1) || Math.abs(i - page) <= 1;
   const scan = scanPages.has(page);
 
@@ -562,9 +569,10 @@ export default function PdfReader({
                   sourceVersion={derived ? documentKey : paper.source_version}
                   derived={derived ? documentKey : undefined}
                   notes={notesByPage.get(i) || NONE}
+                  onNote={openNote}
                   focusRects={focus?.page === i ? focus.rects : NONE}
                   draftRects={draft?.page === i ? draft.rects : NONE}
-                  marks={!derived && coachMarks?.page_index === i ? coachMarks.marks : NONE}
+                  marks={coachMarks?.page_index === i && (derived ? coachMarks.document_version === rendition?.document_version : !coachMarks.document_version) ? coachMarks.marks : NONE}
                   revealMarks={!!coachMarks?.reveal}
                   region={region}
                   searchTerm={searchTerm}
@@ -579,7 +587,7 @@ export default function PdfReader({
             </div>
           )}
         </div>
-        {returnTo && <ReturnChip returnTo={returnTo} page={page} onBack={() => { jump(returnTo.page); onDismissReturn?.(); }}
+        {returnTo && (!returnTo.view || returnTo.view === view) && <ReturnChip returnTo={returnTo} page={page} onBack={() => { jump(returnTo.page); if (returnTo.scrollTop != null) requestAnimationFrame(() => { if (scroller.current) { scroller.current.scrollTop = returnTo.scrollTop!; scroller.current.scrollLeft = returnTo.scrollLeft || 0; } }); onDismissReturn?.(); }}
           onDismiss={() => onDismissReturn?.()} onStop={onFollowCoach ? () => onFollowCoach(false) : undefined} />}
         <div className="pdf-floating-tools" role="toolbar" aria-label="PDF 快捷工具">
           {onViewChange && <select className="pdf-view-select" aria-label="PDF 阅读视图" title="切换原文、中文或双语；译文生成后可用" value={view} onChange={(e) => onViewChange(e.target.value as "original" | "mono" | "dual")}>
@@ -609,7 +617,7 @@ export default function PdfReader({
 
 /** "The coach moved you to page N": one click goes back. Fades after a while; never blocks reading. */
 function ReturnChip({ returnTo, page, onBack, onDismiss, onStop }: {
-  returnTo: { page: number; to: number; key: string };
+  returnTo: { page: number; to: number; key: string; scrollTop?: number };
   page: number;
   onBack: () => void;
   onDismiss: () => void;
@@ -622,7 +630,7 @@ function ReturnChip({ returnTo, page, onBack, onDismiss, onStop }: {
   return (
     <div className="pdf-return-chip" role="status">
       <span>教练带你到了第 {returnTo.to + 1} 页</span>
-      {page !== returnTo.page && <button type="button" onClick={onBack}>回到第 {returnTo.page + 1} 页</button>}
+      {(page !== returnTo.page || returnTo.scrollTop != null) && <button type="button" onClick={onBack}>回到第 {returnTo.page + 1} 页</button>}
       {onStop && <button type="button" className="quiet" onClick={onStop} title="以后只在你点击时翻页">不要自动翻页</button>}
       <button type="button" className="quiet" aria-label="关闭提示" onClick={onDismiss}>×</button>
     </div>

@@ -33,6 +33,7 @@ while [ $# -gt 0 ]; do
 done
 
 PAYLOAD="$DSH_HOME/builtin-plugins/paper-research-coach-${VERSION}-mac"
+if [ -z "$ASSETS_FROM" ] && [ -d "$ROOT/runtime/assets" ]; then ASSETS_FROM="$ROOT"; fi
 
 say() { printf '\n== %s\n' "$*"; }
 
@@ -42,11 +43,32 @@ say "0/8 环境检查"
 command -v node >/dev/null || { echo "需要 Node.js 24" >&2; exit 1; }
 command -v uv >/dev/null || { echo "需要 uv（brew install uv）" >&2; exit 1; }
 HOST_VER=$(node -p "require('$APP/Contents/Resources/app/dsh/package.json').version" 2>/dev/null || echo unknown)
-[ "$HOST_VER" = "$HOST_VERSION" ] || echo "   注意：宿主是 $HOST_VER，插件只验证过 $HOST_VERSION"
+case "$HOST_VER" in
+  0.2.1-rc.5|0.2.2-rc.1) ;;
+  *) echo "当前宿主 ${HOST_VER} 尚未验证，安装未修改注册。" >&2; exit 1 ;;
+esac
+
+# Snapshot the current registration and live SQLite databases before an upgrade.
+python3 - "$DSH_HOME" "$PROFILE/package.json" <<'PYBACKUP'
+import datetime, pathlib, shutil, sqlite3, sys
+home, profile = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+backup = home / "paper-research-coach-upgrades" / datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+backup.mkdir(parents=True, mode=0o700)
+if profile.exists(): shutil.copy2(profile, backup / "profile-package.json")
+data = home / "paper-research-coach"
+for source in data.rglob("*.sqlite3") if data.exists() else ():
+    if "backup" in str(source.relative_to(data)).lower(): continue
+    target = backup / "data" / source.relative_to(data)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(source.as_uri()+"?mode=ro", uri=True) as original, sqlite3.connect(target) as copy:
+        original.backup(copy)
+    target.chmod(0o600)
+print("升级备份：", backup)
+PYBACKUP
 
 say "1/8 复制插件源码到 $PAYLOAD"
 mkdir -p "$PAYLOAD"
-rsync -a --exclude 'macos' --exclude 'upstream/frontend/node_modules' --exclude '.gitignore' \
+rsync -a --exclude '.test*' --exclude '__pycache__' --exclude '.pytest_cache' --exclude 'macos' --exclude 'upstream/frontend/node_modules' --exclude '.gitignore' \
   --exclude 'runtime/python' --exclude 'runtime/venv' --exclude 'runtime/assets' "$ROOT/" "$PAYLOAD/"
 
 say "2/8 构建前端（tsc --noEmit && vite build → upstream/src/paper_research_coach/static）"
@@ -87,11 +109,29 @@ sys.exit(1 if bad else 0)
 PY
 
 say "4/8 Python 环境（runtime/venv）"
+python3 - "$PAYLOAD" <<'PYLOCK'
+import pathlib, re, sys
+root = pathlib.Path(sys.argv[1])
+lines = (root / "runtime/requirements.lock.txt").read_text().splitlines()
+(root / "runtime/macos-constraints.txt").write_text("\n".join(line for line in lines if re.match(r"^[A-Za-z0-9_.-]+==", line))+"\n")
+PYLOCK
+# Automatic DSH updates may reuse a COPY of the old environment only when the
+# exact dependency lock agrees. It is never a writable link to the running version.
+RUNTIME_REUSED=0
+if [ -n "${PRC_DSH_RUNTIME_FROM:-}" ] && [ ! -d "$PAYLOAD/runtime/venv" ] \
+   && cmp -s "$PAYLOAD/runtime/requirements.lock.txt" "$PRC_DSH_RUNTIME_FROM/runtime/requirements.lock.txt" \
+   && [ -x "$PRC_DSH_RUNTIME_FROM/runtime/venv/bin/python3" ]; then
+  cp -a "$PRC_DSH_RUNTIME_FROM/runtime/venv" "$PAYLOAD/runtime/venv"
+  RUNTIME_REUSED=1
+fi
+if [ "$RUNTIME_REUSED" != "1" ]; then
 [ -x "$PAYLOAD/runtime/venv/bin/python3" ] || uv venv "$PAYLOAD/runtime/venv" --python 3.12
-uv pip install --python "$PAYLOAD/runtime/venv/bin/python3" \
-  fastapi uvicorn httpx filelock pypdf PyYAML platformdirs packaging pypdfium2 pillow "PyPDF2==3.0.1"
+uv pip install --constraint "$PAYLOAD/runtime/macos-constraints.txt" --python "$PAYLOAD/runtime/venv/bin/python3" \
+  fastapi uvicorn httpx filelock pypdf PyYAML platformdirs packaging pypdfium2 pillow "PyPDF2==3.0.1" "keyring>=25,<26" "fonttools>=4.60,<5"
 # 中文/双语 PDF。bitstring 必须 <5：BabelDOC 0.6.4 仍 from bitstring import BitStream
-uv pip install --python "$PAYLOAD/runtime/venv/bin/python3" "BabelDOC==0.6.4" "bitstring<5"
+uv pip install --constraint "$PAYLOAD/runtime/macos-constraints.txt" --python "$PAYLOAD/runtime/venv/bin/python3" "BabelDOC==0.6.4" "bitstring<5"
+
+fi
 
 say "5/8 Python 侧自检"
 PYTHONPATH="$PAYLOAD/upstream/src" "$PAYLOAD/runtime/venv/bin/python3" - <<'PY'
@@ -117,31 +157,12 @@ path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
 print("   dependencies/bundles 已写入")
 PY
 
-say "7/8 允许工作台打开独立窗口（宿主主进程一行放行）"
+say "7/8 保留宿主窗口设置"
+echo "   应用内大阅读区和全屏可直接使用；独立窗口被宿主阻止时保留当前讲解。"
 MAIN="$APP/Contents/Resources/app/lib/main.js"
-if [ -f "$MAIN" ]; then
-  [ -f "$MAIN.prc-backup" ] || cp "$MAIN" "$MAIN.prc-backup"
-  python3 - "$MAIN" <<'PY'
-import pathlib, sys
-p = pathlib.Path(sys.argv[1]); text = p.read_text()
-anchor = '''\t\tview.webContents.setWindowOpenHandler(({ url }) => {
-\t\t\tconst destination = new URL(url);
-'''
-allow = '''\t\t\tif (destination.protocol === "dsh-app:" && destination.hostname === "app") return { action: "allow", overrideBrowserWindowOptions: { title: "论文研读", autoHideMenuBar: true, webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true } } };
-'''
-if 'destination.protocol === "dsh-app:"' in text:
-    print("   已放行，跳过")
-elif anchor in text:
-    p.write_text(text.replace(anchor, anchor + allow, 1)); print("   main.js 已打补丁")
-else:
-    print("   宿主窗口处理器结构不同，跳过（只影响「独立窗口」，工作台本身不受影响）")
-PY
-else
-  echo "   未找到 $MAIN（宿主结构变化），跳过"
-fi
 
 say "8/8 完成"
 echo "插件：$PAYLOAD"
 echo "数据：$DSH_HOME/paper-research-coach"
-echo "回滚：$PROFILE/package.json.prc-backup、$MAIN.prc-backup"
+echo "回滚：$DSH_HOME/paper-research-coach-upgrades 中对应版本的注册与数据库备份"
 echo "现在退出 Harness（⌘Q，含托盘）重新打开，侧栏出现「论文研读」。"

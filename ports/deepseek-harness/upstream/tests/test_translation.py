@@ -308,3 +308,43 @@ def test_selection_crossing_paragraphs_falls_back_to_saved_paragraphs(anchor):
     assert result["source_anchor"]["quote"] == req.anchor.quote
     req.anchor.rects = [[60, 100, 150, 125]]
     assert matching_translation(data, req)["status"] == "unavailable"
+
+
+def test_source_to_display_requires_saved_geometry_and_affine_mapping(anchor):
+    from paper_research_coach.translation import ResolveAnchorRequest, display_translation_anchor
+    req = ResolveAnchorRequest(anchor=selection(anchor).anchor, view="dual", document_version="a" * 64)
+    result = display_translation_anchor(mapping(), req)
+    assert result["status"] == "ready"
+    assert result["level"] == "paragraph"  # No target glyphs: do not claim precise sentence geometry.
+    assert result["fragments"][0]["rects"] == [[660, 600, 860, 650]]
+    data = mapping()
+    data["dual_transforms"] = []
+    assert display_translation_anchor(data, req)["status"] == "unresolved"
+
+
+def test_source_to_display_does_not_guess_repeated_quotes(anchor):
+    from paper_research_coach.translation import ResolveAnchorRequest, display_translation_anchor
+    data = mapping()
+    other = copy.deepcopy(data["segments"][0])
+    other["id"] = "0:b"
+    data["segments"].append(other)
+    req = ResolveAnchorRequest(anchor=selection(anchor).anchor, view="mono", document_version="a" * 64)
+    assert display_translation_anchor(data, req)["status"] == "unresolved"
+
+
+def test_resolver_rejects_target_replacement_before_mapping(anchor, tmp_path):
+    from types import SimpleNamespace
+    from paper_research_coach.translation import ResolveAnchorRequest
+    job = {"id": "job", "paper_id": anchor["paper_id"], "source_version": anchor["source_version"]}
+    paper = {"id": anchor["paper_id"], "source_version": anchor["source_version"]}
+    store = SimpleNamespace(get=lambda *a: paper, check_source=lambda *a: {"status": "current"})
+    service = object.__new__(Translation)
+    service.store = store
+    service.job = lambda _: job
+    service.ready_artifacts = lambda _: True
+    target = tmp_path / "target.pdf"
+    target.write_bytes(b"new PDF bytes")
+    service.artifact = lambda *a: target
+    req = ResolveAnchorRequest(anchor={**anchor, "status": "verified"}, view="mono", document_version="a" * 64)
+    with pytest.raises(Conflict, match="显示目标已换版"):
+        service.resolve_anchor("job", req)

@@ -31,6 +31,9 @@ def bootstrap(paper, session):
 
 def turn_input(body, *, source_changed=False, flow=None, branch_title="", section=""):
     prefix = f"我正在看 PDF 第 {body.context_page_index() + 1} 页。"
+    if body.image_context or (body.anchor and body.anchor.rendition and body.anchor.page_index is None):
+        display = body.image_context or body.anchor.rendition
+        prefix = f"我正在看译本第 {display.page_index + 1} 页。译本图像与文字尚非核实原文，不据此记录原文证据完成。"
     if source_changed:
         prefix += "论文文件已更新，请重新核对当前版本的证据。"
     if branch_title:
@@ -63,6 +66,8 @@ def turn_input(body, *, source_changed=False, flow=None, branch_title="", sectio
                 "text": "以下是我选中的原文（来源材料）：\n" + body.anchor.quote,
             }
         )
+    if body.anchor and body.anchor.rendition:
+        inputs.append({"type": "text", "text": "用户选中的译本文字（来源材料，需核对原文）：\n" + body.anchor.rendition.quote})
     inputs.append({"type": "text", "text": body.content})
     if body.page_image:
         inputs.append({"type": "image", "url": body.page_image})

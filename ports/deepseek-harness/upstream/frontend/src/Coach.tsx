@@ -1,3 +1,4 @@
+import ReadingPlan from "./ReadingPlan";
 import { sectionChip, type PaperMap } from "./paper-map";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -82,6 +83,7 @@ type Snapshot = {
   canonical_conversation_id?: string;
   thread_id?: string;
   reading_flow?: any;
+  reading_plan?: any;
 };
 
 function prose(text: string) {
@@ -104,6 +106,7 @@ export default function CoachPanel({
   toolsContainer,
   onOpenTools,
   onFocus,
+  getNavigationSnapshot,
 }: {
   paper: Row;
   context: any;
@@ -119,6 +122,7 @@ export default function CoachPanel({
   onOpenTools?: () => void;
   /** The coach pointed at sentences in the PDF ("auto" while a turn runs, "restore" on load). */
   onFocus?: (action: any, how: "auto" | "click" | "restore") => void;
+  getNavigationSnapshot?: () => string;
 }) {
   const key = "prc-chat-draft-" + paper.id;
   const jobKey = "prc-chat-send-" + paper.id;
@@ -144,6 +148,9 @@ export default function CoachPanel({
   const [connecting, setConnecting] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
   const [routeOpen, setRouteOpen] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [historyRetry, setHistoryRetry] = useState(0);
   // An open branch explainer: a reader's question answered beside the paper.
   const [branch, setBranch] = useState<{ branchId: string; pageId: string } | null>(null);
   // Explainer pages live in the conversation as cards: which ones are open.
@@ -156,6 +163,9 @@ export default function CoachPanel({
   const [journeyOpen, setJourneyOpen] = useState(false);
   const seenExplainers = useRef<Set<string> | null>(null);
   const seenFocus = useRef<Set<string> | null>(null);
+  const navigationByMessage = useRef(new Map<string, string>());
+  const latestNavigation = useRef(getNavigationSnapshot);
+  latestNavigation.current = getNavigationSnapshot;
   const latestFocus = useRef(onFocus);
   latestFocus.current = onFocus;
   const currentAnchor = useRef(anchor);
@@ -176,7 +186,7 @@ export default function CoachPanel({
   // Intent and help style are inferred, never configured: a selection is a
   // detour, a reply to a pending mainline question is an answer, and the coach
   // reads requests such as "just explain" from the message itself.
-  const effectiveIntent = replyIntent(snapshot.reading_flow, anchor, "auto");
+  const effectiveIntent = replyIntent(snapshot.reading_plan || snapshot.reading_flow, anchor, "auto");
   const canAttachImage = imageMatchesPage(paper, page, anchor);
   const scroll = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -191,43 +201,42 @@ export default function CoachPanel({
     };
   }, []);
   useEffect(() => {
-    let disposed = false;
-    const events = new EventSource(
-      "/api/coach/events/" +
-        paper.id +
-        (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
-    );
+    let disposed = false, loading = false, streamVersion = 0;
+    let events: EventSource | null = null, fallback = 0;
+    setHistoryLoaded(false);
+    setHistoryError("");
     const apply = (s: Snapshot) => {
-      if (!disposed) setSnapshot(s);
+      if (!s || !Array.isArray(s.messages)) throw new Error("阅读对话返回格式无效，请重新读取。");
+      if (!disposed) {
+        // History is append-only. A late bootstrap response must not erase a newer SSE snapshot.
+        setSnapshot(old => old.conversation_id === s.conversation_id && old.messages.length > s.messages.length ? old : s);
+        setHistoryLoaded(true); setHistoryError("");
+      }
     };
-    events.onmessage = (e) => {
+    const load = async () => {
+      if (disposed || loading) return;
+      loading = true;
+      const atVersion = streamVersion;
       try {
-        apply(JSON.parse(e.data));
-      } catch {}
+        const s = await api("coach/conversation/" + paper.id + (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""));
+        if (atVersion === streamVersion) apply(s);
+      } catch (e) {
+        if (!disposed) { setError(String(e)); setHistoryError(String(e)); }
+      } finally { loading = false; }
     };
-    void api(
-      "coach/conversation/" +
-        paper.id +
-        (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
-    )
-      .then(apply)
-      .catch((e) => {
-        if (!disposed) setError(String(e));
-      });
-    // A reconnect always reads durable state; it never resends a model turn.
-    events.onopen = () =>
-      void api(
-        "coach/conversation/" +
-          paper.id +
-          (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""),
-      )
-        .then(apply)
-        .catch(() => {});
-    return () => {
-      disposed = true;
-      events.close();
-    };
-  }, [paper.id, chosen]);
+    const poll = () => { if (!fallback) fallback = window.setInterval(() => { if (!document.hidden) void load(); }, 4000); };
+    // Bootstrap does not depend on SSE availability or a successful manual model connection.
+    void load();
+    try {
+      events = new EventSource("/api/coach/events/" + paper.id + (chosen ? "?conversation_id=" + encodeURIComponent(chosen) : ""));
+      events.onmessage = e => { try { const s = JSON.parse(e.data); apply(s); streamVersion++; } catch { poll(); } };
+      events.onopen = () => { if (fallback) { clearInterval(fallback); fallback = 0; } void load(); };
+      events.onerror = () => { poll(); void load(); };
+    } catch { poll(); }
+    const focus = () => { if (!document.hidden) void load(); };
+    window.addEventListener("focus", focus);
+    return () => { disposed = true; events?.close(); clearInterval(fallback); window.removeEventListener("focus", focus); };
+  }, [paper.id, chosen, historyRetry]);
   useEffect(() => {
     let disposed = false;
     const update = () =>
@@ -276,7 +285,11 @@ export default function CoachPanel({
     fresh.forEach(({ a }) => seenFocus.current!.add(a.id));
     // One automatic jump per coach reply: the first place it points at. Later ones wait for a click.
     const first = fresh.find(({ m }) => !jumped.has(m));
-    if (first) latestFocus.current?.(first.a, "auto");
+    if (first) {
+      const index = snapshot.messages.findIndex(m => m.id === first.m);
+      const previous = snapshot.messages.slice(0, index).reverse().find(m => m.role === "user");
+      latestFocus.current?.({ ...first.a, navigation_intent: first.a.navigation_intent || (previous?.intent === "follow" || previous?.intent === "answer" ? "mainline" : "detour"), navigation_token: navigationByMessage.current.get(first.a.request_message_id || previous?.id || "") }, "auto");
+    }
   }, [snapshot.messages, snapshot.conversation_id, snapshot.read_only]);
   useEffect(() => {
     if (snapshot.read_only || !snapshot.conversation_id) return;
@@ -338,8 +351,8 @@ export default function CoachPanel({
   };
   useEffect(() => {
     setIncludeImage(
-      !!anchor?.rects?.length &&
-        !anchor?.quote &&
+      !!(anchor?.rendition || anchor)?.rects?.length &&
+        !(anchor?.rendition || anchor)?.quote &&
         imageMatchesPage(paper, page, anchor),
     );
   }, [anchor, page, paper.id, paper.source_version, chosen]);
@@ -354,9 +367,16 @@ export default function CoachPanel({
     setText(value);
     localStorage.setItem(key, value);
   }
+  function imageContext() {
+    const element = document.querySelector<HTMLElement>(`.pdf-page[data-paper-id="${paper.id}"][data-page-index="${page}"]`);
+    if (!element?.dataset.derived) return null;
+    const [job_id, view, document_version] = element.dataset.derived.split(":");
+    if (!job_id || !["mono", "dual"].includes(view) || !/^[a-f0-9]{64}$/.test(document_version || "")) throw new Error("译本身份不可用，请重新打开页面。");
+    return { job_id, view, document_version, page_index: page, rects: [] };
+  }
   function pageImage() {
     const canvas = document.querySelector<HTMLCanvasElement>(
-      `.pdf-page[data-paper-id="${paper.id}"][data-source-version="${paper.source_version}"][data-page-index="${page}"] canvas`,
+      `.pdf-page[data-paper-id="${paper.id}"][data-page-index="${page}"] canvas`,
     );
     if (!canvas) throw new Error("当前页还未打开。稍后重试，或取消附上图表。");
     const image = document.createElement("canvas");
@@ -410,9 +430,17 @@ export default function CoachPanel({
             model,
             effort,
             page_image: aboutSelection && includeImage ? pageImage() : "",
+            ...(aboutSelection && includeImage && imageContext() ? { image_context: imageContext() } : {}),
             branch_id: branchId,
           };
       if (!body) return false;
+      const navigationKey = "prc-navigation:" + body.operation_id;
+      let sentNavigation: string | null = null;
+      try { sentNavigation = sessionStorage.getItem(navigationKey); } catch {}
+      if (!retry && latestNavigation.current) {
+        sentNavigation = latestNavigation.current();
+        try { sessionStorage.setItem(navigationKey, sentNavigation); } catch {}
+      }
       // Persist the exact request before crossing the network.
       localStorage.setItem(jobKey, JSON.stringify(body));
       setPending(true);
@@ -420,17 +448,15 @@ export default function CoachPanel({
       setError("");
       atBottom.current = true;
       const result = await api("coach/send/" + paper.id, body);
+      if (result.message_id && sentNavigation) navigationByMessage.current.set(result.message_id, sentNavigation);
+      try { sessionStorage.removeItem(navigationKey); } catch {}
       accepted = true;
       localStorage.removeItem(jobKey);
       if (!alive.current) return true;
       setPending(false);
       setChosen(result.conversation_id);
       if (currentText.current === body.content) change("");
-      // Do not clear a newer selection made while the request was in flight.
-      if (body.anchor && sameAnchor(currentAnchor.current, body.anchor)) {
-        onClearAnchor();
-        setIncludeImage(false);
-      }
+      // A successful reply does not consume the reader's selection or image preference.
       setSnapshot(
         await api(
           "coach/conversation/" +
@@ -500,7 +526,21 @@ export default function CoachPanel({
     "prompt-only": "提示后作答",
     independent: "本次独立作答",
   };
-  const flow = snapshot.reading_flow;
+  const legacyOnly = !snapshot.reading_plan && ["active", "completed"].includes(snapshot.reading_flow?.status);
+  const plan = legacyOnly ? null : snapshot.reading_plan || {
+    plan_version:2, revision:0, status:"not_started", depth:context.session?.[0]?.depth || "understand",
+    goal:context.session?.[0]?.goal || "", current_phase:"orient", current_task:0, pending_question:"",
+    phases:[{id:"orient",label:"判断是否值得读",tasks:["说出本次要判断的问题"]},
+      {id:"mechanism",label:"理解关键机制",tasks:["举一个输入输出例子"]},
+      {id:"evidence",label:"核查证据与边界",tasks:["认清一处比较条件"]},
+      {id:"judgment",label:"形成并回忆自己的判断",tasks:["用自己的话解释"]}],
+  };
+  const flow = plan ? {
+    ...snapshot.reading_flow, status: plan.status, pending_question: plan.pending_question,
+    current: plan.current_phase, label: plan.phases.find((p: any) => p.id === plan.current_phase)?.label,
+    steps: plan.phases, completed: [], goal: plan.goal,
+    check: "完成当前一个判断；阶段可以跳转、暂放。",
+  } : snapshot.reading_flow;
   const flowDone = flow?.status === "completed";
   const flowStarted = flow?.status === "active";
   const stepIndex = (flow?.steps || []).findIndex((s: any) => s.id === flow?.current);
@@ -523,16 +563,33 @@ export default function CoachPanel({
     setBranch(null);
     requestAnimationFrame(() => composer.current?.focus());
   };
-  const openWindow = (branchId: string, pageId: string) =>
-    window.open(
-      `/#branch=${encodeURIComponent(branchId)}&page=${encodeURIComponent(pageId)}&paper=${encodeURIComponent(paper.id)}`,
-      "prc-branch-" + branchId,
-      "popup=yes,width=900,height=900",
-    );
+  const branchWindows = useRef(new Map<Window,string>());
+  useEffect(() => {
+    const receive = async (event: MessageEvent) => {
+      const data = event.data;
+      const expectedBranch = branchWindows.current.get(event.source as Window);
+      if (event.origin !== window.location.origin || !expectedBranch || data?.channel !== "prc-branch-locate" || data.paperId !== paper.id || typeof data.pageId !== "string" || !/^[a-zA-Z0-9_-]{1,160}$/.test(data.pageId)) return;
+      try {
+        const saved = await api("coach/explainer/" + data.pageId);
+        if (saved?.paper_id !== paper.id || saved.branch_id !== expectedBranch || saved.anchor?.source_version !== paper.source_version) return;
+        onLocate(saved.anchor);
+      } catch { report("这处依据暂不可定位，请在工作台打开讲解核对。"); }
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [paper.id, paper.source_version, onLocate, report]);
+  const openWindow = (branchId: string, pageId: string) => {
+    const opened = window.open(
+      `/#branch=${encodeURIComponent(branchId)}&page=${encodeURIComponent(sessionStorage.getItem("prc-branch-page:" + branchId) || pageId)}&paper=${encodeURIComponent(paper.id)}`,
+      "prc-branch-" + branchId, "popup=yes,width=900,height=900");
+    for (const saved of branchWindows.current.keys()) if (saved.closed) branchWindows.current.delete(saved);
+    if (opened) branchWindows.current.set(opened, branchId);
+    return opened;
+  };
   const popoutBranch = () => {
     if (!branch) return;
-    openWindow(branch.branchId, branch.pageId);
-    setBranch(null);
+    const opened = openWindow(branch.branchId, branch.pageId);
+    if (!opened) report("独立窗口未打开，讲解仍保留在当前工作台。");
   };
   // The places the coach's latest reply pointed at: the task card's "look here".
   const lastFocus = (() => {
@@ -742,6 +799,8 @@ export default function CoachPanel({
     <>
       <details className="coach-options">
         <summary>阅读设置与连接</summary>
+        <details className="coach-provider-options">
+          <summary>高级：模型与连接</summary>
         <div className="coach-connection">
           <span
             className={
@@ -803,6 +862,7 @@ export default function CoachPanel({
             ))}
           </select>
         </label>
+        </details>
         <label className="check-label">
           <input
             type="checkbox"
@@ -873,7 +933,7 @@ export default function CoachPanel({
           <button
             className="coach-step"
             aria-expanded={routeOpen}
-            title="查看八步路线与核查依据"
+            title="查看阅读路线与核查依据"
             onClick={() => setRouteOpen(!routeOpen)}
           >
             <strong>
@@ -963,7 +1023,7 @@ export default function CoachPanel({
           </button>
         )}
       </div>
-      {routeOpen && route}
+      {routeOpen && (plan ? <ReadingPlan plan={plan} paperId={paper.id} onChange={refresh} /> : route)}
       {status?.state === "login_required" && (
         <div className="coach-login">
           <p>沿用 DeepSeek Harness 中已登录的账户，即可在这里带读。</p>
@@ -1004,7 +1064,11 @@ export default function CoachPanel({
         role="log"
         aria-label="阅读对话记录"
       >
-        {!snapshot.messages.length && (
+        {!historyLoaded && <div className="coach-history-status" role="status">
+          {historyError ? "暂时未能读取已保存对话，原记录仍保留。" : "正在恢复这篇论文的阅读记录…"}
+          {historyError && <button onClick={() => setHistoryRetry(n => n + 1)}>重新读取对话</button>}
+        </div>}
+        {historyLoaded && !snapshot.messages.length && (
           <div className="coach-welcome">
             <h3>一边读原文，一边一步步形成判断</h3>
             <ol className="coach-howto">
@@ -1476,7 +1540,8 @@ export default function CoachPanel({
       </div>
       {logOpen && (
         <QuestLog
-          flow={flow}
+          legacy={!!plan?.legacy_receipts?.length}
+          flow={plan?.legacy_receipts?.length ? snapshot.reading_flow : flow}
           quests={sideQuests}
           onClose={() => setLogOpen(false)}
           onOpenQuest={openQuest}

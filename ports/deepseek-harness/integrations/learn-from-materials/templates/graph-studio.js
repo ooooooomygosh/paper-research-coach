@@ -373,7 +373,7 @@
       if(!manualZoom){
         const byWidth=(viewport.clientWidth-24)/width;
         const byHeight=(viewport.clientHeight-24)/height;
-        const minimumReadable=fitMode!=='all'&&viewport.clientWidth<820?.8:.18;
+        const minimumReadable=fitMode!=='all'?.8:.18;
         scale=Math.max(minimumReadable,Math.min(1,fitMode==='all'?Math.min(byWidth,byHeight):byWidth))||1;
       }
       setScale(scale);if(selected)highlight(selected,selectedEdge);

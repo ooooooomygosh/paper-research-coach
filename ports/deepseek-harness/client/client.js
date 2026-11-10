@@ -10,7 +10,8 @@ window.__ModuleLoader__.load({
       return h('iframe', {
         title: 'Paper Research Coach · 论文研读',
         src: '/paper-research-coach/',
-        allow: 'clipboard-read; clipboard-write',
+        allow: 'fullscreen; clipboard-read; clipboard-write',
+        allowFullScreen: true,
         style: {border: 0, width: '100%', height: '100%', display: 'block', flex: 1, minHeight: 0, background: 'var(--dsw-alias-bg-base, #faf9f6)'},
       });
     }

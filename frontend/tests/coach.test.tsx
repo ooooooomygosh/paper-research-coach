@@ -111,6 +111,7 @@ it("records learning consent separately and shows source-bound feedback without 
   fireEvent.click(screen.getByText("核对原文证据"));
   expect(locate).toHaveBeenCalledWith(observation.anchor);
   fireEvent.click(screen.getByText("阅读设置与连接"));
+  expect(screen.getByLabelText("教练模型").closest("details")).toHaveProperty("open", false);
   fireEvent.click(
     screen.getByLabelText("记录实际回答与学习反馈，帮助下次调整讲解"),
   );
@@ -405,7 +406,7 @@ it("questions about a selection are detours that never advance the pending mainl
   expect(sentBodies()[1].intent).toBe("detour");
 });
 
-it("binds text to the selected page, disables a different page image and consumes only the submitted selection", async () => {
+it("binds text to the selected page and retains the submitted selection after sending", async () => {
   const anchor = {
     paper_id: "p",
     source_version: "version",
@@ -422,7 +423,9 @@ it("binds text to the selected page, disables a different page image and consume
     target: { value: "解释这一句" },
   });
   fireEvent.click(screen.getByLabelText("发送给论文教练"));
-  await waitFor(() => expect(clear).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(sentBodies()).toHaveLength(1));
+  expect(clear).not.toHaveBeenCalled();
+  expect(screen.getByText("已附上选中文字")).toBeTruthy();
   expect(sentBodies()[0]).toMatchObject({
     page_index: 0,
     anchor,
@@ -549,7 +552,7 @@ it("explains an unavailable coach instead of showing a perpetual connecting stat
     return {};
   });
   view();
-  const notice = await screen.findByRole("status");
+  const notice = await screen.findByText(/AI 带读暂未连接/);
   expect(notice.textContent).toContain("AI 带读暂未连接");
   expect(screen.getByText("未连接")).toBeTruthy();
   expect(screen.queryByText("连接中")).toBeNull();
@@ -594,7 +597,7 @@ it("keeps the mainline step, its button and the pending question in the panel wh
   expect(drawer.querySelector(".coach-mainline")).toBeNull();
   expect(panel.querySelectorAll(".coach-progress-track li.done")).toHaveLength(2);
   expect(screen.queryByText("问题设定", { selector: ".coach-route li" })).toBeNull();
-  fireEvent.click(screen.getByTitle("查看八步路线与核查依据"));
+  fireEvent.click(screen.getByTitle("查看阅读路线与核查依据"));
   expect(screen.getByLabelText("八步阅读路线")).toBeTruthy();
   drawer.remove();
 });
@@ -916,4 +919,96 @@ it("does not offer to send anything from an old read-only conversation", async (
   view({ page: 0 });
   await screen.findByText("已连接本机 CLI");
   await waitFor(() => expect(document.querySelector(".coach-context-chips")?.hasAttribute("hidden")).toBe(true));
+});
+
+
+it("freezes send-time navigation identity for a delayed evidence response", async () => {
+  const { stream } = explainerMocks([]);
+  vi.stubGlobal("EventSource", class {
+    onmessage: any; onopen: any;
+    constructor() { stream.emit = (s) => this.onmessage?.({ data: JSON.stringify(s) }); }
+    close() {}
+  });
+  const base = vi.mocked(api).getMockImplementation()!;
+  vi.mocked(api).mockImplementation(async (path: string, body?: any) => path === "coach/send/p" ? { conversation_id: "c", message_id: "user-turn" } : base(path, body));
+  let navigation = "original-position";
+  const onFocus = vi.fn();
+  view({ onFocus, getNavigationSnapshot: () => navigation });
+  await screen.findByText("已连接本机 CLI");
+  fireEvent.change(screen.getByLabelText("发给论文教练的消息"), { target: { value: "解释这处依据" } });
+  fireEvent.click(screen.getByRole("button", { name: "发送给论文教练" }));
+  await waitFor(() => expect(vi.mocked(api)).toHaveBeenCalledWith("coach/send/p", expect.objectContaining({ content: "解释这处依据" })));
+  await waitFor(() => expect(screen.getByLabelText("发给论文教练的消息").textContent).toBe(""));
+  navigation = "reader-moved";
+  await act(async () => { stream.emit!({ ...snapshot, messages: [
+    { id: "user-turn", role: "user", content: "解释这处依据", intent: "detour", status: "completed" },
+    pointing("delayed-answer", [{ ...focus("late"), request_message_id: "user-turn", navigation_intent: "detour" }]),
+  ] }); });
+  expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ id: "late", navigation_token: "original-position", navigation_intent: "detour" }), "auto");
+});
+
+
+it("shows four soft phases before any conversation is started", async () => {
+  view();
+  await waitFor(() => expect(document.querySelectorAll(".coach-progress-track li")).toHaveLength(4));
+});
+
+const persistedFour = [
+  {id:"old-u1",role:"user",status:"completed",intent:"follow",content:"Continue saved session"},
+  {id:"old-a1",role:"assistant",status:"completed",intent:"follow",content:"Saved goal checkpoint"},
+  {id:"old-u2",role:"user",status:"completed",intent:"answer",content:"Saved learner answer"},
+  {id:"old-a2",role:"assistant",status:"completed",intent:"answer",content:"Saved response evidence"},
+];
+const restoredHistory = { ...snapshot, messages:persistedFour, read_only:false };
+it("automatically restores the canonical four-message history without connecting or creating a thread", async () => {
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? restoredHistory : path==="coach/status" ? status : {});
+  view();
+  expect(await screen.findByText("Saved response evidence")).toBeTruthy();
+  expect(screen.getByText("Saved learner answer")).toBeTruthy();
+  expect(screen.queryByText("一边读原文，一边一步步形成判断")).toBeNull();
+  expect(vi.mocked(api).mock.calls.some(([path])=>path.includes("coach/connect") || path.includes("coach/send"))).toBe(false);
+});
+it("restores persisted history even if the native event-stream constructor fails", async () => {
+  vi.stubGlobal("EventSource", class {constructor(){throw new Error("Unsupported event carrier");}});
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? restoredHistory : path==="coach/status" ? status : {});
+  view();
+  expect(await screen.findByText("Saved response evidence")).toBeTruthy();
+  expect(vi.mocked(api).mock.calls.some(([path])=>path.startsWith("coach/conversation/"))).toBe(true);
+});
+it("does not replace a restored stream history with a late empty bootstrap response", async () => {
+  let carrier:any, resolve!:(value:any)=>void;
+  vi.stubGlobal("EventSource", class {onmessage:any;close(){}constructor(){carrier=this;}});
+  const pending = new Promise<any>(r=>{resolve=r;});
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? pending : path==="coach/status" ? status : {});
+  view();
+  await act(async()=>{carrier.onmessage({data:JSON.stringify(restoredHistory)});});
+  expect(screen.getByText("Saved response evidence")).toBeTruthy();
+  await act(async()=>{resolve(snapshot);await pending;});
+  expect(screen.getByText("Saved response evidence")).toBeTruthy();
+  expect(screen.queryByText("一边读原文，一边一步步形成判断")).toBeNull();
+});
+it("reports history-loading failures explicitly and retries without creating an empty conversation", async () => {
+  let broken=true;
+  vi.mocked(api).mockImplementation(async path=>{if(path.startsWith("coach/conversation/")){if(broken)throw new Error("Network unavailable");return restoredHistory;}return path==="coach/status" ? status : {};});
+  view();
+  expect(await screen.findByText("暂时未能读取已保存对话，原记录仍保留。")).toBeTruthy();
+  expect(screen.queryByText("一边读原文，一边一步步形成判断")).toBeNull();
+  broken=false;fireEvent.click(screen.getByRole("button",{name:"重新读取对话"}));
+  expect(await screen.findByText("Saved response evidence")).toBeTruthy();
+});
+
+
+it("keeps legacy takeaways visible in the log while the primary route stays four phases", async () => {
+  const receipts=[{step:"orient",takeaway:"旧阅读目标原话",page_index:0},{step:"insight",takeaway:"旧贡献判断原话",page_index:0}];
+  const oldFlow={status:"active",current:"model",label:"问题设定",steps:[{id:"orient",label:"阅读目标"},{id:"insight",label:"独特贡献"},{id:"model",label:"问题设定"}],completed:receipts};
+  const phases=[{id:"orient",label:"判断是否值得读",tasks:[]},{id:"mechanism",label:"理解关键机制",tasks:[]},{id:"evidence",label:"核查证据与边界",tasks:[]},{id:"judgment",label:"形成并回忆自己的判断",tasks:[]}];
+  const restored={...snapshot,reading_flow:oldFlow,reading_plan:{plan_version:2,revision:1,status:"active",depth:"understand",current_phase:"mechanism",current_task:0,phases,legacy_receipts:receipts}};
+  vi.mocked(api).mockImplementation(async path=>path.startsWith("coach/conversation/") ? restored : path==="coach/status" ? status : {});
+  view();
+  await waitFor(()=>expect(screen.getAllByText(/理解关键机制/).length).toBeGreaterThan(0));
+  expect(document.querySelectorAll(".coach-progress-track li")).toHaveLength(4);
+  fireEvent.click(screen.getAllByRole("button",{name:"任务日志"})[0]);
+  expect(await screen.findByText("收获：旧贡献判断原话")).toBeTruthy();
+  expect(screen.getByText(/历史核查 2\/3/)).toBeTruthy();
+  expect(document.querySelectorAll(".coach-progress-track li")).toHaveLength(4);
 });

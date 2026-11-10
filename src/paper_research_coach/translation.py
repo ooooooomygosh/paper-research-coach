@@ -65,6 +65,51 @@ class SelectionRequest(BaseModel):
     view: str = Field(default="original", pattern="^(original|mono|dual)$")
 
 
+class ResolveAnchorRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    anchor: Anchor
+    view: str = Field(pattern="^(mono|dual)$")
+    document_version: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+def display_translation_anchor(mapping, request):
+    """Project verified source text through saved sentence links, never guessed geometry."""
+    result = matching_translation(mapping, SelectionRequest(anchor=request.anchor, view="original"))
+    if result.get("status") != "ready":
+        return {"status": "unresolved", "message": result.get("message", "尚未建立对应位置。")}
+    ids = result.get("segment_ids", [result.get("segment_id")])
+    fragments = []
+    for segment in mapping["segments"]:
+        if segment["id"] not in ids:
+            continue
+        target = segment["target"]
+        rects = target["rects"]
+        quote = target["text"]
+        if result.get("level") == "sentence":
+            spans = sentences(target["text"])
+            source_spans = sentences(segment["source"]["text"])
+            source_ids = {i for i, span in enumerate(source_spans) if normalized(request.anchor.quote) in normalized(span["text"])}
+            selected = sorted({i for group in segment.get("links", []) if source_ids.intersection(group["source_ids"]) for i in group["target_ids"]})
+            glyph_rects, offset = [], 0
+            for glyph in target.get("glyphs", []):
+                end = offset + len(glyph["text"])
+                if any(offset < spans[i]["end"] and end > spans[i]["start"] for i in selected):
+                    glyph_rects.append(glyph["rect"])
+                offset = end
+            if glyph_rects:
+                rects, quote = glyph_rects, result["text"]
+            else:
+                result["level"] = "paragraph"
+        page = target.get("page_index", segment["source"]["page_index"])
+        if request.view == "dual":
+            transforms = mapping.get("dual_transforms", [])
+            if page >= len(transforms) or "translated" not in transforms[page]:
+                return {"status": "unresolved", "message": "双语页面缺少位置映射。"}
+            rects = [transform_rect(r, transforms[page]["translated"]) for r in rects]
+        fragments.append({"page_index": page, "rects": rects, "quote": quote})
+    return {"status": "ready" if fragments else "unresolved", "level": result.get("level", "paragraph"), "fragments": fragments}
+
+
 def sentences(text):
     spans, start = [], 0
     for match in re.finditer(r"[。！？!?]|(?<!\d)\.(?=\s|$)", text):
@@ -1105,6 +1150,27 @@ class Translation:
             raise ValueError("译文对应文件无效。")
         result = matching_translation(json.loads(mapping_path.read_text()), request)
         return {**result, "translation_id": job_id}
+
+    def resolve_anchor(self, job_id, request):
+        job = self.job(job_id)
+        paper = self.store.get("paper", job["paper_id"])
+        anchor = request.anchor
+        if (anchor.paper_id != paper["id"] or anchor.source_version != paper["source_version"]
+                or job["source_version"] != paper["source_version"] or anchor.status != "verified"
+                or job.get("engine_version", BABELDOC_VERSION) != BABELDOC_VERSION):
+            raise Conflict("原文依据与当前论文版本不符。")
+        if self.store.check_source(paper["id"])["status"] != "current":
+            raise Conflict("PDF 已改变，请重新打开当前版本。")
+        if not self.ready_artifacts(job):
+            return {"status": "unresolved", "message": "译文尚未完成。"}
+        target = self.artifact(job_id, request.view)
+        if digest(target) != request.document_version:
+            raise Conflict("显示目标已换版，请重新定位。")
+        mapping_path = Path(job["artifacts"]["mapping"]).resolve()
+        if not mapping_path.is_relative_to((self.store.root / "translations" / job_id).resolve()):
+            raise ValueError("译文对应文件无效。")
+        result = display_translation_anchor(json.loads(mapping_path.read_text()), request)
+        return {**result, "job_id": job_id, "view": request.view, "document_version": request.document_version}
 
     async def close(self):
         self.closing = True

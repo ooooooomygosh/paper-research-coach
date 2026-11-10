@@ -1,4 +1,8 @@
-# macOS 上的 DeepSeek Harness 插件构建
+# macOS 上的 DeepSeek Harness 插件安装与源码构建
+
+当前 **1.3.1** 提供 macOS Apple silicon [安装 ZIP](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.3.1/PRC-DSH-1.3.1-mac.zip)：完全退出 Harness，解压后双击 `安装.command`。原生宿主验证基线为 **0.2.2-rc.1**。首次从旧版升级使用这个包，之后支持 DSH 专属更新：校验并暂存，下一次完全退出并打开时安装，数据目录继续保留。[当前指南](../../../docs/DEEPSEEK_HARNESS.md)
+
+下文保留源码构建流程和 **1.1.0／0.2.1-rc.5** 历史验证记录，其中 Windows 1.2.0 包仅用作历史资源来源，不能代表新版 macOS 安装方式。
 
 `PRC-DSH-1.2.0-win-x64.zip` 里是 Windows x64 的 Python 运行库和 `.cmd` 安装器，macOS 用不上。
 不过这个目录的源码本身是平台无关的：host 走 Node，工作台和翻译是纯 Python，`service.py` 里本来就有

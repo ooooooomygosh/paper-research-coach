@@ -1,31 +1,55 @@
-# 在 DeepSeek Harness 中使用 Paper Research Coach
+# 在 DeepSeek Harness 中使用 Paper Research Coach 1.3.1
 
-Paper Research Coach 提供可内置到 **DeepSeek Harness** 的第三方适配版本。安装后从 Harness 侧栏的“论文研读”进入，保留原项目的阅读工作台和 UI，通过 Harness 当前登录账户的 `deepseek-account` 接口完成文献阅读、分析和学习，无需额外配置 API Key 或 Codex CLI。
+从 Harness 侧栏“论文研读”进入。插件使用当前登录账户，工作台内核为 **2.0.0rc15**，无需另填 API Key 或启动 Codex CLI。
 
-适配插件当前源码版本为 **1.2.0**，基于工作台 **2.0.0rc14**，要求 Harness **0.2.1-rc.5**。Windows x64 提供分发包构建方式；macOS（Apple silicon）没有预打包产物，在装有 Node.js 24 与 uv 的机器上从源码构建并注册进 Harness profile，步骤见 [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md)。已有 1.1.0 的两个平台实跑记录；本次改版的检查范围见适配目录说明，其他 Harness 版本需要重新验证。该适配版并非 DeepSeek 官方发行。
+## 安装
 
-## 两个新增学习入口
+本次发布面向 **macOS Apple silicon**，原生测试宿主为 **Harness 0.2.2-rc.1**。
 
-**知识库学习**整合 Learn from Materials：导入多份材料并保留来源映射，构建概览或系统学习页，学习概念和方法，保存单元笔记、进度、练习及错题，以来源片段支撑追问。支持停止/恢复构建、历史版本和离线导出。
+1. 在 [DSH 1.3.1 Release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.3.1) 下载 `PRC-DSH-1.3.1-mac.zip`。
+2. 完全退出 Harness 及托盘，解压 ZIP，双击 `安装.command`。
+3. 重新打开 Harness，从侧栏进入“论文研读”。
 
-**交互式讲解**整合 Answer me with HTML：围绕一个问题、论文页或知识库生成含流程图、公式、表格和问答的图文页面，支持编辑草稿、更换主题、修订和 HTML 导出。插件名称保持 **Paper Research Coach**。
+同一 Release 提供 `dsh-release.json`、ZIP `.sha256` 和 `SHA256SUMS`。独立工作台的 wheel/Skill ZIP 用于另外的入口，不能作为 DSH 插件安装包。源码安装见 [macOS 构建](../ports/deepseek-harness/macos/README.md)。
 
-1.2.0 将翻译与显示原文集中在顶部，增加一键导出的“标准阅读”提示，以及概念、步骤、比较、参数与证据五类可操作组件。控件使用独立 SVG 源文件与无高光样式；讲解成品优先显示，修改按需展开。参数图仅作教学示意，引用与导出保留已知来源版本。具体逻辑、边界和后续开发方案见 [阅读改版说明](../ports/deepseek-harness/docs/READING_REDESIGN.md)。
+Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次没有新版 Windows 分发和原生安装验证；请勿把旧包描述成 1.3.1。
 
-原有 PDF 阅读、八章主线、支线讲解、复盘树、笔记、翻译和书库同步继续保留。PDF 高亮修复将碎片选区按行合并并去重，减少重复方框与文字遮挡。教练默认用 **DeepSeek Flash + high 思考深度**，模型未声明的档位不会提交；一轮失败时会说明具体原因（额度、限流、上下文等），不再只显示通用提示。
+## 阅读、批注和讲解
 
-仅添加材料不会调用模型；点击构建、生成或发送后才通过登录账户请求模型。逐字引文校验不代表语义完整性或学习效果已经独立验证，扫描页与图中细节仍需人工核对。
+在中文或双语 PDF 上划线提问，保留当前语言和位置；点击引文才定位，带读可跟随证据。只能匹配到段落时说明对应范围，无法可靠匹配时保持待核实。
 
-## 安装与源码
+页面标记连接完整批注；用户笔记在 PDF、研读页和图谱共用原记录。保存批注不改原 PDF；下载时生成含批注副本。Zotero 原附件只接收可靠原始坐标。
 
-[Harness 适配目录](../ports/deepseek-harness/README.md) 包含完整源码快照、固定版本的第三方源码、安装器、验证脚本和分发构建说明。它与根目录的独立工作台发布流程分开维护。
+短回答留在对话里，知识详解可展开到大阅读区，与论文并排、全屏或主动开独立窗口。窄窗口使用全宽切换。切换展示保持追问草稿和阅读点，不触发重新生成。
 
-Git 仓库不存储运行库、字体/模型缓存或大型安装 ZIP。维护者准备已验证运行库并构建后，生成 `PRC-DSH-1.2.0-win-x64.zip`。接收方需自行安装兼容的 Harness 并登录；退出应用后完整解压 ZIP，运行 `安装.cmd`，重启后点击“论文研读”。卸载使用同包 `卸载.cmd`，保留论文及学习记录。仓库现有 wheel 和 Skill ZIP 不能代替这个 Harness 插件包。
+四阶段为“判断是否值得读 → 理解关键机制 → 核查证据与边界 → 形成并回忆自己的判断”，可跳转、暂放；速览、理解和研读有各自结束条件。旧八步记录与原话保留，继续时接续原问题和位置。
 
-数据默认保存在 `%USERPROFILE%\.dsh\paper-research-coach`；配置 `DSH_HOME` 后使用对应目录。登录凭证由 Harness 管理，不随插件打包。安装器检查宿主版本和文件完整性，备份接收方的原应用包，并提供恢复流程。内置版关闭独立工作台的自动更新；宿主更新后应重新核对兼容性。
+“论文对照批注”按选段、章节或全文建立索引，逐段生成、停止续做、修订和导出。离线 HTML 内嵌图片与字体，用户批注是导出时快照。[具体操作与边界](../ports/deepseek-harness/docs/BILINGUAL-READING.md)
+
+## DSH 插件更新
+
+安装 1.3.1 后，由插件宿主检查本仓库的 **`dsh-v*` 专属发布**。默认定期检查，核对宿主版本、平台和 SHA-256 后后台暂存整包；在下次完全退出 Harness 并重新打开时安装，运行中的阅读进程不替换。
+
+“设置 → 版本与更新”显示实际 DSH 插件版本、已准备的版本和提示，可点击“检查 DSH 插件更新”。`staged` 表示下载与校验已完成、等待下次启动，不表示当前窗口已经换版。检查失败或没有兼容平台资产时继续使用当前版本。1.3.1 之前的版本首次升级需使用安装包。
+
+目前自动安装只提供 macOS arm64 资产，Windows 不会安装 macOS 包。DSH 内的独立 wheel 自动更新保持关闭；`prc update` 面向独立工作台。机器、宿主或平台变化后需要重新核验兼容性。
+
+## 数据与回退
+
+数据默认在 `~/.dsh/paper-research-coach`；Windows 默认 `%USERPROFILE%\.dsh\paper-research-coach`；设置 `DSH_HOME` 时跟随它。升级保留论文、译文缓存、笔记、对话和旧八步记录，新增阅读计划不覆盖旧 Session。
+
+运行中的 SQLite 数据库应使用 backup API 形成一致性快照，不只复制主数据库文件。更新保留上一版和备份；安装失败或新后端未确认时按更新器状态恢复。手动回退时使用匹配的数据快照，不让旧程序保存新版独有记录。外部编辑导出 HTML 不会自动写回书库。
+
+## 验证
+
+源代码回归、合成浏览器交互、旧数据副本升级、离线零外部请求及真实账户的合成 PDF 问答/高亮分别记录。自动更新使用隔离清单与本地包测试；本次不把它描述为已经完成未来版本的公网自动升级。没有真实 Zotero 写入和真人学习效果结论。[完整记录](../ports/deepseek-harness/docs/BILINGUAL-READING.md)
 
 ## English
 
-The **Paper Research Coach 1.2.0** source port embeds the full 2.0.0rc14 workbench in **DeepSeek Harness 0.2.1-rc.5**. Windows x64 has a distributable-package builder; macOS (Apple silicon) is built from source and registered into a Harness profile — see [`ports/deepseek-harness/macos/README.md`](../ports/deepseek-harness/macos/README.md). Historical native-host checks cover 1.1.0 on both platforms; the port notes describe this redesign's validation scope. Other host versions have not been validated. It uses the signed-in Harness account through `deepseek-account`, adds knowledge-base learning and interactive explanations, and fixes overlapping PDF text highlights. Version 1.2.0 adds compact matte controls, standard-reading prompt export, global translation/source controls, and five bounded interactive component types. Parameter curves are explicitly illustrative, and exports retain known source versions. No separate API key or Codex CLI is required. The coach defaults to DeepSeek Flash at high reasoning, never submits a level the model does not declare, and names the cause when a turn fails.
+**Paper Research Coach DSH 1.3.1** uses workbench core **2.0.0rc15** and the signed-in Harness account. Download the macOS Apple silicon package from the [dedicated release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.3.1), fully quit Harness, extract it and open `安装.command`. Native-host validation uses Harness **0.2.2-rc.1**. This release does not provide or validate a new Windows installer; the 1.2.0 Windows package is historical.
 
-The [port source and build guide](../ports/deepseek-harness/README.md) includes both pinned MIT-licensed integrations, account bridges, tests and the distributable installer. Runtime binaries, cached translation assets, personal data and credentials are excluded from Git. The standalone wheel/Skill releases are separate from the Harness installer ZIP. This is a third-party integration, not an official DeepSeek distribution.
+Selections retain the current PDF language and reading position. Detailed explanations expand into a large reading area with adjustable PDF comparison, fullscreen and explicit popout. The flexible four-stage route resumes saved legacy questions and retains eight-step records. Bilingual study pages share existing notes and export one offline HTML snapshot.
+
+The DSH updater checks only `dsh-v*` releases, validates host/platform compatibility and SHA-256, and stages a package for the next full Harness restart. Settings display the actual plugin version and manual check. It never installs the standalone wheel. Automatic installation currently targets macOS arm64; an unsupported platform keeps its installed version. Older builds first install 1.3.1 manually. Papers, translations, notes and conversations are preserved; rollback uses a matching backup.
+
+Validation separates source tests, synthetic browser checks, legacy-data copies and real-account synthetic PDF navigation. Local update-package tests are not a future public-network upgrade test. No learning-effectiveness trial or real Zotero write is claimed.

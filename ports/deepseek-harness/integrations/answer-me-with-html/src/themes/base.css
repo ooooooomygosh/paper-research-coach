@@ -605,3 +605,7 @@ table.am-mark { background: none; }
 .am-remark-need { align-self: center; color: var(--ink-3); font-size: var(--am-fs-small); }
 .am-remark-kind::before { content: attr(data-n); margin-inline-end: 5px; color: var(--ink-3); font-family: var(--font-mono); font-size: var(--am-fs-label); }
 @media print { .am-remark-pop { display: none !important; } }
+
+/* Preserve readable diagram labels at every document breakpoint. */
+.am-doc svg[viewBox], .am-doc .am-diagram svg { max-width: none; }
+.am-doc .am-diagram, .am-doc figure { overflow: auto; }

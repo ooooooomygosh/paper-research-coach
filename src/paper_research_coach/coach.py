@@ -18,7 +18,7 @@ from pathlib import Path
 
 from filelock import FileLock, Timeout
 
-from . import __version__, reading
+from . import __version__, reading, reading_v2
 from .coaching_context import dialogue_excerpt, note_excerpt
 from .coaching_request import Send
 from . import explainer as explainers
@@ -341,6 +341,17 @@ TOOLS = [
         ["next_action", "pending_question", "stage"],
     ),
     tool(
+        "prc_reading_plan",
+        "Manage a goal-based four-phase plan. Read reading_plan from prc_context first. Navigation is soft; pause and finish are allowed. Complete requires verbatim learner answer and a page read this turn. Bridge preserves the return point. expected_revision prevents stale writes.",
+        {"action": {"type":"string", "enum":["start","navigate","task","complete","pause","resume","finish","bridge","return"]},
+         "phase":{"type":"string","enum":list(reading_v2.KEYS)},
+         "depth":{"type":"string","enum":list(reading_v2.DEPTHS)},
+         "goal":TEXT,"question":TEXT,"reason":TEXT,"answer_quote":TEXT,
+         "dimension":{"type":"string","enum":list(reading.KEYS)},
+         "assistance":{"type":"string","enum":["model","guided","prompt-only","independent"]},
+         "bridge_kind":{"type":"string","enum":["language","concept","formula","argument"]},
+         "page_index":{"type":"integer","minimum":0},"expected_revision":{"type":"integer","minimum":0}}, ["action"]),
+    tool(
         "prc_complete_reading_step",
         "Complete the current mainline step after discussing real evidence. One step per turn; unavailable during detours. Recall requires a saved learner review attempt. takeaway: one sentence the reader keeps, in the reader's own words where possible. Completion means the reading round was covered, not independent mastery.",
         {
@@ -523,6 +534,7 @@ class Coach:
             "busy": current in self.active,
             "skill": "paper-research-coach",
             "reading_flow": reading.snapshot(self.store.list("session", paper_id)[0], self.store.get("paper", paper_id)),
+            "reading_plan": reading_v2.snapshot(self.store, self.store.get("paper", paper_id), self.store.list("session", paper_id)[0]),
         }
 
     def binding(self, paper_id):
@@ -723,6 +735,20 @@ class Coach:
             raise Conflict("PDF 版本已改变，请重新选择当前页后发送。")
         if paper["page_count"] and body.context_page_index() >= paper["page_count"]:
             raise ValueError("当前页超出 PDF 范围")
+        rendition = body.image_context or (body.anchor.rendition if body.anchor else None)
+        if rendition:
+            from .translation import Translation
+            from .store import digest
+            translation = Translation(self.store)
+            job = translation.job(rendition.job_id)
+            if job["paper_id"] != paper_id or job["source_version"] != paper["source_version"]:
+                raise Conflict("译本材料不属于当前论文。")
+            path = translation.artifact(rendition.job_id, rendition.view)
+            from pypdf import PdfReader as ContextPdfReader
+            if rendition.page_index >= len(ContextPdfReader(str(path)).pages):
+                raise ValueError("译本图像页码超出范围。")
+            if digest(path) != rendition.document_version:
+                raise Conflict("译本材料已换版，请重新选择。")
         if body.page_image:
             if body.source_version != paper["source_version"]:
                 raise Conflict("页面图像需要匹配当前 PDF 版本。")
@@ -941,9 +967,19 @@ class Coach:
                 branch_title=self.branch_title(pid, body.branch_id),
                 section=section,
             )
+            plan = reading_v2.snapshot(self.store, paper, session)
+            if plan["revision"] == 0 and plan["status"] not in ("stale", "completed") and body.intent in ("follow", "answer"):
+                plan = reading_v2.update(self.store, paper, session, {"action":"start"}, "plan-start:" + message["id"], intent=body.intent)
+            if inputs and isinstance(inputs[0], dict) and "text" in inputs[0]:
+                old_guide = reading.turn_guide(reading.snapshot(session, paper), body.intent)
+                if old_guide and len(inputs) > 1 and inputs[1].get("text") == old_guide:
+                    inputs.pop(1)
+                v2_guide = reading_v2.guide(plan, body.intent)
+                if v2_guide:
+                    inputs.insert(1, {"type":"text", "text":v2_guide})
             conversation["source_version"] = paper["source_version"]
             answer["context_scope"] = {"page_index": body.context_page_index(), "notes_included": 0, "notes_total": len(self.store.list("note", pid)), "history_messages_included": 0, "automatic_characters": prefix_length, "retrieval_on_demand": True}
-            if body.page_image:
+            if body.page_image and not body.image_context:
                 state["read_pages"].add(body.context_page_index())
             if state["stop"]:
                 self.finish(state, "interrupted")
@@ -1012,9 +1048,21 @@ class Coach:
             ).fetchone()
         if previous:
             return json.loads(previous[0])
+        if name == "prc_reading_plan":
+            completed_calls = state.setdefault("reading_plan_completions", set())
+            if args.get("action") == "complete" and completed_calls and call_id not in completed_calls:
+                raise ValueError("一次跟读回复最多完成一个认知动作")
+            if args.get("assistance") == "independent" and state["message"].get("help_mode") in ("hint", "explain"):
+                raise ValueError("本轮要求提示或解释，不能记为独立表现")
+            result = reading_v2.update(self.store, self.store.get("paper", pid), self.store.list("session", pid)[0], args,
+                operation_id, read_pages=state.get("read_pages", set()), answer=state["message"]["content"], intent=state.get("intent", "detour"))
+            if args.get("action") == "complete":
+                completed_calls.add(call_id)
+            return {"reading_plan": result}
         if name == "prc_context":
             context = self.store.context(pid)
             result = brief_context(context)
+            result["reading_plan"] = reading_v2.snapshot(self.store, self.store.get("paper", pid), self.store.list("session", pid)[0])
             if args.get("section") == "reviews":
                 result.update(reviews=context["reviews"][-10:], due_reviews=context["due_reviews"][:10])
             return result
@@ -1114,6 +1162,24 @@ class Coach:
             label = "已记录本次学习表现"
         elif name == "prc_next_action":
             session = self.store.list("session", pid)[0]
+            plan = reading_v2.snapshot(self.store, self.store.get("paper", pid), session)
+            if plan["status"] == "active" and state.get("intent", "detour") != "detour" and args.get("pending_question", "").strip():
+                choices = [" ".join(str(c).split())[:80] for c in args.get("choices") or [] if str(c).strip()][:4]
+                data = {**session, "next_action":args["next_action"], "pending_question":args["pending_question"],
+                        "choices": choices if len(choices) >= 2 else []}
+                with self.store.connect() as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    table = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='reading_plan_operations'").fetchone()
+                    prior = db.execute("SELECT result FROM reading_plan_operations WHERE id=?", (operation_id,)).fetchone() if table else None
+                    if prior:
+                        result = json.loads(prior[0])
+                    else:
+                        self.store.put("session", data, session["revision"], origin="reading-plan", connection=db)
+                        result = reading_v2.update(self.store, self.store.get("paper", pid), session,
+                            {"action":"task", "question":args["pending_question"]}, operation_id,
+                            intent=state.get("intent", "detour"), connection=db)
+                state["answer"]["task"] = {"question":args["pending_question"][:400], "choices":data["choices"]}
+                return {"reading_plan":result}
             flow = reading.snapshot(session, self.store.get("paper", pid))
             if state.get("intent", "detour") == "detour" and flow["status"] == "active":
                 return {"preserved": True, "return_action": session["next_action"], "pending_question": session["pending_question"], "reading_flow": flow}
@@ -1429,6 +1495,8 @@ class Coach:
             raise Conflict("PDF 已换版，请重新查看当前版本。")
         state["shows"] += 1
         action["id"] = "focus:" + state["answer"]["id"] + ":" + call_id
+        action["navigation_intent"] = "mainline" if state.get("intent") in ("follow", "answer") else "detour"
+        action["request_message_id"] = state.get("message", {}).get("id", "")
         if result["has_text"]:
             # The quotes were found in this page's text, so the coach has read it.
             state.setdefault("read_pages", set()).add(result["page_index"])
@@ -1453,7 +1521,7 @@ class Coach:
             "content": f"请看 PDF 第 {page_index + 1} 页标出的 {len(action['marks'])} 处原文。" if action["marks"] else f"请看 PDF 第 {page_index + 1} 页。",
             "created_at": now(), "status": "completed", "intent": "detour", "actions": [action], "error": "",
         })
-        return {"id": action["id"], "page_index": page_index, "marked": len(action["marks"]), "has_text": result["has_text"]}
+        return {**action, "page_index": page_index, "marked": len(action["marks"]), "has_text": result["has_text"]}
 
     def record_page(self, state, result):
         if result["source_version"] != state.get("source_version"):

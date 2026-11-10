@@ -680,3 +680,20 @@
   color: var(--warn-text);
   font-size: 13px;
 }
+
+/* The same mounted lesson changes space without losing forms or diagrams. */
+.branch-panel.learning-large { inset: 12px; width: auto; height: calc(100dvh - 24px); max-width: 1440px; margin-inline: auto; }
+.branch-panel.learning-large .branch-body { font-size: 18px; line-height: 1.75; }
+.branch-panel.learning-large .xp-doc { max-width: 80ch; margin-inline: auto; }
+.branch-panel:fullscreen { inset: 0; width: 100%; height: 100dvh; max-width: none; border-radius: 0; }
+.branch-head { flex-wrap: wrap; }
+.branch-actions { flex-wrap: wrap; }
+.xp-diagram { overflow: auto; max-width: 100%; }
+
+html[data-learning-compare] .reading-layout, html[data-learning-compare] .workspace-original { position:fixed !important; left:var(--learning-paper-left) !important; top:var(--learning-paper-top) !important; width:var(--learning-paper-width) !important; height:var(--learning-paper-height) !important; z-index:65; grid-template-columns:minmax(0,1fr) !important; background:var(--surface,#fff); }
+html[data-learning-compare] .research-pane { visibility:hidden; }
+.learning-narrow-tabs { position:fixed; left:50%; top:4px; transform:translateX(-50%); z-index:95; display:flex; gap:8px; background:var(--surface,#fff); padding:4px; }
+.branch-panel[data-paper-visible] > :not(.learning-narrow-tabs) { visibility:hidden; pointer-events:none; }
+.branch-panel[data-paper-visible] { background:transparent; border:0; box-shadow:none; pointer-events:none; }
+.branch-panel[data-paper-visible] .learning-narrow-tabs { pointer-events:auto; visibility:visible; }
+html[data-learning-compare="lesson"] .reading-layout, html[data-learning-compare="lesson"] .workspace-original { visibility:hidden; }

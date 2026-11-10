@@ -18,6 +18,8 @@ jobs:
         working-directory: ports/deepseek-harness
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -37,7 +39,7 @@ jobs:
   # The distribution suite is excluded because it drives the Windows installer,
   # which imports _winapi and patches app.asar junctions.
   source-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       PYTHONUTF8: '1'
       PYTHONPATH: upstream/src
@@ -46,6 +48,8 @@ jobs:
         working-directory: ports/deepseek-harness
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -65,9 +69,9 @@ jobs:
       - name: Port tests
         run: >
           python -X utf8 -m pytest upstream/tests tests/test_studio.py tests/test_learning.py
-          tests/test_port_runtime.py tests/test_interactive.py -q --tb=short --ignore=upstream/tests/test_install_script.py
+          tests/test_port_runtime.py tests/test_interactive.py tests/test_paper_study.py tests/test_paper_study_api.py tests/test_plugin_updater.py -q --tb=short --ignore=upstream/tests/test_install_script.py
       - name: Host bridge tests
-        run: node --test tests/host.test.mjs tests/studio.test.mjs tests/model-defaults.test.mjs tests/interactive-runtime.test.mjs
+        run: node --test tests/host.test.mjs tests/studio.test.mjs tests/model-defaults.test.mjs tests/interactive-runtime.test.mjs tests/plugin-updater.test.mjs
       - name: Frontend checks
         run: |
           node upstream/frontend/node_modules/typescript/bin/tsc --noEmit --project upstream/frontend

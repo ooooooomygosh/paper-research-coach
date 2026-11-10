@@ -35,7 +35,7 @@ export function FlowDiagram({ block, uid }: { block: FlowBlock; uid: string }) {
   const marker = `xp-arrow-${uid}`;
   return (
     <div className="xp-diagram" role="img" aria-label={"流程图：" + block.nodes.map((n) => n.label).join("、")}>
-      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} style={{ width: "100%", maxWidth: layout.width, minWidth: Math.min(layout.width, 460) }}>
+      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} style={{ width: "100%", maxWidth: layout.width, minWidth: layout.width * 12 / 11 }}>
         <Defs id={marker} />
         {layout.groups.map((g) => (
           <g key={g.name}>
@@ -88,7 +88,7 @@ export function SequenceDiagram({ block, uid }: { block: SequenceBlock; uid: str
   const marker = `xp-seq-${uid}`;
   return (
     <div className="xp-diagram" role="img" aria-label={"时序图：" + block.participants.join("、")}>
-      <svg viewBox={`0 0 ${L.width} ${L.height}`} style={{ width: "100%", maxWidth: L.width, minWidth: Math.min(L.width, 460) }}>
+      <svg viewBox={`0 0 ${L.width} ${L.height}`} style={{ width: "100%", maxWidth: L.width, minWidth: L.width * 12 / 11 }}>
         <Defs id={marker} />
         {L.actors.map((a) => (
           <g key={a.name}>

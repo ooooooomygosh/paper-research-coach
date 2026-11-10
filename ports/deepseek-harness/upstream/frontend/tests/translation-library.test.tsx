@@ -127,6 +127,7 @@ it("saves concurrency separately and retains a batch request across failed respo
   });
   let panel = render(<TranslationLibrary papers={papers} />);
   await screen.findByLabelText("模型请求并发");
+  expect(screen.getByLabelText("模型请求并发").closest("details")).toHaveProperty("open", false);
   fireEvent.change(screen.getByLabelText("同时翻译论文"), {
     target: { value: "3" },
   });

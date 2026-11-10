@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.0.0rc15
+
+- Keep Chinese/bilingual evidence navigation in the current PDF, preserving selection and reading position; validate display geometry against the translation version.
+- Add goal-based four-phase reading with prerequisite bridges, legacy return-point continuity and explicit history-recovery feedback.
+- Expand explanations into a shared reading surface with adjustable PDF comparison, fullscreen, and preserved drafts.
+- Improve wide-diagram readability and avoid redundant layout work during scrolling and resizing.
+- The DSH adapter additionally ships paragraph studies and a verified DSH-only update channel as `dsh-v1.3.1`; its installation assets remain separate from workbench wheels.
+
 ## 2.0.0rc14
 
 - **A map of the paper.** New tool `prc_map` and command `prc map` list the paper's section headings and the captions of its figures, tables and algorithms, each with its page. Headings come from the PDF's own bookmarks or, without them, from lines that read like a heading (`3.1 Method`, `Conclusion`, `1 引言`) **and** are set bigger or bolder than the body, so list items, table cells and running headers stay out. A caption's second line is joined only when it sits in the same column, tight under the first and in the same type size, so the neighbouring column is never glued on. Nothing is guessed: what cannot be found is missing, and the tool says the map can be incomplete. Each turn also tells the coach where the reader's page sits (`承接「2.1 …」；本页开始「3 …」`). `GET /api/map/{paper}`; built once per version of the file (about a tenth of a second). Tried by hand on three published two-column papers; the unit tests use synthetic PDFs.

@@ -16,9 +16,15 @@ def test_mainline_turns_carry_the_current_step_method(store, paper):
         await coach.send(paper["id"], Send(operation_id="start", content="", intent="follow"))
         await drained(coach)
         turn = [p for m, p in coach.rpc.calls if m == "turn/start"][-1]
-        guide = turn["input"][1]["text"]
-        assert "第 1/8 步「阅读目标」" in guide
-        assert "非线性顺序" in guide
+        guide = "\n".join(item.get("text", "") for item in turn["input"])
+        assert "四阶段软引导 v2" in guide
+        assert '"current_phase": "orient"' in guide
+        assert "每轮一个认知动作" in guide
+        assert "贡献先记作者主张" in guide
+        assert "第 1/8 步「阅读目标」" not in guide
+        plan = coach.snapshot(paper["id"])["reading_plan"]
+        assert plan["coverage"] == []
+        assert plan["status"] == "active"
         await coach.close()
 
     asyncio.run(run())

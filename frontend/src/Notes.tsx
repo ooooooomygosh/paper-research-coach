@@ -357,6 +357,8 @@ export default function Notes({
               "note-card " + (n.author === "assistant" ? "ai-note" : mark ? "mark-note" : "")
             }
             key={n.id}
+            id={"note-card-" + n.id}
+            tabIndex={-1}
           >
             <div className="note-meta">
               <b>

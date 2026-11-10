@@ -19,7 +19,7 @@ export function contextPage(paper: Row, page: number, anchor: any): number {
   if (anchor.paper_id !== paper.id || anchor.source_version !== paper.source_version || anchor.status === "stale")
     throw new Error("选区属于另一篇论文或旧版本，请移除后重新选择。");
   if (anchor.rendition && anchor.page_index == null)
-    throw new Error("这处译文尚未对应原文。可先保存批注，或选中对应原文再讨论。");
+    return Math.min(anchor.rendition.page_index, Math.max(0, paper.page_count - 1));
   const target = anchor.page_index ?? page;
   if (!Number.isInteger(target) || target < 0 || target >= paper.page_count)
     throw new Error("选区页码无效，请重新选择。");
@@ -28,5 +28,5 @@ export function contextPage(paper: Row, page: number, anchor: any): number {
 
 export function imageMatchesPage(paper: Row, page: number, anchor: any): boolean {
   return !anchor || (anchor.paper_id === paper.id && anchor.source_version === paper.source_version &&
-    anchor.status === "verified" && anchor.page_index === page);
+    (anchor.rendition ? anchor.rendition.page_index === page : anchor.status === "verified" && anchor.page_index === page));
 }

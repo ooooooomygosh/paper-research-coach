@@ -129,3 +129,13 @@
   .workspace-compare-grid { grid-template-columns: minmax(0, 1fr); }
   .workspace-section-head { align-items: start; flex-wrap: wrap; }
 }
+
+.learning-surface-expanded { position: fixed; inset: 12px; z-index: 60; height: calc(100dvh - 24px); background: var(--surface-2, #fff); display:flex; flex-direction:column; }
+.learning-surface-expanded iframe { flex:1; height:auto; min-height:0; }
+
+.paper-study-dialog { position:fixed; inset:12px; z-index:70; background:var(--surface-2,#fff); overflow:auto; padding:20px; }
+.paper-study-launch { position:fixed; bottom:12px; left:12px; z-index:30; }
+
+.artifact-frame[data-paper-visible] { pointer-events:none; background:transparent; border:0; }
+.artifact-frame[data-paper-visible] > :not(.learning-narrow-tabs) { visibility:hidden; pointer-events:none; }
+.artifact-frame[data-paper-visible] .learning-narrow-tabs { pointer-events:auto; visibility:visible; }

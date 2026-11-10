@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 node = shutil.which('node')
 if not node:
     raise SystemExit('Node.js 24 is required.')
-env = os.environ | {'PYTHONUTF8': '1', 'PYTHONPATH': str(ROOT / 'upstream/src')}
+env = os.environ | {'PYTHONUTF8': '1', 'PYTHONPATH': str(ROOT / 'upstream/src'), 'PRC_TEST_PYTHON': sys.executable}
 
 
 def run(args, cwd=ROOT):
@@ -23,9 +23,10 @@ def run(args, cwd=ROOT):
 # workflow runs that test on Linux, so the Windows run leaves it out. This uses --ignore with a real path:
 # a --deselect string would be compared with test ids that use backslashes on Windows and match nothing.
 posix_only = ['--ignore', ROOT / 'upstream/tests/test_install_script.py'] if os.name == 'nt' else []
+windows_distribution = ['tests/test_distribution.py'] if os.name == 'nt' else []
 run([sys.executable, '-X', 'utf8', '-m', 'pytest', 'upstream/tests',
-     'tests/test_studio.py', 'tests/test_learning.py', 'tests/test_distribution.py', 'tests/test_interactive.py', 'tests/test_port_runtime.py', '-q', '--tb=short', *posix_only])
-run([node, '--test', 'tests/host.test.mjs', 'tests/studio.test.mjs', 'tests/model-defaults.test.mjs', 'tests/interactive-runtime.test.mjs'])
+     'tests/test_studio.py', 'tests/test_learning.py', *windows_distribution, 'tests/test_interactive.py', 'tests/test_port_runtime.py', 'tests/test_paper_study.py', 'tests/test_paper_study_api.py', 'tests/test_plugin_updater.py', '-q', '--tb=short', *posix_only])
+run([node, '--test', 'tests/host.test.mjs', 'tests/studio.test.mjs', 'tests/model-defaults.test.mjs', 'tests/interactive-runtime.test.mjs', 'tests/plugin-updater.test.mjs'])
 frontend = ROOT / 'upstream/frontend'
 run([node, 'node_modules/typescript/bin/tsc', '--noEmit'], frontend)
 run([node, 'node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=4'], frontend)

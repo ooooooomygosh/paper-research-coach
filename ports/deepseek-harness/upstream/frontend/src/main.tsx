@@ -1,3 +1,4 @@
+import PaperStudy from "./PaperStudy";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -111,6 +112,7 @@ export function App() {
   const [translationPdfJob, setTranslationPdfJob] = useState<any>(null);
   const [translationIndex, setTranslationIndex] = useState<any>({});
   const translationChoice = useRef("");
+  const [studyOpen, setStudyOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [newNoteRequest, setNewNoteRequest] = useState<{ id: string; anchor: any } | null>(null);
   const translatedRead = useRef("");
@@ -118,7 +120,7 @@ export function App() {
   const [selection, setSelection] = useState<any>(null);
   // Sentences the coach pointed at, and where the reader was before the coach moved the PDF.
   const [coachMarks, setCoachMarks] = useState<any>(null);
-  const [returnTo, setReturnTo] = useState<{ page: number; to: number; key: string } | null>(null);
+  const [returnTo, setReturnTo] = useState<{ page: number; to: number; key: string; scrollTop?: number; scrollLeft?: number; view?: string } | null>(null);
   const [followCoach, setFollowCoach] = useState(() => {
     try { return localStorage.getItem("prc-follow-coach") !== "off"; } catch { return true; }
   });
@@ -128,21 +130,57 @@ export function App() {
     if (!on) setReturnTo(null);
   }
   /** The coach marked sentences: show them; on a live turn (or a click) also take the reader there. */
-  function showCoachFocus(a: any, how: "auto" | "click" | "restore") {
+  const focusSerial = useRef(0);
+  const manualNavigation = useRef(0);
+  const navigationSession = useRef(String(Date.now()) + Math.random());
+  const navigationDocument = useRef("");
+  function navigationSnapshot() { return navigationSession.current + ":" + navigationDocument.current + ":" + manualNavigation.current; }
+  useEffect(() => {
+    const moved = (event: Event) => {
+      if ((event.target as Element)?.closest?.(".pdf-scroll")) manualNavigation.current++;
+    };
+    document.addEventListener("wheel", moved, true);
+    document.addEventListener("pointerdown", moved, true);
+    return () => { document.removeEventListener("wheel", moved, true); document.removeEventListener("pointerdown", moved, true); };
+  }, []);
+  const currentDocument = useRef("");
+  const documentIdentity = context?.paper?.id + ":" + context?.paper?.source_version + ":" + pdfView + ":" + translationPdfJob?.id + ":" + translationPdfJob?.documents?.[pdfView]?.document_version + ":" + page + ":" + JSON.stringify(anchor);
+  currentDocument.current = documentIdentity;
+  navigationDocument.current = context?.paper?.id + ":" + context?.paper?.source_version + ":" + pdfView + ":" + translationPdfJob?.documents?.[pdfView]?.document_version + ":" + page;
+  async function showCoachFocus(a: any, how: "auto" | "click" | "restore") {
+    if (how === "auto" && a.navigation_token !== navigationSnapshot()) return;
     const target = a?.anchor;
     if (!paper || !target || target.paper_id !== paper.id || target.page_index == null) return;
     if (target.source_version !== paper.source_version) {
-      if (how === "click") report("这处标注属于旧版本的 PDF，请让教练重新指出。");
+      if (how === "click") report("这处标注属于旧版本的 PDF，请重新核实。");
       return;
     }
-    setCoachMarks({ id: a.id, page_index: target.page_index, marks: (a.marks || []).map((m: any) => ({ ...m })), reveal: how !== "restore" });
-    if (how === "restore" || (how === "auto" && !followCoach)) return;
-    setTab("read");
-    if (pdfView !== "original") setPdfView("original");
-    if (target.page_index !== page) {
-      setReturnTo({ page, to: target.page_index, key: a.id });
-      movePage(target.page_index);
+    const serial = ++focusSerial.current, identity = currentDocument.current, navigation = manualNavigation.current;
+    const reveal = how === "click" || (how === "auto" && followCoach && a.navigation_intent === "mainline");
+    let destination = target.page_index;
+    let marks: any = { id: a.id, page_index: destination, marks: a.marks || [], reveal };
+    if (pdfView !== "original") {
+      const doc = translationPdfJob?.documents?.[pdfView];
+      if (!doc) return;
+      try {
+        const resolved = await api(`translation/jobs/${translationPdfJob.id}/resolve-anchor`, { anchor: target, view: pdfView, document_version: doc.document_version });
+        if (serial !== focusSerial.current || identity !== currentDocument.current || navigation !== manualNavigation.current) return;
+        if (resolved.status !== "ready" || !resolved.fragments?.length) {
+          if (how === "click") report("这处证据暂未对应到当前译本，当前阅读位置已保留。");
+          return;
+        }
+        destination = resolved.fragments[0].page_index;
+        marks = { ...marks, page_index: destination, document_version: doc.document_version,
+          marks: resolved.fragments.filter((f: any) => f.page_index === destination).map((f: any, i: number) => ({ n: i + 1, quote: f.quote, rects: f.rects })) };
+      } catch (e) { if (how === "click") report(String(e)); return; }
     }
+    if (serial !== focusSerial.current || identity !== currentDocument.current || navigation !== manualNavigation.current) return;
+    setCoachMarks(marks);
+    if (!reveal) return;
+    setTab("read");
+    const scroll = document.querySelector<HTMLElement>(".pdf-scroll");
+    setReturnTo({ page, to: destination, key: a.id, view: pdfView, scrollTop: scroll?.scrollTop, scrollLeft: scroll?.scrollLeft });
+    if (destination !== page) movePage(destination);
   }
   const [markedSelection, setMarkedSelection] = useState("");
   const layout = useRef<HTMLDivElement>(null);
@@ -727,6 +765,7 @@ export function App() {
             {tab === "knowledge" ? "知识库学习" : tab === "interactive" ? "交互式讲解" : paper?.title || "论文工作台"}
           </span>
           <div className="workspace-shortcuts">
+            {paper && <button onClick={() => setStudyOpen(true)}>论文对照批注</button>}
             <button aria-pressed={tab === 'read'} onClick={() => setTab('read')}><Icon name="book" />阅读</button>
             <button aria-pressed={tab === "knowledge"} onClick={() => { setImmersive(false); setTab("knowledge"); }}><Icon name="layers" />知识库学习</button>
             <button aria-pressed={tab === "interactive"} onClick={() => { setImmersive(false); setTab("interactive"); }}><Icon name="explain" />交互式讲解</button>
@@ -771,7 +810,7 @@ export function App() {
         {tab === "knowledge" || tab === "interactive" ? (
           <div className={'workspace-source-layout' + (showOriginal && paper?.source_path ? ' with-source' : '')}>
             {showOriginal && paper?.source_path && <aside className="workspace-original" aria-label="当前论文原文">
-              <PdfReader key={paper.id + paper.source_version} paper={paper} page={page} setPage={movePage} onAnchor={a => setAnchor(a)} focusAnchor={focusAnchor} notes={context?.notes || []} onLocateNote={locate} />
+              <PdfReader key={paper.id + paper.source_version} paper={paper} page={page} setPage={movePage} onAnchor={a => setAnchor(a)} focusAnchor={focusAnchor} notes={context?.notes || []} onLocateNote={(a, noteId) => { locate(a); openTools("notes"); requestAnimationFrame(() => { const card = document.getElementById("note-card-" + noteId); card?.scrollIntoView({ block: "center" }); card?.focus({ preventScroll: true }); }); }} />
             </aside>}
             <Workspace mode={tab} paper={paper} page={page} quote={anchor?.quote || selection?.anchor?.quote || selection?.quote || ""} report={report} onSource={a => {
               if (!paper || a.paper_id !== paper.id) { report('请先在论文栏选择这份来源论文。'); return; }
@@ -962,7 +1001,7 @@ export function App() {
                       followCoach={followCoach}
                       onFollowCoach={changeFollowCoach}
                       notes={context.notes || []}
-                      onLocateNote={locate}
+                      onLocateNote={(a, noteId) => { locate(a); openTools("notes"); requestAnimationFrame(() => { const card = document.getElementById("note-card-" + noteId); card?.scrollIntoView({ block: "center" }); card?.focus({ preventScroll: true }); }); }}
                     />
                   ) : (
                     <div className="reader empty">
@@ -1038,6 +1077,7 @@ export function App() {
                         }}
                         onLocate={locate}
                         onFocus={showCoachFocus}
+                        getNavigationSnapshot={navigationSnapshot}
                         onAction={(kind) => {
                           if (kind === "idea") setTab("ideas");
                           else if (kind === "review") setTab("review");
@@ -1240,6 +1280,11 @@ export function App() {
           </>
         )}
       </main>
+      {paper && studyOpen && <div className="paper-study-dialog" role="dialog" aria-modal="true" aria-label="论文对照批注"><button onClick={() => setStudyOpen(false)}>返回论文</button><PaperStudy paperId={paper.id} pageIndex={page} quote={selection?.anchor?.quote || ""} onLocate={async a => {
+        try { const focus = await api("coach/show/" + paper.id, {page_index:a.page_index, quotes:[a.quote]}); setStudyOpen(false); void showCoachFocus(focus, "click"); }
+        catch(e) { report(String(e)); }
+      }}/></div>}
+
       {globalTranslation && <GlobalTranslation paper={paper} papers={state.papers} job={translationJob} readableJob={translationPdfJob}
         reload={() => void reloadTranslation()} onClose={() => setGlobalTranslation(false)} onRead={pid => {
           translatedRead.current = pid; select(pid); setTab('read'); setGlobalTranslation(false);
@@ -1386,6 +1431,10 @@ function BranchWindow({ paperId, branchId, pageId }: { paperId: string; branchId
   return (
     <BranchPanel
       standalone
+      onLocate={() => {
+        if (window.opener) { window.opener.postMessage({ channel: "prc-branch-locate", paperId, pageId: sessionStorage.getItem("prc-branch-page:" + branchId) || pageId }, location.origin); window.opener.focus(); }
+        else location.hash = "paper=" + encodeURIComponent(paperId);
+      }}
       paper={paper}
       branchId={branchId}
       firstPageId={pageId}

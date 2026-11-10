@@ -3,3 +3,10 @@ ports/deepseek-harness/integrations/** linguist-vendored
 ports/deepseek-harness/upstream/docs/** linguist-vendored
 ports/deepseek-harness/integrations/answer-me-with-html/prc-renderer.mjs linguist-generated
 ports/deepseek-harness/integrations/learn-from-materials/examples/*.html linguist-generated
+
+# Binary teaching fixtures and fonts; original OFL text is kept unchanged.
+*.pdf binary
+*.ttf binary
+# Standalone example HTML embeds fonts, images and verbatim license text.
+examples/study-demo/*.html linguist-generated -diff
+ports/deepseek-harness/upstream/src/paper_research_coach/study_fonts/*-OFL.txt whitespace=-blank-at-eol,-blank-at-eof

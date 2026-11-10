@@ -94,6 +94,8 @@ export function TranslationTools({
       <p>翻译独立运行，沿用 DeepSeek Harness 登录。完成后，选句即可查看对应中文。</p>
       {profile && (
         <>
+          <details className="translation-advanced">
+            <summary>翻译高级设置</summary>
           <label>
             翻译模型
             <select
@@ -143,6 +145,7 @@ export function TranslationTools({
               ))}
             </select>
           </label>
+          </details>
           {!profile.component?.ready && (
             <p role="status">请先安装可选翻译组件，再生成整篇译文。</p>
           )}
@@ -323,13 +326,13 @@ export function TranslationPopover({
       {onMark && <button disabled={saving || saved} onClick={async () => {
         setSaving(true);
         try { markAnchor.current ||= source; await onMark(markAnchor.current); setSaved(true); } catch { setError("标记未保存，请重试。"); } finally { setSaving(false); }
-      }}>{saved ? "已保留在 PDF" : saving ? "正在保存…" : "保留标记"}</button>}
+      }}>{saved ? "已保存批注" : saving ? "正在保存…" : "保留标记"}</button>}
       {onNote && <button onClick={() => { onNote(source); onClose(); }}>记笔记</button>}
       <button
-        disabled={!discussionSource}
+        disabled={!selection.anchor}
         title={!discussionSource ? "这处译文尚未对应原文，可先保存批注" : undefined}
         onClick={() => {
-          onDiscuss(discussionSource);
+          onDiscuss(discussionSource || selection.anchor);
           onClose();
         }}
       >
