@@ -113,6 +113,15 @@ def run(config):
     )
     from babeldoc.translator.translator import BaseTranslator, OpenAITranslator
 
+    if sys.platform == "darwin":
+        # macOS spawns a fresh interpreter per native PDF save. Importing the
+        # layout/translation stack in every such child dominates short papers.
+        from babeldoc.format.pdf.document_il.backend import pdf_creater
+        from paper_research_coach import pdf_save_worker
+
+        pdf_creater._subset_fonts_process = pdf_save_worker.subset_fonts
+        pdf_creater._save_pdf_clean_process = pdf_save_worker.save_pdf
+
     if os.name == "nt":
         # The entire PDF pipeline already owns a dedicated process. Running
         # these native operations on that process's main thread avoids nested

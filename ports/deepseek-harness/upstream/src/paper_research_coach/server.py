@@ -332,6 +332,16 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             store.replace_source, paper_id, (await request.json())["path"]
         )
 
+    @app.post("/api/dictionary")
+    async def dictionary(request: Request):
+        from .dictionary import lookup
+
+        body = await request.json()
+        word = body.get("word") if isinstance(body, dict) else None
+        if not isinstance(word, str):
+            raise ValueError("请选择要查找的词或短语。")
+        return await asyncio.to_thread(lookup, word)
+
     @app.get("/api/pdf/{paper_id}")
     def pdf(paper_id: str):
         if store.check_source(paper_id)["status"] != "current":
@@ -343,6 +353,17 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             filename="paper.pdf",
             content_disposition_type="inline",
         )
+
+    @app.post("/api/ocr/{paper_id}/{page_index}")
+    def page_ocr(paper_id: str, page_index: int, version: str):
+        from .page_ocr import recognize_page
+
+        paper = store.get("paper", paper_id)
+        if version != paper["source_version"] or store.check_source(paper_id)["status"] != "current":
+            raise Conflict("PDF 已换版或不可用，请先确认来源。")
+        if not 0 <= page_index < paper["page_count"]:
+            raise ValueError("页码超出范围。")
+        return recognize_page(Path(paper["source_path"]), page_index, version, store.root / "page-ocr")
 
     @app.get("/api/text/{paper_id}/{page_index}")
     def page_text(paper_id: str, page_index: int):
@@ -776,6 +797,10 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
         return await asyncio.to_thread(
             sync.resolve, conflict_id, (await request.json())["choice"]
         )
+
+    @app.get("/api/vault/papers/{paper_id}/links")
+    def vault_paper_links(paper_id: str):
+        return vault.paper_links(paper_id)
 
     @app.post("/api/vault/configure")
     async def vault_configure(request: Request):

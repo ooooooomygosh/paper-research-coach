@@ -65,12 +65,13 @@ export function sameAnchor(a: any, b: any): boolean {
     figure: v.figure || "",
     quote: v.quote || "",
     rects: v.rects || [],
+    ink: v.ink || [],
     status: v.status || "unresolved",
     rendition: v.rendition ? {
       job_id: v.rendition.job_id, view: v.rendition.view,
       document_version: v.rendition.document_version,
       page_index: v.rendition.page_index, page_label: v.rendition.page_label || "",
-      quote: v.rendition.quote || "", rects: v.rendition.rects || [],
+      quote: v.rendition.quote || "", rects: v.rendition.rects || [], ink: v.rendition.ink || [],
     } : null,
   };
   return JSON.stringify(normalized(a)) === JSON.stringify(normalized(b));
@@ -90,7 +91,7 @@ export const anchorQuote = (anchor: any) => anchor?.rendition?.quote || anchor?.
 export function isBareMark(note: any) {
   if (note?.author !== "user" || !note.anchor) return false;
   const quote = anchorQuote(note.anchor).trim(), content = (note.content || "").trim();
-  return quote ? content === quote : content === "区域标记";
+  return quote ? content === quote : ["区域标记", "手绘批注"].includes(content);
 }
 
 /** Read only geometry belonging to the displayed PDF; source and translated layouts differ. */

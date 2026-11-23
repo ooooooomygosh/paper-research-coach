@@ -709,10 +709,10 @@ export function Settings({
         <p>需要 Zotero 10，并开启“设置 → 高级 → 允许本机其他应用通信”。</p>
       </div>
       <div className="surface">
-        <h3>OneDrive / 本地文献目录</h3>
+        <h3>Obsidian / 本地文献目录</h3>
         <p>
           自动发现新增 PDF，并按文件内容关联
-          Zotero。已有论文卡作为外部资料保留；新笔记以修订版本写入“06_PRC阅读记录”，可以直接编辑自己的原话文件。
+          Zotero。填写 Obsidian 仓库根目录即可从论文笔记面板打开对应的论文卡和 Markdown 文件。Markdown 按修订版本写入“06_PRC阅读记录”，可在工作台或 Obsidian 编辑自己的原话。
         </p>
         <label>
           文献目录
@@ -735,7 +735,7 @@ export function Settings({
             disabled={busy || !state.vault?.enabled}
             onClick={() => perform(() => api("vault/scan", {}))}
           >
-            立即检查新文件
+            立即扫描并同步 Markdown
           </button>
         </div>
         {state.vault?.enabled && (

@@ -1,0 +1,51 @@
+.note-library-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .75rem;
+  margin-block: .85rem;
+  overflow-wrap: anywhere;
+  font-size: .875rem;
+}
+
+.note-markdown-preview {
+  min-block-size: 6rem;
+  max-block-size: 20rem;
+  padding: .5rem .75rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.note-page-distribution {
+  margin-block: .85rem;
+}
+
+.note-page-distribution summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.note-page-distribution ul {
+  display: grid;
+  gap: .35rem;
+  max-block-size: 13rem;
+  margin: .5rem 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.note-page-distribution li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(3rem, 25%) max-content;
+  align-items: center;
+  gap: .5rem;
+}
+
+.note-page-distribution li button {
+  justify-self: start;
+  text-align: start;
+}
+
+.note-page-distribution meter {
+  inline-size: 100%;
+}

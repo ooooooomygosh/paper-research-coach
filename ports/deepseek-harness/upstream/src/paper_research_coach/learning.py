@@ -177,7 +177,7 @@ class Learning:
         files = [root / item["file"] for item in row["materials"]]
         if not all(file.is_file() for file in files):
             raise ValueError("部分资料文件不存在，请重新导入。")
-        await run_tool(["-m", "paper_research_coach.material_extract", *files, "--mode", "text", "--ocr", "off", "--no-cache", "--output-dir", output], root)
+        await run_tool(["-m", "paper_research_coach.material_extract", *files, "--mode", "text", "--ocr", "auto", "--no-cache", "--output-dir", output], root)
         metadata = read_json(output / "metadata.json")
         extracted = read_json(output / "source_manifest.json")["sources"]
         if len(extracted) != len(files):
@@ -187,6 +187,8 @@ class Learning:
         blocks, unreadable = source_blocks(output, row["depth"])
         warnings = []
         for source in extracted:
+            if source.get("ocr_used"):
+                warnings.append(source["filename"] + "：扫描页文字经过本机 OCR，公式和表格请核对原图。")
             if source.get("format") == "pdf" and not source.get("page_mapping_complete"):
                 warnings.append(source["filename"] + "：逐页映射不完整，不能据此声称读完所有 PDF 页面。")
         if metadata.get("visual_review_recommended"):

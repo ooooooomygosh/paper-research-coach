@@ -155,7 +155,10 @@ def comparison_csv(store: Store):
 def annotated_pdf(store: Store, paper_id: str, destination: Path, rendition=None):
     from pypdf import PdfReader, PdfWriter
     from pypdf.annotations import Highlight, Text, Rectangle
-    from pypdf.generic import ArrayObject, FloatObject, NameObject, TextStringObject
+    from pypdf.generic import (
+        ArrayObject, DecodedStreamObject, DictionaryObject, FloatObject,
+        NameObject, NumberObject, TextStringObject,
+    )
 
     p = store.get("paper", paper_id)
     if store.check_source(paper_id)["status"] != "current":
@@ -199,7 +202,36 @@ def annotated_pdf(store: Store, paper_id: str, destination: Path, rendition=None
             skipped.append(n["id"])
             continue
         content = f"{n['provenance']}: {n['content']}"
-        if a["rects"]:
+        if a.get("ink"):
+            x0, y0, x1, y1 = a["rects"][0]
+            left, bottom = x0 - 2, y0 - 2
+            color = (0.72, 0.19, 0.19)
+            appearance = DecodedStreamObject()
+            appearance.update({
+                NameObject("/Type"): NameObject("/XObject"),
+                NameObject("/Subtype"): NameObject("/Form"),
+                NameObject("/BBox"): ArrayObject([
+                    FloatObject(v) for v in (0, 0, x1 - x0 + 4, y1 - y0 + 4)
+                ]),
+                NameObject("/Resources"): DictionaryObject(),
+            })
+            line = [f"{x - left:.4f} {y - bottom:.4f} {'m' if i == 0 else 'l'}"
+                    for i, (x, y) in enumerate(a["ink"])]
+            appearance.set_data(("0.72 0.19 0.19 RG 2 w 1 J 1 j\n" + "\n".join(line) + "\nS").encode("ascii"))
+            ann = DictionaryObject({
+                NameObject("/Type"): NameObject("/Annot"),
+                NameObject("/Subtype"): NameObject("/Ink"),
+                NameObject("/Rect"): ArrayObject([FloatObject(v) for v in (left, bottom, x1 + 2, y1 + 2)]),
+                NameObject("/InkList"): ArrayObject([
+                    ArrayObject([FloatObject(v) for point in a["ink"] for v in point])
+                ]),
+                NameObject("/Contents"): TextStringObject(content),
+                NameObject("/C"): ArrayObject([FloatObject(v) for v in color]),
+                NameObject("/BS"): DictionaryObject({NameObject("/W"): FloatObject(2)}),
+                NameObject("/AP"): DictionaryObject({NameObject("/N"): writer._add_object(appearance)}),
+                NameObject("/F"): NumberObject(4),
+            })
+        elif a["rects"]:
             rects = a["rects"]
             if n.get("annotation_type") == "rectangle" or not a.get("quote"):
                 for rect in rects:

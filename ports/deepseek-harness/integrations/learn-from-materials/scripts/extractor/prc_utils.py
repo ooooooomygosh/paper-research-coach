@@ -441,12 +441,15 @@ def extract_single_file(input_path: Path, extraction_mode: str, install_mode: st
                             text_page.close()
                     finally:
                         page.close()
+            from paper_research_coach.page_ocr import fill_scanned_pages
+            cache = Path(os.environ.get("PRC_DATA") or OUTPUT_DIR) / "page-ocr"
+            ocr_used = fill_scanned_pages(input_path, parts, ocr_mode, cache)
             text = "\f".join(parts)
         except Exception as error:
             raise ExtractionError("PDF text could not be read by the bundled engine: " + str(error)) from error
         if not text.strip():
             raise ExtractionError("PDF has no readable text layer. Perform OCR separately before importing scanned pages.")
-        method = "pypdfium2"
+        method = "pypdfium2+ocr" if ocr_used else "pypdfium2"
         pages_label = "pages"
         ocr_recommended = any(not part.strip() for part in parts)
         visual_review_recommended = True

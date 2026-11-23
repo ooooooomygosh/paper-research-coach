@@ -541,7 +541,9 @@ export function App() {
       };
       const result = await api("export", { kind: "pdf", paper_id: paper.id, rendition });
       const link = window.document.createElement("a");
-      link.href = result.download; link.download = ""; link.click();
+      link.href = import.meta.env.BASE_URL + result.download.replace(/^\//, "");
+      link.download = "";
+      link.click();
       if (result.unplaced_note_ids.length) report("已导出当前 PDF；其他版本或未定位的笔记保留在笔记库。");
     } catch (e) { report(String(e)); } finally { setExportingPdf(false); }
   }
@@ -1229,7 +1231,19 @@ export function App() {
                       if (selection.view !== "original") setAnchor(a);
                     }}
                     onMark={async (a) => {
-                      await put("note", { id: selection.id, paper_id: paper.id, revision: 0, author: "user", provenance: "USER", content: anchorQuote(a) || "区域标记", anchor: a, annotation_type: anchorQuote(a) ? "highlight" : "rectangle" }, selection.id);
+                      const quote = anchorQuote(a);
+                      const drawing = !!(a.rendition || a).ink?.length;
+                      await put("note", {
+                        id: selection.id,
+                        paper_id: paper.id,
+                        revision: 0,
+                        author: "user",
+                        provenance: "USER",
+                        content: quote || (drawing ? "手绘批注" : "区域标记"),
+                        anchor: a,
+                        annotation_type: drawing ? "ink" : quote ? "highlight" : "rectangle",
+                        ...(drawing ? { color: "#b83131" } : {}),
+                      }, selection.id);
                       await refresh();
                       setMarkedSelection(selection.id);
                     }}

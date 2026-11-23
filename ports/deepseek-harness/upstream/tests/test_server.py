@@ -160,3 +160,18 @@ def test_an_empty_token_file_never_lets_a_request_in(store):
     assert c.get("/api/state").status_code == 401
     assert c.get("/api/state", headers={"Authorization": "Bearer "}).status_code == 401
     assert c.get("/api/state", headers={"Authorization": "Bearer " + token}).status_code == 200
+
+
+def test_dictionary_queries_are_local_and_validated(store, monkeypatch):
+    from paper_research_coach import dictionary
+
+    monkeypatch.setattr(dictionary.sys, "platform", "linux")
+    c = client(store)
+    assert c.post("/api/dictionary", json={"word": "robust"}).status_code == 401
+    assert c.post("/api/login", json={"token": "test-token"}).status_code == 200
+    c.headers["Origin"] = "http://127.0.0.1:8765"
+    assert c.post("/api/dictionary", json={"word": ""}).status_code == 400
+    assert c.post("/api/dictionary", json={"word": "robust"}).json() == {
+        "available": False,
+        "definition": None,
+    }

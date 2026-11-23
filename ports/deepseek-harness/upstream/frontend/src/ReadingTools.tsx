@@ -297,6 +297,23 @@ export function TranslationPopover({
     return () => document.removeEventListener("keydown", escape, true);
   }, [onClose]);
   const source = result?.source_anchor || selection.anchor;
+  const lookup = anchorQuote(selection.anchor).trim().replace(/\s+/g, " ");
+  const [definition, setDefinition] = useState("");
+  const [looking, setLooking] = useState(false);
+  const [lookupTried, setLookupTried] = useState(false);
+  async function lookUp() {
+    setLooking(true);
+    try {
+      const r = await api("dictionary", { word: lookup });
+      setDefinition(r.definition || (r.available ? "系统词典没有找到这个词或短语。" : "这个系统没有可用的本地词典。"));
+      setLookupTried(!r.definition);
+    } catch {
+      setDefinition("查词未完成，可以重试。");
+    } finally {
+      setLooking(false);
+    }
+  }
+  const drawing = !!(selection.anchor.rendition || selection.anchor).ink?.length;
   const discussionSource = result?.source_anchor || (selection.view === "original" ? selection.anchor : null);
   const markAnchor = useRef<any>(null);
   return (
@@ -304,11 +321,11 @@ export function TranslationPopover({
       ref={popover}
       className="translation-popover"
       role="dialog"
-      aria-label={!anchorQuote(selection.anchor) ? "区域批注" : hasTranslation(job) ? "对应中文" : "原文选区"}
+      aria-label={drawing ? "手绘批注" : !anchorQuote(selection.anchor) ? "区域批注" : hasTranslation(job) ? "对应中文" : "原文选区"}
       style={position}
     >
       <div className="translation-popover-heading">
-        <span>{!anchorQuote(selection.anchor) ? "区域批注" : !hasTranslation(job) ? "原文选区" : result?.level === "paragraph" ? "对应段落" : "对应中文"}</span>
+        <span>{drawing ? "手绘批注" : !anchorQuote(selection.anchor) ? "区域批注" : !hasTranslation(job) ? "原文选区" : result?.level === "paragraph" ? "对应段落" : "对应中文"}</span>
         <button aria-label="关闭译文" onClick={onClose}>
           <X size={15} />
         </button>
@@ -317,12 +334,18 @@ export function TranslationPopover({
         {error ||
           result?.text ||
           result?.message ||
-          (!anchorQuote(selection.anchor) ? "已框选这处区域，可保存标记或记下你的想法。" : hasTranslation(job)
+          (drawing ? "已画出笔迹，可以保留批注。" : !anchorQuote(selection.anchor) ? "已框选这处区域，可保存标记或记下你的想法。" : hasTranslation(job)
             ? "正在查找对应译文…"
             : anchorQuote(selection.anchor) || "已选择原文位置。")}
       </p>
       {!hasTranslation(job) && !!anchorQuote(selection.anchor) && <p className="selection-help">可以直接讨论这句话，不需要先翻译整篇论文。</p>}
       <div className="selection-actions">
+      {lookup && lookup.length <= 80 && <button type="button" disabled={looking} onClick={() => void lookUp()}>
+        {looking ? "查词中…" : "查词"}
+      </button>}
+      {lookupTried && <a className="dictionary-link"
+        href={"https://www.youdao.com/result?word=" + encodeURIComponent(lookup) + "&lang=en"}
+        target="_blank" rel="noopener noreferrer" title="把选中的词或短语发送到有道词典">用有道词典查找</a>}
       {onMark && <button disabled={saving || saved} onClick={async () => {
         setSaving(true);
         try { markAnchor.current ||= source; await onMark(markAnchor.current); setSaved(true); } catch { setError("标记未保存，请重试。"); } finally { setSaving(false); }
@@ -339,6 +362,7 @@ export function TranslationPopover({
         讨论这处
       </button>
       </div>
+      {definition && <p className="dictionary-definition" role="status">{definition}</p>}
     </div>
   );
 }

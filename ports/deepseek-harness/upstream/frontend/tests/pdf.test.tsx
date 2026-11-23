@@ -38,6 +38,7 @@ vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
           return {
             getViewport: ({ scale }: { scale: number }) => ({
               scale,
+              viewBox: [0, 0, 600, 800],
               width: 600 * scale,
               height: 800 * scale,
               convertToViewportPoint: (x: number, y: number) => [
@@ -483,4 +484,27 @@ it("draws only coach marks resolved for the current translated file", async () =
   await waitFor(() => expect(document.querySelector(".coach-mark")).toBeTruthy());
   node.rerender(<PdfReader {...props} coachMarks={{ page_index: 0, document_version: "b".repeat(64), marks: [{ n: 1, rects: [[1, 2, 30, 40]] }] }} />);
   expect(document.querySelector(".coach-mark")).toBeNull();
+});
+
+it("captures ink in PDF points and exits drawing mode after making a stroke", async () => {
+  const onAnchor = vi.fn();
+  const { container } = render(<PdfReader
+    paper={{ id: "p", revision: 1, source_version: "ink-test" }}
+    page={0} setPage={vi.fn()} onAnchor={onAnchor} focusAnchor={null}
+  />);
+  await waitFor(() => expect(container.querySelector('[data-page-index="0"]')).toBeTruthy());
+  const button = screen.getByRole("button", { name: "PDF 手绘批注" });
+  fireEvent.click(button);
+  const surface = container.querySelector<HTMLElement>('[data-page-index="0"] .pdf-ink-capture')!;
+  surface.getBoundingClientRect = () => new DOMRect(0, 0, 660, 880);
+  surface.setPointerCapture = vi.fn();
+  fireEvent.pointerDown(surface, { isPrimary: true, pointerId: 1, button: 0, clientX: 66, clientY: 110 });
+  fireEvent.pointerMove(surface, { isPrimary: true, pointerId: 1, clientX: 88, clientY: 121 });
+  fireEvent.pointerUp(surface, { isPrimary: true, pointerId: 1, clientX: 110, clientY: 132 });
+  expect(onAnchor).toHaveBeenCalledOnce();
+  const [anchor] = onAnchor.mock.calls[0];
+  expect(anchor.page_index).toBe(0);
+  expect(anchor.ink[0][0]).toBeCloseTo(60);
+  expect(anchor.ink[2][1]).toBeCloseTo(680);
+  expect(button.getAttribute("aria-pressed")).toBe("false");
 });

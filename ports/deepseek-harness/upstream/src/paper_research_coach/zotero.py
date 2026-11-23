@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 import re
 import secrets
 import sqlite3
@@ -366,6 +367,15 @@ class ZoteroSync:
                 parent = self.request(
                     "GET", f"users/0/items/{attachment['parentItem']}", sid
                 ).json()["data"]
+                # Zotero synchronization has one canonical local record per parent.
+                # Keep additional local PDF records intact and provide navigation in VaultSync.
+                if any(
+                    other["id"] != paper["id"]
+                    and other["zotero_server"] == sid
+                    and other["zotero_key"] == parent["key"]
+                    for other in self.store.list("paper", archived=True)
+                ):
+                    return paper
                 if collection not in parent.get("collections", []):
                     patch = {
                         "key": parent["key"],
@@ -571,6 +581,17 @@ class ZoteroSync:
                 if p["source_version"]
                 else "unresolved",
             }
+            if typ == "ink":
+                paths = pos.get("paths", [])
+                if len(paths) == 1 and isinstance(paths[0], list):
+                    coords = paths[0]
+                    if (4 <= len(coords) <= 4096 and len(coords) % 2 == 0
+                            and all(isinstance(v, (int, float)) and math.isfinite(v) for v in coords)):
+                        xs, ys = coords[::2], coords[1::2]
+                        values["anchor"].update(ink=list(zip(xs, ys)), rects=[[
+                            min(xs) - 1, min(ys) - 1, max(xs) + 1, max(ys) + 1
+                        ]])
+                        values["read_only"] = bool(d.get("annotationIsExternal") or pos.get("width", 2) != 2)
         return values
 
     def encode(self, p, n, remote_key, version):
@@ -587,6 +608,19 @@ class ZoteroSync:
             and a["source_version"] == p["source_version"]
             and p["zotero_attachment"]
         ):
+            ink = a.get("ink")
+            if ink:
+                return base | {
+                    "itemType": "annotation",
+                    "parentItem": p["zotero_attachment"],
+                    "annotationType": "ink",
+                    "annotationComment": n["content"],
+                    "annotationColor": n["color"],
+                    "annotationPageLabel": a["page_label"] or str(a["page_index"] + 1),
+                    "annotationSortIndex": f"{a['page_index']:05d}|000000|00000",
+                    "annotationPosition": json.dumps({"pageIndex": a["page_index"], "width": 2,
+                        "paths": [[coord for point in ink for coord in point]]}),
+                }
             return base | {
                 "itemType": "annotation",
                 "parentItem": p["zotero_attachment"],
