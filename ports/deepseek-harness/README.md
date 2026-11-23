@@ -1,14 +1,17 @@
-# Paper Research Coach · DeepSeek Harness 1.3.1
+# Paper Research Coach · DeepSeek Harness 1.4.0
 
 **工作台内核 2.0.0rc15 · macOS Apple silicon · 原生宿主检查基线 Harness 0.2.2-rc.1。** 使用 Harness 登录账户，无需 API Key 或 Codex CLI。Windows 旧分发与本次 macOS 发布分别记录。
 
-[下载 1.3.1](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.3.1) · [双语研读操作](docs/BILINGUAL-READING.md) · [安装与恢复](../../docs/DEEPSEEK_HARNESS.md) · [发布说明](../../docs/releases/dsh-v1.3.1.md)
+[下载 1.4.0](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.0) · [双语研读操作](docs/BILINGUAL-READING.md) · [安装与恢复](../../docs/DEEPSEEK_HARNESS.md) · [发布说明](../../docs/releases/dsh-v1.4.0.md)
 
 ![讲解大阅读区](../../docs/images/explanation-large.png)
 
 合成材料与预设回复，非实时模型输出。
 
 ## 日常功能
+
+- 选词可查系统词典，扫描页可识别文字，手绘批注可随 PDF 副本导出。
+- 笔记支持 Markdown 与公式预览，按页面查看批注分布，并能打开对应的 Obsidian 文件或 Zotero 条目。
 
 - 原文、中文及双语 PDF 的提问保持当前语言，划线问答留在原处，带读可跟随证据；映射不足保持待核实。
 - 讲解可在应用内大阅读区展开，与 PDF 调整宽度对照，全屏或主动打开独立窗口；显示切换不重新生成内容。
@@ -19,19 +22,19 @@
 
 ## 安装与更新
 
-macOS 下载 [PRC-DSH-1.3.1-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.3.1/PRC-DSH-1.3.1-mac.zip)，完全退出 Harness（含托盘），解压后双击 `安装.command`，再启动“论文研读”。ZIP、`dsh-release.json`、ZIP `.sha256` 和 `SHA256SUMS` 放在同一 DSH Release；仓库不提交大型安装包。源码构建保留在 [macOS 说明](macos/README.md)。
+macOS 下载 [PRC-DSH-1.4.0-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.0/PRC-DSH-1.4.0-mac.zip)，完全退出 Harness（含托盘），解压后双击 `安装.command`，再启动“论文研读”。ZIP、`dsh-release.json`、ZIP `.sha256` 和 `SHA256SUMS` 放在同一 DSH Release；仓库不提交大型安装包。源码构建保留在 [macOS 说明](macos/README.md)。
 
-**从旧版升级会保留原有数据目录。** 1.3.1 新增的 DSH 专属更新器检查 `dsh-v*` Release，验证宿主、平台与 SHA-256，后台暂存兼容包，下一次完全退出并重启 Harness 时安装。运行中的阅读进程保持原版本。“设置 → 版本与更新”显示实际插件版本，支持手动检查。独立工作台的 wheel 更新器在 DSH 中继续关闭。
+**从旧版升级会保留原有数据目录。** 自 1.3.1 起提供的 DSH 专属更新器检查 `dsh-v*` Release，验证宿主、平台与 SHA-256，后台暂存兼容包，下一次完全退出并重启 Harness 时安装。运行中的阅读进程保持原版本。“设置 → 版本与更新”显示实际插件版本，支持手动检查。独立工作台的 wheel 更新器在 DSH 中继续关闭。
 
-目前自动安装目标为 macOS arm64。Windows 没有兼容资产时不安装；本次没有发布 1.3.1 Windows ZIP，也没有执行 Windows 原生安装验收。`PRC-DSH-1.2.0-win-x64.zip` 与 Harness 0.2.1-rc.5 的记录属于历史版本。
+目前自动安装目标为 macOS arm64。Windows 没有兼容资产时不安装；本次没有发布 1.4.0 Windows ZIP，也没有执行 Windows 原生安装验收。`PRC-DSH-1.2.0-win-x64.zip` 与 Harness 0.2.1-rc.5 的记录属于历史版本。
 
 论文、译文缓存、笔记和学习记录默认位于 `~/.dsh/paper-research-coach`（跟随 `DSH_HOME`）。凭证由 Harness 管理；原 PDF 保持只读。旧八步记录不覆盖，阅读计划另存。更新保留旧版、安装备份与一致性数据备份，回退应使用匹配的数据版本。
 
-## 验证范围
+## 1.3.1 历史验证范围
 
 本轮已做源码回归、Chrome 合成页面、离线零外部请求、旧数据副本升级，以及 macOS Harness 0.2.2-rc.1 的真实账户合成 PDF 问答与定位。自动更新的清单、校验、暂存和恢复另有隔离测试；真实未来版本的公网升级不能由本地包测试替代。[验证与限制](docs/BILINGUAL-READING.md)
 
-本次没有真人学习收益试验和真实 Zotero 写入。章节识别为启发式；图表与公式保留原页核验图。模型生成的分析、参考答案和处理进度不作为掌握度证明。
+1.3.1 验证未包含真人学习收益试验和真实 Zotero 写入。章节识别为启发式；图表与公式保留原页核验图。模型生成的分析、参考答案和处理进度不作为掌握度证明。
 
 ## 源码组织
 
@@ -93,4 +96,4 @@ python -X utf8 scripts/prepare_bundle.py --runtime 'C:/PRC-DSH/package/runtime'
 
 `prepare_bundle.py` 核对翻译资源哈希，复制运行库，修正本地源码优先路径并检查关键依赖；`build_release.py` 收集源码、资源、许可证和安装器，检查私有数据排除项，生成逐文件 SHA-256 清单、ZIP CRC 和 ZIP 摘要。构建前需先完成前端构建。
 
-历史 Windows 安装器的验证基线仅为 Harness **0.2.1-rc.5**，不代表本次 macOS 1.3.1 的安装路径。宿主升级后仍需核验兼容性；DSH 不安装独立工作台 wheel。
+历史 Windows 安装器的验证基线仅为 Harness **0.2.1-rc.5**，不代表本次 macOS 1.4.0 的安装路径。宿主升级后仍需核验兼容性；DSH 不安装独立工作台 wheel。

@@ -348,3 +348,21 @@ def test_resolver_rejects_target_replacement_before_mapping(anchor, tmp_path):
     req = ResolveAnchorRequest(anchor={**anchor, "status": "verified"}, view="mono", document_version="a" * 64)
     with pytest.raises(Conflict, match="显示目标已换版"):
         service.resolve_anchor("job", req)
+
+
+def test_page_mapping_reloads_after_atomic_checkpoint(tmp_path):
+    from paper_research_coach.translation import mapping_page
+
+    path = tmp_path / "mapping.json"
+    def checkpoint(title):
+        Translation.write_mapping(path, {
+            "dual_transforms": ["matrix"],
+            "segments": [{"id": title, "source": {"page_index": 2}}],
+        })
+    checkpoint("old")
+    page = mapping_page(path, 2)
+    assert page["segments"][0]["id"] == "old"
+    assert page["dual_transforms"] == ["matrix"]
+    assert mapping_page(path, 1)["segments"] == []
+    checkpoint("new")
+    assert mapping_page(path, 2)["segments"][0]["id"] == "new"

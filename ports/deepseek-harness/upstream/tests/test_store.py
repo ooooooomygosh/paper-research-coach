@@ -334,3 +334,26 @@ def test_a_new_event_stream_starts_at_the_end_of_history_not_at_the_beginning(st
     assert events_start(store, None, "not a number") == end
     assert store.events(end) == []
     assert [e["id"] for e in store.events(end - 1)] == [note["id"]]
+
+
+def test_pdf_export_drawings_are_editable_annotations(store, paper, anchor, pdf, tmp_path):
+    from pypdf import PdfReader
+
+    original = digest(pdf)
+    stroke = [[72, 685], [88, 690], [110, 683]]
+    store.put(
+        "note",
+        {
+            "paper_id": paper["id"],
+            "content": "手绘批注",
+            "annotation_type": "ink",
+            "anchor": anchor | {"quote": "", "ink": stroke},
+        },
+    )
+    result = annotated_pdf(store, paper["id"], tmp_path / "drawings.pdf")
+    assert not result["unplaced_note_ids"]
+    annotation = PdfReader(result["path"]).pages[0]["/Annots"][0].get_object()
+    assert annotation["/Subtype"] == "/Ink"
+    assert list(annotation["/InkList"][0]) == [72, 685, 88, 690, 110, 683]
+    assert b"14.0000 12.0000 m" in annotation["/AP"]["/N"].get_data()
+    assert digest(pdf) == original

@@ -1,4 +1,4 @@
-# 在 DeepSeek Harness 中使用 Paper Research Coach 1.3.1
+# 在 DeepSeek Harness 中使用 Paper Research Coach 1.4.0
 
 从 Harness 侧栏“论文研读”进入。插件使用当前登录账户，工作台内核为 **2.0.0rc15**，无需另填 API Key 或启动 Codex CLI。
 
@@ -6,13 +6,17 @@
 
 本次发布面向 **macOS Apple silicon**，原生测试宿主为 **Harness 0.2.2-rc.1**。
 
-1. 在 [DSH 1.3.1 Release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.3.1) 下载 `PRC-DSH-1.3.1-mac.zip`。
+1. 在 [DSH 1.4.0 Release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.0) 下载 `PRC-DSH-1.4.0-mac.zip`。
 2. 完全退出 Harness 及托盘，解压 ZIP，双击 `安装.command`。
 3. 重新打开 Harness，从侧栏进入“论文研读”。
 
 同一 Release 提供 `dsh-release.json`、ZIP `.sha256` 和 `SHA256SUMS`。独立工作台的 wheel/Skill ZIP 用于另外的入口，不能作为 DSH 插件安装包。源码安装见 [macOS 构建](../ports/deepseek-harness/macos/README.md)。
 
-Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次没有新版 Windows 分发和原生安装验证；请勿把旧包描述成 1.3.1。
+Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次没有新版 Windows 分发和原生安装验证；请勿把旧包描述成 1.4.0。
+
+## 本版操作
+
+阅读页可打开本机词典、给 PDF 添加可导出的手绘批注。笔记区可直接编辑 Markdown、预览和按页定位。扫描页的识别结果可选取复制。[完整说明与测试范围](releases/dsh-v1.4.0.md)
 
 ## 阅读、批注和讲解
 
@@ -28,7 +32,7 @@ Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次没有新版 Windows �
 
 ## DSH 插件更新
 
-安装 1.3.1 后，由插件宿主检查本仓库的 **`dsh-v*` 专属发布**。默认定期检查，核对宿主版本、平台和 SHA-256 后后台暂存整包；在下次完全退出 Harness 并重新打开时安装，运行中的阅读进程不替换。
+安装 1.4.0 后，由插件宿主检查本仓库的 **`dsh-v*` 专属发布**。默认定期检查，核对宿主版本、平台和 SHA-256 后后台暂存整包；在下次完全退出 Harness 并重新打开时安装，运行中的阅读进程不替换。
 
 “设置 → 版本与更新”显示实际 DSH 插件版本、已准备的版本和提示，可点击“检查 DSH 插件更新”。`staged` 表示下载与校验已完成、等待下次启动，不表示当前窗口已经换版。检查失败或没有兼容平台资产时继续使用当前版本。1.3.1 之前的版本首次升级需使用安装包。
 
@@ -46,10 +50,10 @@ Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次没有新版 Windows �
 
 ## English
 
-**Paper Research Coach DSH 1.3.1** uses workbench core **2.0.0rc15** and the signed-in Harness account. Download the macOS Apple silicon package from the [dedicated release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.3.1), fully quit Harness, extract it and open `安装.command`. Native-host validation uses Harness **0.2.2-rc.1**. This release does not provide or validate a new Windows installer; the 1.2.0 Windows package is historical.
+**Paper Research Coach DSH 1.4.0** uses workbench core **2.0.0rc15** and the signed-in Harness account. Download the macOS Apple silicon package from the [dedicated release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.0), fully quit Harness, extract it and open `安装.command`. Native-host validation uses Harness **0.2.2-rc.1**. This release does not provide or validate a new Windows installer; the 1.2.0 Windows package is historical.
 
 Selections retain the current PDF language and reading position. Detailed explanations expand into a large reading area with adjustable PDF comparison, fullscreen and explicit popout. The flexible four-stage route resumes saved legacy questions and retains eight-step records. Bilingual study pages share existing notes and export one offline HTML snapshot.
 
-The DSH updater checks only `dsh-v*` releases, validates host/platform compatibility and SHA-256, and stages a package for the next full Harness restart. Settings display the actual plugin version and manual check. It never installs the standalone wheel. Automatic installation currently targets macOS arm64; an unsupported platform keeps its installed version. Older builds first install 1.3.1 manually. Papers, translations, notes and conversations are preserved; rollback uses a matching backup.
+The DSH updater checks only `dsh-v*` releases, validates host/platform compatibility and SHA-256, and stages a package for the next full Harness restart. Settings display the actual plugin version and manual check. It never installs the standalone wheel. Automatic installation currently targets macOS arm64; an unsupported platform keeps its installed version. Older builds first install 1.4.0 manually. Papers, translations, notes and conversations are preserved; rollback uses a matching backup.
 
 Validation separates source tests, synthetic browser checks, legacy-data copies and real-account synthetic PDF navigation. Local update-package tests are not a future public-network upgrade test. No learning-effectiveness trial or real Zotero write is claimed.

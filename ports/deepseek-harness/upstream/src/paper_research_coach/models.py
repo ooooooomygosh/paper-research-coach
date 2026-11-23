@@ -56,10 +56,19 @@ class RenditionAnchor(BaseModel):
     page_label: str = ""
     quote: str = ""
     rects: list[tuple[float, float, float, float]] = Field(default_factory=list)
+    ink: list[tuple[float, float]] = Field(default_factory=list, max_length=2048)
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler):
+        data = handler(self)
+        if not self.ink:
+            data.pop("ink", None)
+        return data
 
     @model_validator(mode="after")
     def check_geometry(self):
         check_rectangles(self.rects)
+        check_ink(self.ink, self.rects)
         return self
 
 
@@ -69,6 +78,16 @@ def check_rectangles(rects):
     for x0, y0, x1, y1 in rects:
         if not all(math.isfinite(x) for x in (x0, y0, x1, y1)) or x1 <= x0 or y1 <= y0:
             raise ValueError("Invalid PDF rectangle")
+
+
+def check_ink(ink, rects):
+    if not ink:
+        return
+    if len(ink) < 2 or len(rects) != 1:
+        raise ValueError("Ink requires a path and one bounding rectangle")
+    left, bottom, right, top = rects[0]
+    if not all(left <= x <= right and bottom <= y <= top for x, y in ink):
+        raise ValueError("Ink points must be inside the bounding rectangle")
 
 
 class Anchor(BaseModel):
@@ -82,12 +101,15 @@ class Anchor(BaseModel):
     quote: str = ""
     # Unrotated PDF user-space points: x0, y0, x1, y1. Origin bottom-left.
     rects: list[tuple[float, float, float, float]] = Field(default_factory=list)
+    ink: list[tuple[float, float]] = Field(default_factory=list, max_length=2048)
     status: Literal["verified", "inferred", "unresolved", "stale"] = "unresolved"
     rendition: RenditionAnchor | None = None
 
     @model_serializer(mode="wrap")
     def serialize(self, handler):
         data = handler(self)
+        if not self.ink:
+            data.pop("ink", None)
         if self.rendition is None:
             data.pop("rendition", None)  # Keep durable pre-rendition request fingerprints.
         return data
@@ -97,6 +119,7 @@ class Anchor(BaseModel):
         if self.rects and self.page_index is None:
             raise ValueError("Region anchors require a page index")
         check_rectangles(self.rects)
+        check_ink(self.ink, self.rects)
         return self
 
 

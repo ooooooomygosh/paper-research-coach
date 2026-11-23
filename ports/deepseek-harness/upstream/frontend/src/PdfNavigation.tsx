@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { pageText } from "./pdfTextCache";
 
 type OutlineEntry = { title: string; page: number | null; depth: number };
 type Hit = { page: number; snippet: string };
@@ -139,7 +140,7 @@ export default function PdfNavigation({
       if (run !== generation.current) return;
       setProgress(`正在搜索第 ${index + 1} / ${doc.numPages} 页…`);
       try {
-        const content = await (await doc.getPage(index + 1)).getTextContent();
+        const content = await pageText(doc, index);
         if (run !== generation.current) return;
         const text = content.items
           .map((item) => ("str" in item ? item.str : ""))

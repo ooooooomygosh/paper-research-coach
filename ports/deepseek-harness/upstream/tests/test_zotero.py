@@ -590,7 +590,8 @@ def test_folder_binding_checks_instance_and_actual_attachment_bytes(
         },
     )
     bound = sync.bind_local_paper(p, "COLLECT1", fake.sid)
-    assert bound["zotero_attachment"] == "ATTACH01"
+    assert bound == p and not bound["zotero_key"]
+    assert store.get("paper", linked["id"]) == linked
     different = tmp_path / "different.pdf"
     w = PdfWriter()
     w.add_blank_page(width=700, height=800)
@@ -739,3 +740,22 @@ def test_sync_indexes_library_once_per_poll(synced, store, monkeypatch):
     assert sync.run()["state"] == "connected"
     assert len(library_reads) == 1
     assert store.get("paper", first["id"])["zotero_key"] == "PARENT01"
+
+
+def test_native_ink_roundtrip_preserves_stroke(synced, store):
+    sync, fake, paper = synced
+    points = [[60, 710], [80, 725], [120, 710]]
+    anchor = dict(paper_id=paper["id"], source_version=paper["source_version"],
+                  page_index=0, rects=[[59, 709, 121, 726]], ink=points, status="verified")
+    note = store.put("note", {"paper_id": paper["id"], "annotation_type": "ink",
+                              "anchor": anchor, "content": "handwritten", "color": "#b83131"})
+    sync.run()
+    mapping = sync.mapped(fake.sid, local_id=note["id"])
+    remote = fake.items[mapping["remote_key"]]
+    assert remote["annotationType"] == "ink"
+    assert json.loads(remote["annotationPosition"])["paths"] == [[60, 710, 80, 725, 120, 710]]
+    fake.mutate(remote["key"], annotationComment="updated in Zotero")
+    sync.run()
+    updated = store.get("note", note["id"])
+    assert updated["anchor"]["ink"] == points
+    assert updated["content"] == "updated in Zotero"

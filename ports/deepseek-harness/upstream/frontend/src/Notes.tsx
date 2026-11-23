@@ -8,6 +8,20 @@ import {
   Link2,
 } from "./glyphs";
 import Dialog from "./Dialog";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "./note-markdown.css";
+
+type LibraryLinks = {
+  cards: { title: string; uri: string }[];
+  source: string | null;
+  notebook: string | null;
+  notes: Record<string, string>;
+  zotero: string | null;
+  zotero_navigation_only?: boolean;
+};
 import { api, put, id, anchorQuote, isBareMark, location, sameAnchor, ApiError, type Row } from "./api";
 export default function Notes({
   paper,
@@ -65,6 +79,15 @@ export default function Notes({
       draft.content ? "正在恢复未完成的保存…" : "",
     ),
     [history, setHistory] = useState<any[] | null>(null);
+  const [preview, setPreview] = useState(false);
+  const [libraryLinks, setLibraryLinks] = useState<LibraryLinks | null>(null);
+  useEffect(() => {
+    let active = true;
+    void api("vault/papers/" + encodeURIComponent(paper.id) + "/links")
+      .then((links: LibraryLinks) => { if (active) setLibraryLinks(links); })
+      .catch(() => { if (active) setLibraryLinks(null); });
+    return () => { active = false; };
+  }, [paper.id, paper.revision, notes]);
   const latestNotes = useRef(notes);
   latestNotes.current = notes;
   const current = useRef(draft),
@@ -248,6 +271,7 @@ export default function Notes({
     };
     current.current = next;
     setDraft(next);
+    setPreview(false);
     setStatus("");
     localStorage.setItem(key, JSON.stringify(next));
   }
@@ -265,6 +289,7 @@ export default function Notes({
     }
     current.current = n;
     setDraft(n);
+    setPreview(false);
     localStorage.setItem(key, JSON.stringify(n));
     setStatus("编辑会保留原版本");
   }
@@ -284,6 +309,19 @@ export default function Notes({
     current.current = next;
     update(next);
   }
+  const cards = libraryLinks?.cards ?? [];
+  const pages = new Map<number, { count: number; anchor: any }>();
+  for (const note of notes) {
+    const a = note.anchor;
+    if (!paper.source_version || a?.source_version !== paper.source_version ||
+      a?.status !== "verified" || !Number.isInteger(a.page_index) ||
+      a.page_index < 0 || a.page_index >= paper.page_count) continue;
+    const group = pages.get(a.page_index);
+    if (group) group.count += 1;
+    else pages.set(a.page_index, { count: 1, anchor: a });
+  }
+  const pageEntries = [...pages.entries()].sort(([a], [b]) => a - b);
+  const maxCount = pageEntries.reduce((max, [, group]) => Math.max(max, group.count), 1);
   const pending = notes.filter((n) => !n.discussed && n.author !== "assistant" && !isBareMark(n)).length;
   return (
     <aside className="notes-panel">
@@ -298,14 +336,35 @@ export default function Notes({
         问题、反驳、不确定的直觉，都可以从这里开始。
       </p>
       <div className="composer">
-        <textarea
+        <button
+          className="text-button"
+          type="button"
+          aria-pressed={preview}
+          onClick={() => setPreview(!preview)}
+        >
+          {preview ? "返回编辑" : "预览 Markdown"}
+        </button>
+        {preview ? (
+          <div className="note-markdown-preview" aria-label="Markdown 预览">
+            {draft.content.trim() ? (
+              <Markdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                skipHtml
+                disallowedElements={["img"]}
+              >
+                {draft.content}
+              </Markdown>
+            ) : <p className="muted">还没有可预览的内容。</p>}
+          </div>
+        ) : <textarea
           aria-label="记录想法"
           placeholder="刚才读到这里，我在想…"
           value={draft.content}
           onChange={(e) =>
             update({ ...current.current, content: e.target.value })
           }
-        />
+        />}
         <div className="anchor-chip">
           <MapPin size={13} />
           {location(draft.anchor)}
@@ -339,6 +398,36 @@ export default function Notes({
           </div>
         )}
       </div>
+      {libraryLinks && (libraryLinks.notebook || libraryLinks.source || libraryLinks.zotero || cards.length > 0) && (
+        <nav aria-label="关联文献资料" className="note-library-links">
+          {libraryLinks.notebook && <a href={libraryLinks.notebook}>在 Obsidian 打开笔记目录</a>}
+          {libraryLinks.source && <a href={libraryLinks.source}>在 Obsidian 打开原文</a>}
+          {cards.map((card) => <a key={card.uri} href={card.uri} title={card.title}>论文卡 · {card.title}</a>)}
+          {libraryLinks.zotero && <a href={libraryLinks.zotero}>
+            {libraryLinks.zotero_navigation_only ? "在 Zotero 定位条目（仅导航）" : "在 Zotero 定位条目"}
+          </a>}
+        </nav>
+      )}
+      {pageEntries.length > 0 && (
+        <details className="note-page-distribution">
+          <summary>原文批注分布 · {pageEntries.length} / {paper.page_count} 页</summary>
+          <ul aria-label="有已核验批注的原文页">
+            {pageEntries.map(([index, { count, anchor }]) => (
+              <li key={index}>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => onLocate(anchor)}
+                  aria-label={`跳到 PDF 第 ${index + 1} 页，${count} 条批注`}
+                >
+                  PDF 第 {index + 1} 页{anchor.page_label ? `（印刷页 ${anchor.page_label}）` : ""}
+                </button>
+                <meter min={0} max={maxCount} value={count} aria-hidden="true" /> {count} 条
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <div className="notes-heading">
         <h3>
           阅读笔记 <span>{notes.length}</span>
@@ -396,6 +485,9 @@ export default function Notes({
               </span>
             )}
             <div className="note-actions">
+              {libraryLinks?.notes?.[n.id] && <a href={libraryLinks.notes[n.id]}>
+                {n.author === "user" && !n.read_only ? "在 Obsidian 编辑 Markdown" : "在 Obsidian 打开 Markdown"}
+              </a>}
               {!n.read_only && n.author !== "assistant" && (
                 <button
                   className="text-button"

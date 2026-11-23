@@ -28,6 +28,7 @@ const saved = (_: string, data: any) =>
 beforeEach(() => {
   localStorage.clear();
   vi.useFakeTimers();
+  vi.mocked(api).mockReset().mockResolvedValue(null);
   write.mockReset().mockImplementation(saved);
 });
 afterEach(async () => {
@@ -343,10 +344,10 @@ it("the revision log is a real dialog: named, closed by Escape, and focus return
     showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
     close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
   });
-  vi.mocked(api).mockResolvedValue([
+  vi.mocked(api).mockImplementation(async (path) => path.startsWith("history/") ? [
     { seq: 1, revision: 1, created_at: "2026-09-30T00:00:00Z", data: { content: "first words" } },
     { seq: 2, revision: 2, created_at: "2026-10-01T00:00:00Z", data: { content: "second words" } },
-  ] as any);
+  ] : null);
   const note = { id: "n1", paper_id: "p", revision: 2, author: "user", content: "second words", anchor: null, provenance: "USER", discussed: false, links: [], tags: [] };
   render(<Notes {...props} notes={[note] as any} />);
   const opener = screen.getByRole("button", { name: /修订记录/ });
@@ -357,4 +358,48 @@ it("the revision log is a real dialog: named, closed by Escape, and focus return
   fireEvent.keyDown(dialog, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(document.activeElement).toBe(opener);
+});
+
+it("previews Markdown and saves the exact source while showing related library links", async () => {
+  vi.mocked(api).mockResolvedValue({
+    cards: [{ title: "原论文卡", uri: "obsidian://open?path=%2Fcard.md" }],
+    source: null,
+    notebook: null,
+    notes: {},
+    zotero: "zotero://select/library/items/ZOTERO12",
+  });
+  render(<Notes {...props} />);
+  const content = "## 方法\n\n**原话**  ";
+  fireEvent.change(screen.getByLabelText("记录想法"), { target: { value: content } });
+  fireEvent.click(screen.getByRole("button", { name: "预览 Markdown" }));
+  expect(screen.getByRole("heading", { name: "方法" })).toBeTruthy();
+  await tick(600);
+  expect(write).toHaveBeenCalledWith("note", expect.objectContaining({ content }), expect.any(String));
+  expect(screen.getByRole("link", { name: /原论文卡/ }).getAttribute("href"))
+    .toBe("obsidian://open?path=%2Fcard.md");
+  expect(screen.getByRole("link", { name: "在 Zotero 定位条目" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "返回编辑" }));
+  expect((screen.getByLabelText("记录想法") as HTMLTextAreaElement).value).toBe(content);
+});
+
+it("groups current verified annotations by PDF page and navigates from the chart", () => {
+  const first = { page_index: 1, page_label: "iv", source_version: "current", status: "verified" };
+  const last = { ...first, page_index: 199, page_label: "" };
+  const note = { revision: 1, author: "user", content: "批注" };
+  const locate = vi.fn();
+  render(<Notes {...props}
+    paper={{ ...props.paper, source_version: "current", page_count: 200 }}
+    onLocate={locate}
+    notes={[
+      { ...note, id: "one", anchor: first },
+      { ...note, id: "two", anchor: first },
+      { ...note, id: "three", anchor: last },
+      { ...note, id: "old", anchor: { ...first, page_index: 3, source_version: "old" } },
+      { ...note, id: "unverified", anchor: { ...first, page_index: 8, status: "inferred" } },
+    ]}
+  />);
+  fireEvent.click(screen.getByText("原文批注分布 · 2 / 200 页"));
+  expect(screen.queryAllByRole("button", { name: /^跳到 PDF/ })).toHaveLength(2);
+  fireEvent.click(screen.getByRole("button", { name: "跳到 PDF 第 2 页，2 条批注" }));
+  expect(locate).toHaveBeenCalledWith(first);
 });

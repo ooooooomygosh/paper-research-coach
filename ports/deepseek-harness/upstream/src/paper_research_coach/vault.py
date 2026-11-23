@@ -7,10 +7,12 @@ import json
 import os
 import tempfile
 import re
+import unicodedata
 
 import httpx
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 import yaml
 from filelock import FileLock, Timeout
@@ -54,6 +56,7 @@ class VaultSync:
         with store.connect() as db:
             db.executescript("""
             CREATE TABLE IF NOT EXISTS vault_files(root TEXT, path TEXT, kind TEXT, hash TEXT, paper_id TEXT, record_id TEXT, base_revision INTEGER, PRIMARY KEY(root,path));
+            CREATE INDEX IF NOT EXISTS vault_files_by_paper ON vault_files(root, paper_id);
             CREATE TABLE IF NOT EXISTS vault_conflicts(id TEXT PRIMARY KEY, root TEXT, path TEXT, note_id TEXT, file_content TEXT, file_hash TEXT, local_revision INTEGER, resolved INTEGER DEFAULT 0);
             """)
 
@@ -89,14 +92,107 @@ class VaultSync:
             self.store.set_setting("vault", state)
             return state
 
-    def files(self, root):
+    def files(self, root, paper_id=None):
+        sql = "SELECT * FROM vault_files WHERE root=?"
+        parameters = (str(root),)
+        if paper_id:
+            sql += " AND paper_id=?"
+            parameters += (paper_id,)
         with self.store.connect() as db:
             return {
                 r["path"]: dict(r)
-                for r in db.execute(
-                    "SELECT * FROM vault_files WHERE root=?", (str(root),)
-                )
+                for r in db.execute(sql, parameters)
             }
+
+    def zotero_navigation_key(self, paper, server):
+        """Find an existing Zotero item for navigation without binding a second record."""
+        if not server or not paper["source_version"]:
+            return ""
+        linked = [
+            other for other in self.store.list("paper")
+            if other["zotero_server"] == server and re.fullmatch(r"[A-Z0-9]{8}", other["zotero_key"])
+        ]
+        same_source = {
+            other["zotero_key"] for other in linked
+            if other["source_version"] == paper["source_version"]
+        }
+        if same_source:
+            return next(iter(same_source)) if len(same_source) == 1 else ""
+
+        # A draft and publication may have different PDFs and share one item.
+        # Limit candidates by title and verify the exact attachment bytes.
+        def title_key(value):
+            return "".join(
+                ch for ch in unicodedata.normalize("NFKC", value).casefold() if ch.isalnum()
+            )
+
+        title = title_key(paper["title"])
+        candidates = {
+            other["zotero_key"] for other in linked
+            if title and title_key(other["title"]) == title
+        }
+        if len(candidates) != 1 or not self.zotero:
+            return ""
+        key = next(iter(candidates))
+        from .zotero import SyncError
+
+        try:
+            if self.zotero.probe() != server:
+                return ""
+            response = self.zotero.request("GET", f"users/0/items/{key}/children", server)
+            response.raise_for_status()
+            for row in response.json():
+                data = row["data"]
+                if data.get("contentType") != "application/pdf" or data.get("deleted"):
+                    continue
+                path = self.zotero.attachment_path(server, data["key"])
+                if path and fingerprint(path.read_bytes()) == paper["source_version"]:
+                    return key
+        except (SyncError, httpx.HTTPError, OSError):
+            pass
+        return ""
+
+    def paper_links(self, paper_id):
+        paper = self.store.get("paper", paper_id)
+        state = self.state()
+        links = {
+            "cards": [], "source": None, "notebook": None, "notes": {},
+            "zotero": None, "zotero_navigation_only": False,
+        }
+        key = paper["zotero_key"]
+        if not key and state["enabled"]:
+            key = self.zotero_navigation_key(paper, state.get("server", ""))
+            links["zotero_navigation_only"] = bool(key)
+        if re.fullmatch(r"[A-Z0-9]{8}", key):
+            links["zotero"] = f"zotero://select/library/items/{key}"
+        if not state["enabled"] or not state["root"]:
+            return links
+
+        root = Path(state["root"])
+
+        def link(relative):
+            path = root / relative
+            if not path.is_symlink() and path.resolve().is_relative_to(root) and path.is_file():
+                return "obsidian://open?path=" + quote(str(path), safe="")
+            return None
+
+        files = self.files(root, paper_id)
+        for relative, row in sorted(files.items()):
+            if row["kind"] == "card" and (uri := link(relative)):
+                links["cards"].append({"title": Path(relative).stem, "uri": uri})
+            elif row["kind"] == "pdf" and row["hash"] == paper["source_version"]:
+                uri = link(relative)
+                if uri and (not links["source"] or str(root / relative) == paper["source_path"]):
+                    links["source"] = uri
+        if any(row["kind"] == "pdf" for row in files.values()):
+            links["notebook"] = link(Path(MANAGED, paper_id, "README.md"))
+        if links["notebook"]:
+            for note in self.store.list("note", paper_id):
+                relative = str(Path(MANAGED, paper_id, f"{note['id']}-r{note['revision']}.md"))
+                row = files.get(relative)
+                if row and row["record_id"] == note["id"] and (uri := link(relative)):
+                    links["notes"][note["id"]] = uri
+        return links
 
     def bind(
         self,
@@ -451,8 +547,12 @@ class VaultSync:
 
                 except (OSError, ValueError):
                     skipped += 1
+            links_by_paper = {}
+            for relative, row in sorted(self.files(root).items()):
+                if row["kind"] in ("pdf", "card") and (root / relative).is_file():
+                    links_by_paper.setdefault(row["paper_id"], []).append((relative, row["kind"]))
             linked_papers = {
-                v["paper_id"] for v in self.files(root).values() if v["kind"] == "pdf"
+                pid for pid, files in links_by_paper.items() if any(kind == "pdf" for _, kind in files)
             }
             for pid in linked_papers:
                 if pid not in papers:
@@ -465,9 +565,13 @@ class VaultSync:
                 if readme.is_symlink():
                     raise ValueError("Managed README cannot be a symlink")
                 if not readme.exists():
+                    references = [
+                        f"- [{'论文卡' if kind == 'card' else '原文 PDF'}]({quote(Path(os.path.relpath(root / relative, folder)).as_posix())})"
+                        for relative, kind in links_by_paper[pid]
+                    ]
                     with readme.open("x", encoding="utf-8") as out:
                         out.write(
-                            f"# {papers[pid]['title']}\n\n原文：{papers[pid]['source_path']}\n\n笔记按修订版本保存，r 后数字越大越新。可编辑自己的原话文件，工作台会读入；双方同时修改时保留冲突。新建 Markdown 也会导入，初始标为外部资料，作者身份可在带读时确认。\n\n原始论文卡和 PDF 保持只读。\n"
+                            f"# {papers[pid]['title']}\n\n{os.linesep.join(references)}\n\n笔记按修订版本保存，r 后数字越大越新。可编辑自己的原话文件，工作台会读入；双方同时修改时保留冲突。新建 Markdown 也会导入，初始标为外部资料，作者身份可在带读时确认。\n\n原始论文卡和 PDF 保持只读。\n"
                         )
                 for n in self.store.list("note", pid):
                     if n["read_only"]:

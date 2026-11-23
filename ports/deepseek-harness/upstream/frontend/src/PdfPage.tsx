@@ -1,3 +1,5 @@
+import { pageText } from "./pdfTextCache";
+import { InkCapture, InkPath, type Point } from "./PdfInk";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { TextLayer, type PDFDocumentProxy, type PDFPageProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { mergeHighlightRects } from "./highlightGeometry";
@@ -30,7 +32,7 @@ async function linkTarget(doc: PDFDocumentProxy, dest: any): Promise<{ page: num
 function PdfPage({
   doc, index, zoom, width, height, active, paperId, sourceVersion, derived,
   notes, focusRects, draftRects, draftRectangle = false, marks, revealMarks = false, region, searchTerm,
-  onBaseSize, onReady, onScan, onRegion, onLink, onNote, suppressUntil,
+  onBaseSize, onReady, onScan, onRegion, onLink, onNote, suppressUntil, inkMode, draftInk, onInk, rotation = 0,
 }: {
   doc: PDFDocumentProxy;
   index: number;
@@ -41,7 +43,11 @@ function PdfPage({
   paperId: string;
   sourceVersion: string;
   derived?: string;
-  notes: { id: string; rects: number[][]; rectangle: boolean }[];
+  notes: { id: string; rects: number[][]; rectangle: boolean; ink?: Point[] }[];
+  inkMode?: boolean;
+  draftInk?: Point[];
+  onInk?: (index: number, points: Point[], bounds: DOMRect, viewport: Viewport) => void;
+  rotation?: number;
   focusRects: number[][];
   draftRects: number[][];
   draftRectangle?: boolean;
@@ -94,7 +100,7 @@ function PdfPage({
       if (disposed) return;
       const base = p.getViewport({ scale: 1 });
       onBaseSize(index, base.width, base.height);
-      const v = p.getViewport({ scale: zoom });
+      const v = p.getViewport({ scale: zoom, rotation: ((p.rotate || 0) + rotation) % 360 });
       // Draw into a fresh canvas and swap it in when done, so zooming never flashes a blank page.
       const canvas = document.createElement("canvas");
       const pixelRatio = Math.min(devicePixelRatio || 1, Math.sqrt(16_000_000 / (v.width * v.height)));
@@ -102,18 +108,24 @@ function PdfPage({
       canvas.height = v.height * pixelRatio;
       render = p.render({ canvas, viewport: v, transform: [pixelRatio, 0, 0, pixelRatio, 0, 0] });
       void render.promise.catch(() => {});
-      const content = await p.getTextContent();
+      const annotationRequest = typeof p.getAnnotations === "function" ? p.getAnnotations({ intent: "display" }).catch(() => []) : Promise.resolve([]);
+      const content = await pageText(doc, index, p);
       if (disposed) return;
       onScan(index, !content.items.length);
       const layer = document.createElement("div");
       layer.className = "textLayer";
       layer.style.setProperty("--total-scale-factor", String(zoom));
       const text = new TextLayer({ textContentSource: content, container: layer, viewport: v });
-      const annotations: any[] = typeof p.getAnnotations === "function" ? await p.getAnnotations({ intent: "display" }).catch(() => []) : [];
       await Promise.all([text.render(), render.promise]);
       if (disposed) return;
+      host.current?.replaceChildren(canvas, layer);
+      setLinks([]);
+      setViewport(v);
+      onReady(index, v);
       const found: Link[] = [];
+      const annotations = await annotationRequest;
       for (const a of annotations.slice(0, 400)) {
+        if (disposed) return;
         if (a?.subtype !== "Link" || !Array.isArray(a.rect)) continue;
         if (typeof a.url === "string" && SAFE_URL.test(a.url)) found.push({ rect: a.rect, url: a.url });
         else if (a.dest) {
@@ -122,10 +134,7 @@ function PdfPage({
         }
       }
       if (disposed) return;
-      host.current?.replaceChildren(canvas, layer);
       setLinks(found);
-      setViewport(v);
-      onReady(index, v);
     }).catch((e) => {
       if (disposed || e?.name === "RenderingCancelledException") return;
       console.warn("PDF page render failed", e);
@@ -137,7 +146,7 @@ function PdfPage({
       // stream read, and an unfinished layer is still detached, so it can finish into nothing.
       render?.cancel();
     };
-  }, [doc, index, zoom, active]);
+  }, [doc, index, zoom, active, rotation]);
 
   useEffect(() => {
     if (!region) setDrag(null);
@@ -200,7 +209,7 @@ function PdfPage({
           style={{ position: "absolute", zIndex: 6, right: 2, top: position.top, width: 26, height: 26, borderRadius: 13, background: "#fff3c4", border: "1px solid #9b7722", color: "#493710", cursor: "pointer" }}
           onClick={() => onNote(n.id)}>{i + 1}</button> : null;
       })}
-      {ready && noteBands.flatMap((n) => n.rects.map((r, i) => {
+      {ready && noteBands.flatMap((n) => n.ink?.length ? [] : n.rects.map((r, i) => {
         const style = box(r);
         return style ? <div key={n.id + ":" + i} className={"saved-annotation" + (n.rectangle ? " rectangle" : "")} data-note-id={n.id} aria-hidden="true" style={style} /> : null;
       }))}
@@ -214,6 +223,10 @@ function PdfPage({
         ) : null;
       }))}
       {ready && focusBands.map((r, i) => <div key={i} className="anchor-highlight" aria-hidden="true" style={box(r)} />)}
+      {viewport && notes.map(n => n.ink?.length ? <InkPath key={n.id} points={n.ink} viewport={viewport} /> : null)}
+      {viewport && draftInk?.length ? <InkPath points={draftInk} viewport={viewport} /> : null}
+      {inkMode && viewport && <InkCapture key={rotation + ":" + zoom} viewport={viewport} suppressUntil={suppressUntil}
+        onDraw={(points, bounds) => onInk?.(index, points, bounds, viewport)} />}
       {region && ready && (
         <div
           className="region-layer"

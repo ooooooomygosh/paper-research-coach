@@ -318,3 +318,55 @@ def test_one_paper_that_cannot_bind_does_not_starve_the_papers_after_it(tmp_path
     assert set(tried) == {p["id"] for p in papers}  # every paper was attempted, not only those before the failure
     assert state["state"] == "attention"
     assert "同一 PDF 对应多个 Zotero 条目" in state["message"]
+
+
+def test_paper_links_use_only_existing_bound_files_and_current_note_revision(tmp_path, store, pdf):
+    from urllib.parse import parse_qs, urlsplit
+
+    v, root, paper = setup(tmp_path, store, pdf)
+    pid = paper["id"]
+    card = root / "01_论文卡片" / "论文 #1.md"
+    card.parent.mkdir()
+    card.write_text("---\n原文PDF路径: paper.pdf\n---\nexisting card", encoding="utf-8")
+    stable(card)
+    note = store.put("note", dict(paper_id=pid, content="**原话**"))
+    v.run()
+    readme = root / MANAGED / pid / "README.md"
+    links = v.paper_links(pid)
+
+    def absolute(uri):
+        assert uri.startswith("obsidian://open?")
+        return Path(parse_qs(urlsplit(uri).query)["path"][0])
+
+    assert absolute(links["cards"][0]["uri"]) == card
+    assert absolute(links["source"]) == root / "paper.pdf"
+    assert absolute(links["notebook"]) == readme
+    assert absolute(links["notes"][note["id"]]).read_text(encoding="utf-8") == "**原话**"
+    store.put("note", note | {"content": "新版本"}, note["revision"])
+    assert note["id"] not in v.paper_links(pid)["notes"]
+    card.unlink()
+    assert v.paper_links(pid)["cards"] == []
+
+    paper = store.get("paper", pid)
+    store.put("paper", paper | {"zotero_key": "ZOTERO12"}, paper["revision"])
+    assert v.paper_links(pid)["zotero"] == "zotero://select/library/items/ZOTERO12"
+
+
+def test_zotero_navigation_reuses_unique_exact_source_without_binding(tmp_path, store, pdf):
+    v, _, paper = setup(tmp_path, store, pdf)
+    v.configure(v.state()["root"], "COLLECT1", "server")
+    for key in ("ZOTERO11", "ZOTERO12"):
+        duplicate = store.put("paper", {
+            "title": paper["title"],
+            "source_version": paper["source_version"],
+            "zotero_server": "server",
+            "zotero_key": key,
+        })
+        links = v.paper_links(paper["id"])
+        if key == "ZOTERO11":
+            assert links["zotero"] == f"zotero://select/library/items/{duplicate['zotero_key']}"
+            assert links["zotero_navigation_only"]
+        else:
+            assert links["zotero"] is None
+            assert not links["zotero_navigation_only"]
+    assert store.get("paper", paper["id"]) == paper

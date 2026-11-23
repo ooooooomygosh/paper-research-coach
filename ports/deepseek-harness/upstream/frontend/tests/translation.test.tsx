@@ -164,3 +164,13 @@ it("preserves both source evidence and the exact translated selection for markin
   await screen.findByText("已保存批注");
   expect(mark).toHaveBeenCalledWith({ ...original, rendition });
 });
+
+it("looks up a selected phrase locally only after clicking 查词", async () => {
+  vi.mocked(api).mockResolvedValue({ available: true, definition: "稳健优化" });
+  render(<TranslationPopover selection={{ anchor: { quote: "robust optimization" }, view: "original", x: 10, y: 10 }}
+    job={null} onClose={vi.fn()} onSource={vi.fn()} onDiscuss={vi.fn()} />);
+  expect(api).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "查词" }));
+  expect((await screen.findByRole("status")).textContent).toBe("稳健优化");
+  expect(api).toHaveBeenCalledExactlyOnceWith("dictionary", { word: "robust optimization" });
+});

@@ -11,13 +11,16 @@ import signal
 import subprocess
 import sys
 import time
+from collections import defaultdict
+from functools import lru_cache
+from weakref import WeakValueDictionary
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from .codex_text import CodexText
 from .models import Anchor, now, uid
-from .store import Conflict, digest, NotFound
+from .store import Conflict, cached_digest, digest, NotFound
 
 BABELDOC_VERSION = "0.6.4"
 DEFAULT_MODEL = "deepseek-flash" if os.environ.get("PRC_EMBEDDED") == "1" else "gpt-6-luna"
@@ -189,6 +192,24 @@ def transform_rect(rect, matrix, inverse=False):
         max(x for x, y in pts),
         max(y for x, y in pts),
     ]
+
+
+@lru_cache(maxsize=1)
+def _indexed_mapping(path, signature):
+    # Keep only the most recently viewed translation; file replacement invalidates it.
+    document = json.loads(path.read_bytes())
+    pages = defaultdict(list)
+    for segment in document.pop("segments"):
+        pages[segment["source"]["page_index"]].append(segment)
+    return document, pages
+
+
+def mapping_page(path, page_index):
+    stat = path.stat()
+    if stat.st_size > 16 * 1024 * 1024:
+        return json.loads(path.read_bytes())
+    header, pages = _indexed_mapping(path, (stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns))
+    return {**header, "segments": pages.get(page_index, [])}
 
 
 def matching_translation(mapping, request):
@@ -365,7 +386,7 @@ class Translation:
         self.tasks, self.processes = {}, {}
         self.capacity = asyncio.Condition()
         self.running_papers, self.running_requests = 0, 0
-        self.cache_locks = {}
+        self.cache_locks = WeakValueDictionary()
         self.source_checks = {}
         self.verified_interpreter = None
         self.closing = False
@@ -518,8 +539,8 @@ class Translation:
                 )
             ]
 
-    def public(self, job):
-        paper = self.store.get("paper", job["paper_id"])
+    def public(self, job, paper=None):
+        paper = paper or self.store.get("paper", job["paper_id"])
         path = Path(paper.get("source_path") or "")
         try:
             stat = path.stat()
@@ -573,11 +594,11 @@ class Translation:
 
     def overview(self):
         jobs, papers = [], {}
-        existing = {p["id"] for p in self.store.list("paper")}
+        existing = {p["id"]: p for p in self.store.list("paper")}
         for job in self.jobs():
             if job["paper_id"] not in existing:
                 continue
-            public = self.public(job)
+            public = self.public(job, existing[job["paper_id"]])
             jobs.append(public)
             if public["current"]:
                 previous = papers.get(job["paper_id"])
@@ -791,7 +812,7 @@ class Translation:
         }
         key = hashlib.sha256(
             json.dumps(
-                [namespace, "adapter-1", prompt, schema],
+                [namespace, "adapter-1", prompt, schema] + ([instructions] if instructions else []),
                 ensure_ascii=False,
                 sort_keys=True,
             ).encode()
@@ -858,14 +879,15 @@ class Translation:
         for segment in segments:
             queue.put_nowait(segment)
         completed, unavailable = 0, False
+        last_checkpoint = time.monotonic()
 
         async def segment_alignment(segment):
+            if segment.get("links"):
+                return
             source, target = (
                 sentences(segment["source"]["text"]),
                 sentences(segment["target"]["text"]),
             )
-            if segment.get("links"):
-                return
             if len(source) == len(target) == 1:
                 segment["links"] = [{"source_ids": [0], "target_ids": [0]}]
             elif source and target:
@@ -892,7 +914,7 @@ class Translation:
                     )
 
         async def worker():
-            nonlocal completed
+            nonlocal completed, last_checkpoint
             while not queue.empty() and not unavailable:
                 segment = queue.get_nowait()
                 await segment_alignment(segment)
@@ -901,7 +923,8 @@ class Translation:
                     stage=f"双语 PDF 可读 · 句子对应 {completed}/{len(segments)}",
                     progress=96 + 3 * completed / max(1, len(segments)),
                 )
-                if completed % 10 == 0:
+                if completed % 10 == 0 and time.monotonic() - last_checkpoint >= 2:
+                    last_checkpoint = time.monotonic()
                     if mapping_path:
                         self.write_mapping(mapping_path, mapping)
                     self.save(job)
@@ -1159,7 +1182,7 @@ class Translation:
             (self.store.root / "translations" / job_id).resolve()
         ):
             raise ValueError("译文对应文件无效。")
-        result = matching_translation(json.loads(mapping_path.read_text()), request)
+        result = matching_translation(mapping_page(mapping_path, anchor.page_index), request)
         return {**result, "translation_id": job_id}
 
     def resolve_anchor(self, job_id, request):
@@ -1175,12 +1198,12 @@ class Translation:
         if not self.ready_artifacts(job):
             return {"status": "unresolved", "message": "译文尚未完成。"}
         target = self.artifact(job_id, request.view)
-        if digest(target) != request.document_version:
+        if cached_digest(target) != request.document_version:
             raise Conflict("显示目标已换版，请重新定位。")
         mapping_path = Path(job["artifacts"]["mapping"]).resolve()
         if not mapping_path.is_relative_to((self.store.root / "translations" / job_id).resolve()):
             raise ValueError("译文对应文件无效。")
-        result = display_translation_anchor(json.loads(mapping_path.read_text()), request)
+        result = display_translation_anchor(mapping_page(mapping_path, anchor.page_index), request)
         return {**result, "job_id": job_id, "view": request.view, "document_version": request.document_version}
 
     async def close(self):

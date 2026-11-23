@@ -1,3 +1,6 @@
+import AdvancedPdfViewer from "./AdvancedPdfViewer";
+import PageOcr from "./PageOcr";
+import type { Point } from "./PdfInk";
 import PageNavigation from "./PageNavigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -14,7 +17,7 @@ import "./pdf-text-layer.css";
 import "./reading-experience.css";
 import "./pdf-controls.css";
 import { boundZoom, MIN_ZOOM, MAX_ZOOM, usePdfZoom, type ZoomFocus } from "./usePdfZoom";
-import { Scan, ZoomIn, ZoomOut, Download, Maximize } from "./glyphs";
+import { Scan, ZoomIn, ZoomOut, Download, Maximize, Maximize2, RefreshCw, NotebookPen, MoreHorizontal } from "./glyphs";
 import { anchorFor, visibleAnchor, type Row } from "./api";
 import PdfNavigation from "./PdfNavigation";
 import PdfPage, { type Mark, type Viewport } from "./PdfPage";
@@ -90,12 +93,16 @@ export default function PdfReader({
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null),
     [error, setError] = useState(""),
     [zoom, setZoom] = useState(1.1),
-    [sizes, setSizes] = useState<{ width: number; height: number }[]>([]),
+    [baseSizes, setSizes] = useState<{ width: number; height: number }[]>([]),
     [region, setRegion] = useState(false),
     [scanPages, setScanPages] = useState<Set<number>>(() => new Set()),
     [range, setRange] = useState<[number, number]>([0, 0]),
     [readyPages, setReadyPages] = useState<Set<number>>(() => new Set()),
     [searchTerm, setSearchTerm] = useState("");
+  const [advanced, setAdvanced] = useState<{ page: number; key: string } | null>(null);
+  const [inkMode, setInkMode] = useState(false);
+  const [rotation, setRotation] = useState(0);
+  const sizes = useMemo(() => rotation % 180 ? baseSizes.map(({ width, height }) => ({ width: height, height: width })) : baseSizes, [rotation, baseSizes]);
   const labels = useRef<string[] | null>(null);
   const [fitWidth, setFitWidth] = useState(true);
   const docKey = paper.id + ":" + paper.source_version + ":" + documentKey;
@@ -113,8 +120,8 @@ export default function PdfReader({
     }
     return { tops, height: Math.max(0, y - PAGE_GAP), width };
   }, [sizes, zoom]);
-  const latest = useRef({ layout, zoom, page, sizes, count });
-  latest.current = { layout, zoom, page, sizes, count };
+  const latest = useRef({ layout, zoom, page, sizes, count, rotation });
+  latest.current = { layout, zoom, page, sizes, count, rotation };
 
   /** Which page holds a stack-relative y. */
   function pageAt(y: number, tops = latest.current.layout.tops) {
@@ -199,6 +206,9 @@ export default function PdfReader({
     setScanPages(new Set());
     setReadyPages(new Set());
     setRegion(false);
+    setInkMode(false);
+    setRotation(0);
+    placed.current = "";
     setSearchTerm("");
     viewports.current = [];
     labels.current = null;
@@ -212,14 +222,13 @@ export default function PdfReader({
     });
     load.promise
       .then(async (d) => {
-        const pageLabels = await d.getPageLabels();
         // Every page starts with the first page's size; each page corrects it when drawn.
         const first = (await d.getPage(1)).getViewport({ scale: 1 });
         if (disposed) return;
-        labels.current = pageLabels;
         loadedKey.current = docKey;
         setSizes(Array.from({ length: d.numPages }, () => ({ width: first.width, height: first.height })));
         setDoc(d);
+        void d.getPageLabels().then(pageLabels => { if (!disposed) labels.current = pageLabels; }).catch(() => {});
       })
       .catch((e) => {
         if (disposed) return;
@@ -375,7 +384,10 @@ export default function PdfReader({
       if (!old || (Math.abs(old.width - width) < 0.5 && Math.abs(old.height - height) < 0.5)) return all;
       // A page above the reading line changed height: keep the text under the eye still.
       const box = scroller.current;
-      if (box && index < latest.current.page) box.scrollTop += (height - old.height) * latest.current.zoom;
+      if (box && index < latest.current.page) {
+        const delta = latest.current.rotation % 180 ? width - old.width : height - old.height;
+        box.scrollTop += delta * latest.current.zoom;
+      }
       const next = all.slice();
       next[index] = { width, height };
       return next;
@@ -413,7 +425,7 @@ export default function PdfReader({
       : anchorFor(paper, index, local);
   }
   function selected() {
-    if (region || Date.now() < suppressSelectionUntil.current || (derived && !rendition)) return;
+    if (region || inkMode || Date.now() < suppressSelectionUntil.current || (derived && !rendition)) return;
     const s = window.getSelection();
     if (!s?.rangeCount || !s.toString().trim()) return;
     const start = (s.anchorNode instanceof Element ? s.anchorNode : s.anchorNode?.parentElement)?.closest<HTMLElement>(".pdf-page");
@@ -444,16 +456,48 @@ export default function PdfReader({
     setRegion(false);
   };
 
+  const inkCallback = useRef((_index: number, _points: Point[], _bounds: DOMRect, _viewport: Viewport) => {});
+  inkCallback.current = (index, points, bounds, viewport) => {
+    const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+    const [left, bottom, right, top] = viewport.viewBox;
+    const rects = [[Math.max(left, Math.min(...xs) - 1), Math.max(bottom, Math.min(...ys) - 1),
+      Math.min(right, Math.max(...xs) + 1), Math.min(top, Math.max(...ys) + 1)]];
+    const [x, y] = viewport.convertToViewportPoint(...points[points.length - 1]);
+    onAnchor(selectionAnchor(index, { rects, ink: points }), { x: bounds.left + x, y: bounds.top + y + 10 });
+    setInkMode(false);
+  };
+  const onInk = useCallback((index: number, points: Point[], bounds: DOMRect, viewport: Viewport) => {
+    inkCallback.current(index, points, bounds, viewport);
+  }, []);
+
+  const rotationApplied = useRef(0);
+  useLayoutEffect(() => {
+    if (!doc || !sizes.length || rotationApplied.current === rotation) return;
+    rotationApplied.current = rotation;
+    if (fitWidth && fit(false)) placed.current = "";
+    scrollToPage(page);
+  }, [rotation, doc]);
+
+  function fitPage() {
+    const size = sizes[page], box = scroller.current;
+    if (!size || !box) return;
+    const style = getComputedStyle(box);
+    const width = box.clientWidth - parseFloat(style.paddingLeft || "0") - parseFloat(style.paddingRight || "0");
+    const height = box.clientHeight - parseFloat(style.paddingTop || "0") - parseFloat(style.paddingBottom || "0");
+    changeZoom(Math.min(width / size.width, height / size.height));
+    requestAnimationFrame(() => scrollToPage(page));
+  }
+
   // --- What each page draws ------------------------------------------------------------------
   const visible = (a: any) => ((!derived || rendition) ? visibleAnchor(a, paper, rendition) : null);
   const notesByPage = useMemo(() => {
-    const map = new Map<number, { id: string; rects: number[][]; rectangle: boolean }[]>();
+    const map = new Map<number, { id: string; rects: number[][]; rectangle: boolean; ink?: Point[] }[]>();
     for (const n of notes) {
       if (n.paper_id !== paper.id) continue;
       const a = visible(n.anchor);
       if (!a || a.page_index == null || !a.rects?.length) continue;
       const list = map.get(a.page_index) || [];
-      list.push({ id: n.id, rects: a.rects, rectangle: n.annotation_type === "rectangle" || !((n.anchor.rendition || n.anchor).quote) });
+      list.push({ id: n.id, rects: a.rects, ink: a.ink, rectangle: n.annotation_type === "rectangle" || !((n.anchor.rendition || n.anchor).quote) });
       map.set(a.page_index, list);
     }
     return map;
@@ -465,7 +509,7 @@ export default function PdfReader({
   }, [focusAnchor, paper.id, paper.source_version, derived, rendition?.job_id]);
   const draft = useMemo(() => {
     const a = visible(draftAnchor);
-    return a && a.page_index != null ? { page: a.page_index as number, rects: (a.rects || []) as number[][], rectangle: !(a.quote || "").trim() } : null;
+    return a && a.page_index != null ? { page: a.page_index as number, rects: (a.ink?.length ? [] : a.rects || []) as number[][], ink: a.ink as Point[] | undefined, rectangle: !(a.quote || "").trim() } : null;
   }, [draftAnchor, paper.id, paper.source_version, derived, rendition?.job_id]);
 
   // Stable for every page placeholder: scrolling must not invalidate memoized pages.
@@ -490,7 +534,8 @@ export default function PdfReader({
       />
       {scan && (
         <div className="notice">
-          这一页没有可提取文字。可以框选图表或扫描文字，在教练对话中附上整页图像一起阅读。
+          本页没有可选文字。可以框选图表或扫描文字。
+          {!derived && <PageOcr key={docKey + ":" + page} paperId={paper.id} version={paper.source_version} page={page} />}
         </div>
       )}
       {onFollowCoach && (
@@ -527,7 +572,10 @@ export default function PdfReader({
         const target = e.target instanceof HTMLElement ? e.target : null;
         // Escape leaves rectangle selection from anywhere except a text field (which has its own Escape),
         // including the toolbar button that started it and still has the focus.
-        if (e.key === "Escape" && !target?.closest("input,textarea,select,[contenteditable=true]")) setRegion(false);
+        if (e.key === "Escape" && !target?.closest("input,textarea,select,[contenteditable=true]")) {
+          setRegion(false);
+          setInkMode(false);
+        }
         if (target?.closest("input,textarea,select,button,[contenteditable=true]")) return;
         if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
         if (e.key === "ArrowLeft" && page > 0) {
@@ -579,6 +627,10 @@ export default function PdfReader({
                   marks={coachMarks?.page_index === i && (derived ? coachMarks.document_version === rendition?.document_version : !coachMarks.document_version) ? coachMarks.marks : NONE}
                   revealMarks={!!coachMarks?.reveal}
                   region={region}
+                  rotation={rotation}
+                  inkMode={inkMode && active(i)}
+                  draftInk={draft?.page === i ? draft.ink : undefined}
+                  onInk={onInk}
                   searchTerm={searchTerm}
                   onBaseSize={onBaseSize}
                   onReady={onReady}
@@ -603,13 +655,21 @@ export default function PdfReader({
           <output aria-label="PDF 缩放比例">{Math.round(displayZoom * 100)}%</output>
           <button title="缩小" aria-label="PDF 缩小" disabled={!doc || displayZoom <= MIN_ZOOM} onClick={() => changeZoom(zoom - .15)}><ZoomOut size={17} /></button>
           <button title="适应宽度" aria-label="PDF 适应宽度" aria-pressed={fitWidth} disabled={!doc} onClick={() => { setFitWidth(true); fit(); }}><Maximize size={16} /></button>
+          <button title="适应整页" aria-label="PDF 适应整页" disabled={!doc} onClick={fitPage}><Maximize2 size={16} /></button>
+          <button title="顺时针旋转视图" aria-label="PDF 顺时针旋转视图" disabled={!doc} onClick={() => setRotation((current) => (current + 90) % 360)}><RefreshCw size={16} /></button>
           <span className="pdf-tool-divider" />
           <PageNavigation page={page} count={count} onChange={(p) => jump(p)} labelPrefix="PDF " />
           <span className="pdf-tool-divider" />
-          <button title="框选区域" aria-label="PDF 框选区域" aria-pressed={region} disabled={!doc || (derived && !rendition)} onClick={() => setRegion(!region)}><Scan size={17} /></button>
+          <button title="框选区域" aria-label="PDF 框选区域" aria-pressed={region} disabled={!doc || (derived && !rendition)} onClick={() => { setInkMode(false); setRegion(!region); }}><Scan size={17} /></button>
+          <button title="手绘批注" aria-label="PDF 手绘批注" aria-pressed={inkMode}
+            disabled={!doc || (derived && !rendition)} onClick={() => { setRegion(false); setInkMode(!inkMode); }}><NotebookPen size={16} /></button>
+          <button title="表单、另存与打印" aria-label="高级 PDF 工具" disabled={!doc}
+            onClick={() => setAdvanced({ page, key: docKey })}><MoreHorizontal size={17} /></button>
           {onExport && <button title="下载当前 PDF（含批注）" aria-label="下载当前 PDF（含批注）" disabled={!doc || exporting || (derived && !rendition)} onClick={onExport}><Download size={17} /></button>}
         </div>
       </div>
+      {advanced?.key === docKey && doc && <AdvancedPdfViewer document={doc} page={advanced.page}
+        filename={(paper.title || "论文") + ".pdf"} onClose={() => setAdvanced(null)} />}
       {!toolsContainer && (
         <div className="reader-footer">
           选中文字或框选区域，让想法有出处。原始 PDF 保持完整。
