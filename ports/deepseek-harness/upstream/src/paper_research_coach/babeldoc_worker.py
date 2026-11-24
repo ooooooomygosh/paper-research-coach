@@ -13,6 +13,10 @@ import sys
 import threading
 from pathlib import Path
 
+from paper_research_coach.pdf_translation_input import prepare_translation_input
+from paper_research_coach.translation_layout import TranslationLayoutError, validate_pdf_layout
+from paper_research_coach.translation_typesetting import install_split_email_repair
+
 VERSION = "0.6.4"
 EMIT_LOCK = threading.Lock()
 
@@ -94,6 +98,7 @@ def dual_transforms(path):
 def run(config):
     if importlib.metadata.version("BabelDOC") != VERSION:
         raise ValueError("翻译组件版本不匹配，请安装 BabelDOC 0.6.4。")
+    install_split_email_repair()
     bundled_assets = os.environ.get("DSH_PRC_ASSETS", "")
     if bundled_assets and Path(bundled_assets).is_dir():
         from babeldoc import const
@@ -242,9 +247,11 @@ def run(config):
     PDFCreater.__init__ = capture_final
     out = Path(config["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
+    original_pdf = Path(config["source_path"])
+    prepared_pdf = prepare_translation_input(original_pdf, out / "work")
     translation = TranslationConfig(
         translator=CodexTranslator(),
-        input_file=config["source_path"],
+        input_file=prepared_pdf,
         lang_in=config["lang_in"],
         lang_out=config["lang_out"],
         doc_layout_model=None,
@@ -281,6 +288,7 @@ def run(config):
         # PyMuPDF owns native document/font state: keep the synchronous PDF
         # pipeline on this isolated process's main thread.
         result = high_level.do_translate(monitor, translation)
+    validate_pdf_layout(original_pdf, result.mono_pdf_path, result.dual_pdf_path)
     segments = []
     for key, original in source.items():
         translated = target.get(key)
@@ -322,7 +330,7 @@ def main():
         emit(
             {
                 "type": "error",
-                "message": "翻译组件未能完成处理，请检查组件、PDF 与模型连接。",
+                "message": str(exc) if isinstance(exc, TranslationLayoutError) else "翻译组件未能完成处理，请检查组件、PDF 与模型连接。",
             }
         )
         raise SystemExit(1) from exc

@@ -7,7 +7,7 @@
 
 A PDF reader with selection questions, shared annotations, expandable explanations and offline bilingual study pages.
 
-[简体中文](README.md) · **English** · [Download DSH 1.4.1](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.1) · [DSH guide](docs/DEEPSEEK_HARNESS.md#english) · [Reading method](docs/METHOD.en.md)
+[简体中文](README.md) · **English** · [Download DSH 1.4.2](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.2) · [DSH guide](docs/DEEPSEEK_HARNESS.md#english) · [Reading method](docs/METHOD.en.md)
 
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-526653)](LICENSE)
@@ -40,12 +40,12 @@ Synthetic material and preset replies. Narrow windows switch between full-width 
 
 ## DeepSeek Harness plugin
 
-**DSH 1.4.1 · workbench core 2.0.0rc15.** Uses the signed-in Harness account, with no extra API key or Codex CLI. Existing knowledge-base learning, Zotero/folder sync, ideas, review and export remain available. [1.4.1 release notes](docs/releases/dsh-v1.4.1.md#english)
+**DSH 1.4.2 · workbench core 2.0.0rc15.** Uses the signed-in Harness account, with no extra API key or Codex CLI. Existing knowledge-base learning, Zotero/folder sync, ideas, review and export remain available. [1.4.2 release notes](docs/releases/dsh-v1.4.2.md#english)
 
 | Platform | Current installation |
 |---|---|
-| **macOS Apple silicon** | [Download PRC-DSH-1.4.1-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.1/PRC-DSH-1.4.1-mac.zip), fully quit Harness, extract and open `安装.command`, then restart and choose “论文研读”. Native-host checks use Harness **0.2.2-rc.1** |
-| Windows | `PRC-DSH-1.2.0-win-x64.zip` is a historical distribution. This release does not provide a 1.4.1 Windows installer or claim native Windows installation validation. A macOS ZIP or standalone wheel is not a Windows plugin |
+| **macOS Apple silicon** | [Download PRC-DSH-1.4.2-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.2/PRC-DSH-1.4.2-mac.zip), fully quit Harness, extract and open `安装.command`, then restart and choose “论文研读”. Native-host checks use Harness **0.2.2-rc.1** |
+| Windows | `PRC-DSH-1.2.0-win-x64.zip` is a historical distribution. This release does not provide a 1.4.2 Windows installer or claim native Windows installation validation. A macOS ZIP or standalone wheel is not a Windows plugin |
 
 The macOS plugin checks **DSH-specific releases**, verifies host compatibility and SHA-256, and stages a package for the next full Harness restart. It does not replace a running reading process. Settings show the actual plugin version, staged status and manual check. Installations earlier than 1.3.1 can upgrade with the ZIP. The standalone wheel updater stays disabled inside DSH.
 

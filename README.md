@@ -7,7 +7,7 @@
 
 PDF 阅读、划线提问、批注、可放大的图文讲解，以及能离线带走的双语研读材料。
 
-[简体中文](README.md) · [English](README.en.md) · [下载 DSH 1.4.1](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.1) · [使用指南](docs/DEEPSEEK_HARNESS.md) · [阅读方法](docs/METHOD.md)
+[简体中文](README.md) · [English](README.en.md) · [下载 DSH 1.4.2](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.2) · [使用指南](docs/DEEPSEEK_HARNESS.md) · [阅读方法](docs/METHOD.md)
 
 [![Verification](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml/badge.svg)](https://github.com/ooooooomygosh/paper-research-coach/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-526653)](LICENSE)
@@ -40,14 +40,14 @@ PDF 阅读、划线提问、批注、可放大的图文讲解，以及能离线�
 
 ## DeepSeek Harness 插件
 
-可在 PDF 上手绘并下载带笔迹的副本，在同一窗口写 Markdown、预览公式，按页查看批注。扫描页支持本机 OCR。[PDF 阅读与笔记说明](docs/releases/dsh-v1.4.0.md) · [1.4.1 更新说明](docs/releases/dsh-v1.4.1.md)
+可在 PDF 上手绘并下载带笔迹的副本，在同一窗口写 Markdown、预览公式，按页查看批注。扫描页支持本机 OCR。[PDF 阅读与笔记说明](docs/releases/dsh-v1.4.0.md) · [1.4.2 更新说明](docs/releases/dsh-v1.4.2.md)
 
-**DSH 1.4.1 · 工作台内核 2.0.0rc15。** 使用 Harness 登录账户，不需要另填 API Key 或运行 Codex CLI。原有知识库学习、Zotero/目录同步、研究想法、复习和导出继续保留。
+**DSH 1.4.2 · 工作台内核 2.0.0rc15。** 使用 Harness 登录账户，不需要另填 API Key 或运行 Codex CLI。原有知识库学习、Zotero/目录同步、研究想法、复习和导出继续保留。
 
 | 平台 | 当前安装方式 |
 |---|---|
-| **macOS Apple silicon** | [下载 PRC-DSH-1.4.1-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.1/PRC-DSH-1.4.1-mac.zip)，退出 Harness 及托盘，解压后双击 `安装.command`，重启后从“论文研读”进入。原生宿主核验基线为 Harness **0.2.2-rc.1** |
-| Windows | 旧 `PRC-DSH-1.2.0-win-x64.zip` 属于历史分发；本次没有发布 1.4.1 Windows 安装包，也没有完成 Windows 原生安装验收。不要将 macOS ZIP 或独立工作台 wheel 当成 Windows 插件 |
+| **macOS Apple silicon** | [下载 PRC-DSH-1.4.2-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.2/PRC-DSH-1.4.2-mac.zip)，退出 Harness 及托盘，解压后双击 `安装.command`，重启后从“论文研读”进入。原生宿主核验基线为 Harness **0.2.2-rc.1** |
+| Windows | 旧 `PRC-DSH-1.2.0-win-x64.zip` 属于历史分发；本次没有发布 1.4.2 Windows 安装包，也没有完成 Windows 原生安装验收。不要将 macOS ZIP 或独立工作台 wheel 当成 Windows 插件 |
 
 自 1.3.1 起，macOS 插件会检查 **DSH 专属发布**，校验兼容性及 SHA-256 后暂存更新，在下次完全退出 Harness 并重新打开时安装；阅读过程中不替换正在运行的版本。“设置 → 版本与更新”显示实际 DSH 插件版本、准备状态，也可手动检查。1.3.1 以前的版本可用上面的安装包升级。DSH 不使用独立工作台的 wheel 更新器。
 

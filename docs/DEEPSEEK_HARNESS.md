@@ -1,4 +1,4 @@
-# 在 DeepSeek Harness 中使用 Paper Research Coach 1.4.1
+# 在 DeepSeek Harness 中使用 Paper Research Coach 1.4.2
 
 从 Harness 侧栏“论文研读”进入。插件使用当前登录账户，工作台内核为 **2.0.0rc15**，无需另填 API Key 或启动 Codex CLI。
 
@@ -6,7 +6,7 @@
 
 本次发布面向 **macOS Apple silicon**，原生测试宿主为 **Harness 0.2.2-rc.1**。
 
-1. 在 [DSH 1.4.1 Release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.1) 下载 `PRC-DSH-1.4.1-mac.zip`。
+1. 在 [DSH 1.4.2 Release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.2) 下载 `PRC-DSH-1.4.2-mac.zip`。
 2. 完全退出 Harness 及托盘，解压 ZIP，双击 `安装.command`。
 3. 重新打开 Harness，从侧栏进入“论文研读”。
 
@@ -16,7 +16,9 @@ Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次仅提供 macOS 安装�
 
 ## 本版操作
 
-1.4.1 在阅读论文列表与批量翻译中共用 Zotero 主题筛选，并提供从当前页或选区进入互动讲解的入口。[1.4.1 更新说明](releases/dsh-v1.4.1.md)
+1.4.2 处理特定电子 PDF 中被裁剪隐藏的文字，并在译本可读前校验页数和明显叠字。[1.4.2 更新说明](releases/dsh-v1.4.2.md)
+
+阅读论文列表与批量翻译共用 Zotero 主题筛选。从当前页或选区可进入互动讲解。 [主题与讲解操作](releases/dsh-v1.4.1.md)
 
 阅读页可打开本机词典、给 PDF 添加可导出的手绘批注。笔记区可直接编辑 Markdown、预览和按页定位。扫描页的识别结果可选取复制。[PDF 阅读与笔记说明](releases/dsh-v1.4.0.md)
 
@@ -52,7 +54,7 @@ Windows 历史包为 `PRC-DSH-1.2.0-win-x64.zip`。本次仅提供 macOS 安装�
 
 ## English
 
-**Paper Research Coach DSH 1.4.1** uses workbench core **2.0.0rc15** and the signed-in Harness account. Download the macOS Apple silicon package from the [dedicated release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.1), fully quit Harness, extract it and open `安装.command`. Native-host validation uses Harness **0.2.2-rc.1**. This release does not provide or validate a new Windows installer; the 1.2.0 Windows package is historical.
+**Paper Research Coach DSH 1.4.2** uses workbench core **2.0.0rc15** and the signed-in Harness account. Download the macOS Apple silicon package from the [dedicated release](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.2), fully quit Harness, extract it and open `安装.command`. Native-host validation uses Harness **0.2.2-rc.1**. This release does not provide or validate a new Windows installer; the 1.2.0 Windows package is historical.
 
 Selections retain the current PDF language and reading position. Detailed explanations expand into a large reading area with adjustable PDF comparison, fullscreen and explicit popout. The flexible four-stage route resumes saved legacy questions and retains eight-step records. Bilingual study pages share existing notes and export one offline HTML snapshot.
 

@@ -182,6 +182,47 @@ def test_batch_reuses_jobs_and_recovers_queue_without_restarting_cancelled_work(
     asyncio.run(run())
 
 
+def test_detected_legacy_overlap_is_read_only_and_rebuilds_separately(store, paper, monkeypatch):
+    async def run():
+        service = Translation(store)
+        monkeypatch.setattr(service, "interpreter", lambda: sys.executable)
+        monkeypatch.setattr(service, "schedule", lambda _job: None)
+        prior = await service.create(
+            paper["id"], TranslationRequest(operation_id="legacy", source_version=paper["source_version"])
+        )
+        prior = service.job(prior["id"])
+        folder = store.root / "translations" / prior["id"]
+        folder.mkdir(parents=True)
+        artifacts = {
+            "mono": str(folder / "mono.pdf"),
+            "dual": str(folder / "dual.pdf"),
+            "mapping": str(folder / "mapping.json"),
+        }
+        for path in artifacts.values():
+            Path(path).write_bytes(b"legacy artifact")
+        service.save({**prior, "state": "completed", "artifacts": artifacts})
+        issue = "译本第 2、3 页检测到大面积叠字。"
+        monkeypatch.setattr(service, "saved_layout_problem", lambda _job: issue)
+
+        await service.resume()
+        await service.layout_audit
+        published = service.overview()["papers"][paper["id"]]
+        assert published["state"] == "failed"
+        assert published["message"] == issue
+        assert not published["pdf_ready"]
+        with pytest.raises(ValueError, match="叠字"):
+            service.artifact(prior["id"], "mono")
+
+        rebuilt = await service.retry(prior["id"])
+        assert rebuilt["id"] != prior["id"] and rebuilt["state"] == "queued"
+        assert (await service.retry(prior["id"]))["id"] == rebuilt["id"]
+        assert service.job(prior["id"])["artifacts"] == artifacts
+        assert Path(artifacts["mono"]).read_bytes() == b"legacy artifact"
+        await service.close()
+
+    asyncio.run(run())
+
+
 def test_queue_auth_bounds_and_partial_batch_errors(store, paper, monkeypatch):
     app = create_app(store, token="private")
     trans = app.state.translation
