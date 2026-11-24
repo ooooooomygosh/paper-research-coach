@@ -64,9 +64,14 @@ def test_studio_publishes_atomically_retains_versions_and_reader_state(tmp_path)
             assert view.status_code == 200 and "my own answer" in view.text
             assert "sandbox" in view.headers["content-security-policy"] and "allow-same-origin" not in view.headers["content-security-policy"]
             await client.put(url, json={"source": "revised source"})
+            binding = {"paper_id": "paper-fixture", "source_version": "v2", "page_index": 2}
+            await client.put(url, json={"context": {**binding, "quote": "Local selection"}})
             second = (await client.post(url + "/render")).json()
             assert second["published"]["version"] != first
+            assert second["published"]["context"] == binding
+            assert second["published"]["source_anchor"] == binding
             assert second["history"][0]["version"] == first
+            assert second["history"][0]["context"] == {}
             assert (await client.get("/api/workspace/view/studio/" + doc["id"], params={"version": first})).status_code == 200
             assert (await client.get("/api/workspace/export/studio/" + doc["id"] + "/page.md")).text == "revised source"
             assert (await client.get("/api/workspace/export/studio/" + doc["id"] + "/private.sqlite")).status_code == 400
@@ -86,6 +91,9 @@ def test_generation_and_stop_close_the_account_client_and_keep_saved_work(tmp_pa
         Text.wait = True
         try:
             pending = workspace.studio.generate(doc["id"], {"question": "A follow-up"})
+            with pytest.raises(ValueError, match="正在生成"):
+                workspace.studio.generate(doc["id"], {"question": "A second request"})
+            assert workspace.store.get("studio", doc["id"])["question"] == "A follow-up"
             await asyncio.sleep(0.02)
             stopped = await workspace.jobs.cancel(pending["id"])
             assert stopped["state"] == "cancelled"

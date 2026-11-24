@@ -3,9 +3,11 @@ import { TranslationTools } from './ReadingTools';
 import TranslationLibrary from './TranslationLibrary';
 import Icon from './Icon';
 import type { Row } from './api';
+import type { TopicFilter } from './TopicPicker';
 
-export default function GlobalTranslation({ paper, papers, job, readableJob, reload, onClose, onRead }: {
+export default function GlobalTranslation({ paper, papers, topicFilter, job, readableJob, reload, onClose, onRead }: {
   paper?: Row; papers: Row[]; job: any; readableJob: any; reload: () => void;
+  topicFilter: TopicFilter;
   onClose: () => void; onRead: (paperId: string) => void;
 }) {
   const [mode, setMode] = useState(paper ? 'paper' : 'batch');
@@ -26,6 +28,6 @@ export default function GlobalTranslation({ paper, papers, job, readableJob, rel
     </nav>
     <p className="small muted">切换页面或关闭面板后任务继续；退出 Harness 会保存进度，重启可恢复。</p>
     {mode === 'paper' && paper ? <TranslationTools key={paper.id + paper.source_version} paper={paper} job={job} readableJob={readableJob} reload={reload} open />
-      : <TranslationLibrary papers={papers} onUpdate={reload} onRead={onRead} />}
+      : <TranslationLibrary papers={papers} topicFilter={topicFilter} onUpdate={reload} onRead={onRead} />}
   </aside>;
 }

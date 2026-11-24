@@ -1,5 +1,9 @@
+import httpx
 from fastapi.testclient import TestClient
+
 from paper_research_coach.server import create_app
+from paper_research_coach.store import Store
+from paper_research_coach.zotero import ZoteroSync
 
 
 def client(store):
@@ -108,6 +112,136 @@ def test_manual_refresh_is_authenticated_and_runs_both_connected_sources(store, 
     assert result.status_code == 200
     assert calls == [("vault", True), "zotero"]
     assert not app.state.sync.state()["enabled"]
+
+
+def test_zotero_topics_use_existing_links_and_survive_offline_restart(
+    store, monkeypatch
+):
+    sid = "local-library"
+    children = {
+        "ROOT0001": ("Reading library", False),
+        "TOPIC001": ("Methods", "ROOT0001"),
+        "TOPIC002": ("Datasets", "ROOT0001"),
+        "NESTED01": ("Measurements", "TOPIC001"),
+        "FOREIGN1": ("Other library", False),
+        "FOREIGN2": ("Unrelated topic", "FOREIGN1"),
+    }
+    members = {
+        "TOPIC001": ["ITEM0002", "ITEM0001"],
+        "TOPIC002": ["ITEM0001"],
+        "NESTED01": ["ITEM0002"],
+    }
+    calls = []
+    failure = ""
+
+    def zotero_api(request):
+        path = request.url.path.removeprefix("/api/")
+        calls.append(path)
+        assert request.method == "GET"
+        if failure and failure in (path, "offline"):
+            raise httpx.ConnectError("Zotero unavailable", request=request)
+        headers = {"Zotero-Server-ID": sid, "Last-Modified-Version": "10"}
+        if path == "":
+            return httpx.Response(200, headers=headers)
+        assert request.headers["Zotero-Server-ID"] == sid
+        start = int(request.url.params["start"])
+        if path == "users/0/collections":
+            records = [
+                {"key": key, "data": {"name": name, "parentCollection": parent}}
+                for key, (name, parent) in children.items()
+            ]
+            headers["Total-Results"] = str(len(records))
+            return httpx.Response(200, json=records[start : start + 2], headers=headers)
+        key = path.split("/")[3]
+        assert request.url.params["format"] == "keys"
+        records = members[key]
+        headers["Total-Results"] = str(len(records))
+        return httpx.Response(
+            200, text="\n".join(records[start : start + 1]), headers=headers
+        )
+
+    papers = [
+        store.add_paper(
+            "Existing linked paper",
+            zotero_server=sid,
+            zotero_key="ITEM0001",
+            zotero_collection="ROOT0001",
+        ),
+        store.add_paper(
+            "Nested topic",
+            zotero_server=sid,
+            zotero_key="ITEM0002",
+            zotero_collection="ROOT0001",
+        ),
+        store.add_paper(
+            "Same remote key in another library",
+            zotero_server="other",
+            zotero_key="ITEM0001",
+        ),
+        store.add_paper("No Zotero link"),
+    ]
+
+    def start(notebook):
+        remote = httpx.Client(
+            base_url="http://127.0.0.1:23119/api/",
+            transport=httpx.MockTransport(zotero_api),
+        )
+        sync = ZoteroSync(notebook, remote)
+        monkeypatch.setattr(sync, "run", lambda: sync.state())
+        return sync, TestClient(
+            create_app(notebook, token="test-token", sync=sync),
+            base_url="http://127.0.0.1",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    sync, client = start(store)
+    assert client.post("/api/sync/refresh").json() == {}
+    sync.set_state(server_id=sid, collection="ROOT0001", enabled=False)
+    initial = client.get("/api/state").json()
+    assert initial["zotero_collections"] == []
+    assert initial["paper_topic_keys"] == {}
+    assert not calls
+    assert client.post("/api/sync/refresh").json()["topics"]["state"] == "connected"
+    assert calls.count("users/0/collections") == 3
+    assert calls.count("users/0/collections/TOPIC001/items/top") == 2
+    assert all("FOREIGN" not in path for path in calls)
+
+    calls.clear()
+    current = client.get("/api/state").json()
+    assert current["zotero_collections"] == [
+        {"key": "TOPIC001", "name": "Methods", "parent_key": ""},
+        {"key": "TOPIC002", "name": "Datasets", "parent_key": ""},
+        {"key": "NESTED01", "name": "Measurements", "parent_key": "TOPIC001"},
+    ]
+    expected = {
+        papers[0]["id"]: ["TOPIC001", "TOPIC002"],
+        papers[1]["id"]: ["TOPIC001", "NESTED01"],
+    }
+    assert current["paper_topic_keys"] == expected
+    assert current["papers"] == papers
+    assert not calls
+
+    members["TOPIC001"].remove("ITEM0001")
+    failure = "users/0/collections/TOPIC002/items/top"
+    assert client.post("/api/sync/refresh").json()["topics"]["state"] == "attention"
+    assert client.get("/api/state").json()["paper_topic_keys"] == expected
+    failure = "offline"
+    restarted_sync, restarted = start(Store(store.root))
+    assert restarted.post("/api/sync/refresh").json()["topics"]["state"] == "attention"
+    assert restarted.get("/api/state").json()["paper_topic_keys"] == expected
+
+    failure = ""
+    del children["TOPIC002"]
+    assert restarted.post("/api/sync/refresh").json()["topics"]["state"] == "connected"
+    refreshed = restarted.get("/api/state").json()
+    assert refreshed["paper_topic_keys"] == {papers[1]["id"]: ["TOPIC001", "NESTED01"]}
+    assert [c["key"] for c in refreshed["zotero_collections"]] == [
+        "TOPIC001",
+        "NESTED01",
+    ]
+
+    restarted_sync.set_state(collection="FOREIGN1")
+    assert restarted.get("/api/state").json()["zotero_collections"] == []
 
 
 def test_missing_records_are_404_but_missing_fields_are_400(store, paper):

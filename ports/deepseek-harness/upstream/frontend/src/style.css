@@ -291,6 +291,32 @@ nav button.selected {
   padding: 3px;
   color: var(--muted);
 }
+.close-library {
+  display: none;
+  margin-left: auto;
+}
+.library-topic-picker {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+}
+.library-topic-picker span {
+  flex: none;
+  color: var(--text-2);
+  font-size: 12px;
+}
+.library-topic-picker select {
+  min-width: 0;
+  padding: 7px 8px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.sidebar .library-topic-picker {
+  margin-bottom: 9px;
+}
 .search {
   display: flex;
   gap: 5px;
@@ -1174,41 +1200,25 @@ blockquote {
 }
 @media (max-width: 800px) {
   .sidebar {
-    width: 64px;
-    padding: 20px 10px;
+    width: min(300px, calc(100vw - 32px));
+    height: 100dvh;
+    padding: 16px;
+    z-index: 35;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12);
   }
-  .brand > div:not(.brand-mark),
   .sidebar-intro,
-  .library-heading,
-  .search,
-  .paper-list,
   .local-label {
     display: none;
   }
-  .brand-mark {
-    width: 38px;
+  .close-library {
+    display: inline-flex;
   }
   .sidebar nav {
-    margin-top: 30px;
-  }
-  .sidebar nav button,
-  .settings-button {
-    font-size: 0;
-    padding: 12px;
-    gap: 0;
-  }
-  .nav-indicator {
-    display: none;
-  }
-  .settings-button {
-    margin-top: auto;
-  }
-  .settings-button .status-dot {
-    display: none;
+    margin-top: 14px;
   }
   .main-shell {
-    margin-left: 64px;
-    width: calc(100% - 64px);
+    margin-left: 0;
+    width: 100%;
   }
   .reading-layout {
     display: flex;
@@ -1411,7 +1421,7 @@ blockquote {
 
 /* Keep the reading surface quiet; secondary controls open on demand. */
 .sidebar-hidden .main-shell { margin-left: 0; width: 100%; }
-.sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; padding: 7px; border: 0; border-radius: 6px; background: transparent; color: var(--text-2); }
+.sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px; border: 0; border-radius: 6px; background: transparent; color: var(--text-2); font-size: 12px; }
 .sidebar-toggle:hover { background: var(--tint-strong); }
 .workspace-navigation { min-width: 0; }
 .library-secondary > summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px 12px; color: var(--text-2); font-size: 12px; border-radius: 6px; list-style: none; }

@@ -122,6 +122,53 @@ it("keeps the library hidden across reloads and brings it back on demand", async
   expect(localStorage.getItem("prc-sidebar-hidden")).toBe("false");
 });
 
+it("keeps the current paper while browsing themes and carries the chosen theme into batch translation", async () => {
+  const papers = [
+    { id: "first", title: "Beam sweeping", revision: 1, source_path: "", source_version: "" },
+    { id: "second", title: "Radio measurements", revision: 1, source_path: "", source_version: "" },
+    { id: "third", title: "Unfiled paper", revision: 1, source_path: "", source_version: "" },
+  ];
+  vi.mocked(api).mockImplementation(async (path) => {
+    if (path === "state") return {
+      papers, sync: {}, conflicts: [],
+      zotero_collections: [
+        { key: "BEAM", name: "波束管理", parent_key: "" },
+        { key: "FIELD", name: "实测", parent_key: "BEAM" },
+      ],
+      paper_topic_keys: { first: ["BEAM"], second: ["FIELD"] },
+    };
+    if (path.startsWith("context/")) return {
+      paper: papers.find((p) => `context/${p.id}` === path),
+      session: [], notes: [], seq: 1,
+    };
+    if (path === "translation/jobs") return { data: [], papers: {} };
+    if (path === "coach/status") return { models: [] };
+    return {};
+  });
+  render(<App />);
+  await screen.findByRole("heading", { name: "Beam sweeping" });
+  fireEvent.click(screen.getByRole("button", { name: "显示论文栏" }));
+  const theme = screen.getByRole("combobox", { name: "论文主题" });
+  expect(screen.getByRole("option", { name: "波束管理（2）" })).toBeTruthy();
+  expect(screen.getByRole("option", { name: "未分类（1）" })).toBeTruthy();
+  fireEvent.change(theme, { target: { value: "FIELD" } });
+  expect(screen.queryByRole("button", { name: /Unfiled paper/ })).toBeNull();
+  expect(screen.getByRole("heading", { name: "Beam sweeping" })).toBeTruthy();
+  const target = screen.getByRole("button", { name: /Radio measurements/ });
+  fireEvent.click(target);
+  await screen.findByRole("heading", { name: "Radio measurements" });
+  fireEvent.click(target);
+  expect(screen.getByRole("heading", { name: "Radio measurements" })).toBeTruthy();
+  expect(theme).toHaveProperty("value", "FIELD");
+  expect(localStorage.getItem("prc-library-topic")).toBe("FIELD");
+  fireEvent.click(screen.getByRole("button", { name: "翻译", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "批量后台翻译" }));
+  const batchTheme = screen.getByRole("combobox", { name: "批量翻译主题" });
+  expect(batchTheme).toHaveProperty("value", "FIELD");
+  expect(screen.queryByLabelText("翻译 Beam sweeping")).toBeNull();
+  expect(screen.getByLabelText("翻译 Radio measurements")).toBeTruthy();
+});
+
 it("preserves the draft and mounted conversation across immersive mode", async () => {
   const paper = {
     id: "p",

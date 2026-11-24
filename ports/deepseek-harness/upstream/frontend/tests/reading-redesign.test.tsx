@@ -48,13 +48,17 @@ it('explicitly selects account-generated components and binds a source version',
   vi.stubGlobal('fetch', vi.fn(async (path: string, init?: any) => {
     const value = init?.body && JSON.parse(init.body);
     if (init?.method === 'PUT') { writes.push(value); row = { ...row, ...value }; }
-    if (path.endsWith('/generate')) writes.push({ generation: true });
+    if (path.endsWith('/generate')) {
+      writes.push({ generation: true });
+      return { ok: true, json: async () => ({ id: 'job-a', state: 'queued', owner: 's1' }) };
+    }
     return { ok: true, json: async () => row };
   }));
-  render(<InteractiveStudio id="s1" jobs={[]} kbs={[]} page={2} paper={{ id: 'p', source_version: 'v2' }} reload={vi.fn()} report={vi.fn()} />);
+  render(<InteractiveStudio id="s1" jobs={[]} kbs={[]} page={2} paper={{ id: 'p', title: '合成论文', source_path: 'fixture.pdf', source_version: 'v2' }} reload={vi.fn(async () => undefined)} report={vi.fn()} />);
   await screen.findByLabelText('讲解形式');
   fireEvent.change(screen.getByLabelText('讲解形式'), { target: { value: 'components' } });
-  fireEvent.click(screen.getByRole('button', { name: '使用当前论文页' }));
+  fireEvent.click(screen.getByRole('button', { name: '改用当前页' }));
+  expect(screen.getByText('合成论文 · PDF 第 3 页', { selector: 'strong' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: '生成交互式讲解' }));
   await waitFor(() => expect(writes.some(v => v.generation)).toBe(true));
   expect(writes[0].presentation).toBe('components');
@@ -76,12 +80,15 @@ it('brings a page question into the collapsed composer without sending it', asyn
   vi.stubGlobal('fetch', fetch);
   render(<InteractiveStudio id="s1" jobs={[]} kbs={[]} page={0} reload={vi.fn()} report={vi.fn()} />);
   const frame = await screen.findByTitle('Saved page') as HTMLIFrameElement;
+  fireEvent.click(screen.getByRole('button', { name: '展开讲解' }));
+  expect(frame.parentElement?.classList.contains('learning-surface-expanded')).toBe(true);
   const question = screen.getByLabelText('交互式讲解问题');
   Object.defineProperty(question, 'scrollIntoView', { value: vi.fn(), configurable: true });
   expect(question.closest('details')?.open).toBe(false);
   window.dispatchEvent(new MessageEvent('message', { source: frame.contentWindow, data: { channel: 'prc-workspace-v1', scope: { id: 's1', type: 'studio' }, kind: 'question', text: 'Explain the current slope = 2' } }));
   await waitFor(() => expect(document.activeElement).toBe(question));
   expect(question.closest('details')?.open).toBe(true);
+  expect(frame.parentElement?.classList.contains('learning-surface-expanded')).toBe(false);
   expect((question as HTMLTextAreaElement).value).toContain('slope = 2');
   expect(fetch).toHaveBeenCalledOnce();
 });

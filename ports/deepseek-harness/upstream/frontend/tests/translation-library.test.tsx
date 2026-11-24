@@ -9,8 +9,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import TranslationLibrary, {
   TranslationBadge,
 } from "../src/TranslationLibrary";
+import { useState } from "react";
 import { TranslationTools } from "../src/ReadingTools";
 import { api } from "../src/api";
+import { indexTopics } from "../src/library-search";
 
 vi.mock("../src/api", async (original) => ({
   ...(await original<any>()),
@@ -104,7 +106,7 @@ it("searches authors and selects papers across searches without queueing a ready
   fireEvent.change(screen.getByLabelText("搜索待翻译论文"), {
     target: { value: "Beta" },
   });
-  fireEvent.click(screen.getByText("勾选搜索结果"));
+  fireEvent.click(screen.getByText("勾选当前结果"));
   fireEvent.click(screen.getByText("加入后台翻译"));
   await screen.findByText(/已加入 2 篇/);
   const sent = vi
@@ -120,6 +122,37 @@ it("searches authors and selects papers across searches without queueing a ready
   });
   fireEvent.click(screen.getByText("阅读双语"));
   expect(read).toHaveBeenCalledWith("c");
+});
+
+it("queues the eligible papers from the selected topic and shows picks retained across topics", async () => {
+  mockApi();
+  const topics = indexTopics(
+    papers,
+    [
+      { key: "TOPIC", name: "波束管理", parent_key: "" },
+      { key: "NESTED", name: "测量", parent_key: "TOPIC" },
+      { key: "OTHER", name: "标准化", parent_key: "" },
+    ],
+    { a: ["TOPIC", "NESTED"], b: ["OTHER"], c: ["NESTED"] },
+  );
+  function Batch() {
+    const [value, onChange] = useState("TOPIC");
+    return <TranslationLibrary papers={papers} topicFilter={{ topics, value, onChange }} />;
+  }
+  render(<Batch />);
+  await screen.findByLabelText("同时翻译论文");
+  const topic = screen.getByRole("combobox", { name: "批量翻译主题" });
+  expect(screen.getByRole("option", { name: "波束管理（2）" })).toBeTruthy();
+  expect(screen.queryByLabelText("翻译 Beta paper")).toBeNull();
+  expect(screen.getByLabelText("翻译 Completed paper")).toHaveProperty("disabled", true);
+  fireEvent.click(screen.getByText("勾选当前结果"));
+  fireEvent.change(topic, { target: { value: "OTHER" } });
+  expect(screen.getByText(/含其他筛选结果中的 1 篇/)).toBeTruthy();
+  expect(screen.getByLabelText("翻译 Beta paper")).toHaveProperty("checked", false);
+  fireEvent.click(screen.getByText("加入后台翻译"));
+  await screen.findByText(/已加入 1 篇/);
+  const sent = vi.mocked(api).mock.calls.find(([path]) => path === "translation/batch")![1];
+  expect(sent.papers).toEqual([{ paper_id: "a", source_version: "va" }]);
 });
 it("saves concurrency separately and retains a batch request across failed responses and remount", async () => {
   mockApi(() => {
