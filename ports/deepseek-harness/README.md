@@ -1,8 +1,8 @@
-# Paper Research Coach · DeepSeek Harness 1.4.1
+# Paper Research Coach · DeepSeek Harness 1.4.2
 
 **工作台内核 2.0.0rc15 · macOS Apple silicon · 原生宿主检查基线 Harness 0.2.2-rc.1。** 使用 Harness 登录账户，无需 API Key 或 Codex CLI。Windows 旧分发与本次 macOS 发布分别记录。
 
-[下载 1.4.1](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.1) · [双语研读操作](docs/BILINGUAL-READING.md) · [安装与恢复](../../docs/DEEPSEEK_HARNESS.md) · [发布说明](../../docs/releases/dsh-v1.4.1.md)
+[下载 1.4.2](https://github.com/ooooooomygosh/paper-research-coach/releases/tag/dsh-v1.4.2) · [双语研读操作](docs/BILINGUAL-READING.md) · [安装与恢复](../../docs/DEEPSEEK_HARNESS.md) · [发布说明](../../docs/releases/dsh-v1.4.2.md)
 
 ![讲解大阅读区](../../docs/images/explanation-large.png)
 
@@ -22,11 +22,11 @@
 
 ## 安装与更新
 
-macOS 下载 [PRC-DSH-1.4.1-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.1/PRC-DSH-1.4.1-mac.zip)，完全退出 Harness（含托盘），解压后双击 `安装.command`，再启动“论文研读”。ZIP、`dsh-release.json`、ZIP `.sha256` 和 `SHA256SUMS` 放在同一 DSH Release；仓库不提交大型安装包。源码构建保留在 [macOS 说明](macos/README.md)。
+macOS 下载 [PRC-DSH-1.4.2-mac.zip](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.2/PRC-DSH-1.4.2-mac.zip)，完全退出 Harness（含托盘），解压后双击 `安装.command`，再启动“论文研读”。ZIP、`dsh-release.json`、ZIP `.sha256` 和 `SHA256SUMS` 放在同一 DSH Release；仓库不提交大型安装包。源码构建保留在 [macOS 说明](macos/README.md)。
 
 **从旧版升级会保留原有数据目录。** 自 1.3.1 起提供的 DSH 专属更新器检查 `dsh-v*` Release，验证宿主、平台与 SHA-256，后台暂存兼容包，下一次完全退出并重启 Harness 时安装。运行中的阅读进程保持原版本。“设置 → 版本与更新”显示实际插件版本，支持手动检查。独立工作台的 wheel 更新器在 DSH 中继续关闭。
 
-目前自动安装目标为 macOS arm64。Windows 没有兼容资产时不安装；本次没有发布 1.4.1 Windows ZIP，也没有执行 Windows 原生安装验收。`PRC-DSH-1.2.0-win-x64.zip` 与 Harness 0.2.1-rc.5 的记录属于历史版本。
+目前自动安装目标为 macOS arm64。Windows 没有兼容资产时不安装；本次没有发布 1.4.2 Windows ZIP，也没有执行 Windows 原生安装验收。`PRC-DSH-1.2.0-win-x64.zip` 与 Harness 0.2.1-rc.5 的记录属于历史版本。
 
 论文、译文缓存、笔记和学习记录默认位于 `~/.dsh/paper-research-coach`（跟随 `DSH_HOME`）。凭证由 Harness 管理；原 PDF 保持只读。旧八步记录不覆盖，阅读计划另存。更新保留旧版、安装备份与一致性数据备份，回退应使用匹配的数据版本。
 
@@ -96,4 +96,4 @@ python -X utf8 scripts/prepare_bundle.py --runtime 'C:/PRC-DSH/package/runtime'
 
 `prepare_bundle.py` 核对翻译资源哈希，复制运行库，修正本地源码优先路径并检查关键依赖；`build_release.py` 收集源码、资源、许可证和安装器，检查私有数据排除项，生成逐文件 SHA-256 清单、ZIP CRC 和 ZIP 摘要。构建前需先完成前端构建。
 
-历史 Windows 安装器的验证基线仅为 Harness **0.2.1-rc.5**，不代表本次 macOS 1.4.1 的安装路径。宿主升级后仍需核验兼容性；DSH 不安装独立工作台 wheel。
+历史 Windows 安装器的验证基线仅为 Harness **0.2.1-rc.5**，不代表本次 macOS 1.4.2 的安装路径。宿主升级后仍需核验兼容性；DSH 不安装独立工作台 wheel。

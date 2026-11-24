@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .codex_text import CodexText
 from .models import Anchor, now, uid
 from .store import Conflict, cached_digest, digest, NotFound
+from .translation_layout import TranslationLayoutError, validate_pdf_layout
 
 BABELDOC_VERSION = "0.6.4"
 DEFAULT_MODEL = "deepseek-flash" if os.environ.get("PRC_EMBEDDED") == "1" else "gpt-6-luna"
@@ -390,6 +391,7 @@ class Translation:
         self.source_checks = {}
         self.verified_interpreter = None
         self.closing = False
+        self.layout_audit = None
         with store.connect() as db:
             db.executescript("""
             CREATE TABLE IF NOT EXISTS translation_jobs(id TEXT PRIMARY KEY, paper_id TEXT NOT NULL, operation_id TEXT UNIQUE NOT NULL, data TEXT NOT NULL);
@@ -453,6 +455,31 @@ class Translation:
         for job in jobs:
             if job["state"] == "queued":
                 self.schedule(job)
+        self.layout_audit = asyncio.create_task(self.audit_saved_layouts())
+
+    @staticmethod
+    def saved_layout_problem(job):
+        artifacts = job["artifacts"]
+        try:
+            validate_pdf_layout(Path(job["source_path"]), Path(artifacts["mono"]), Path(artifacts["dual"]))
+        except TranslationLayoutError as error:
+            return str(error)
+        return ""
+
+    async def audit_saved_layouts(self):
+        # Audit legacy artifacts once, off the request path. Keep the artifacts
+        # on disk so a rebuild creates a separate rendition and document version.
+        for job in self.jobs():
+            if job["state"] in ACTIVE or job.get("layout_checked") or not self.ready_artifacts(job):
+                continue
+            try:
+                problem = await asyncio.to_thread(self.saved_layout_problem, job)
+            except (OSError, RuntimeError, ValueError, ImportError, KeyError):
+                continue
+            current = self.job(job["id"])
+            if current["state"] not in ACTIVE and current.get("artifacts") == job["artifacts"]:
+                current.update(layout_checked=True, layout_problem=problem)
+                self.save(current)
 
     def interpreter(self):
         if os.environ.get("PRC_EMBEDDED") == "1":
@@ -577,13 +604,18 @@ class Translation:
                 except Exception:
                     # An unreadable artifact can still be retried; never invent geometry.
                     pass
+        data = {**job, "current": current, "pdf_ready": pdf_ready, "documents": documents}
+        if job.get("layout_problem") and job["state"] not in ACTIVE:
+            data.update(state="failed", stage="译本排版需要重建", message=job["layout_problem"])
         return {
             k: v
-            for k, v in {**job, "current": current, "pdf_ready": pdf_ready, "documents": documents}.items()
+            for k, v in data.items()
             if k not in ("artifacts", "source_path", "provider", "fingerprint")
         }
 
     def ready_artifacts(self, job):
+        if job.get("layout_problem"):
+            return False
         directory = (self.store.root / "translations" / job["id"]).resolve()
         return all(
             job.get("artifacts", {}).get(kind)
@@ -766,6 +798,14 @@ class Translation:
             or self.store.check_source(job["paper_id"])["status"] != "current"
         ):
             raise Conflict("旧版本翻译不能继续，请为当前版本新建任务。")
+        if job.get("layout_problem"):
+            profile = {key: job.get(key, default) for key, default in self.settings().items()}
+            return await self.create(
+                job["paper_id"],
+                TranslationRequest(operation_id="layout-rebuild:" + job_id, source_version=job["source_version"]),
+                profile=profile,
+                reuse_active=True,
+            )
         if job["state"] == "completed":
             return self.public(job)
         if any(
@@ -992,6 +1032,11 @@ class Translation:
                 )
                 self.save(job)
                 artifacts = job["artifacts"] if self.ready_artifacts(job) else None
+                if artifacts and not job.get("layout_checked"):
+                    problem = await asyncio.to_thread(self.saved_layout_problem, job)
+                    job.update(layout_checked=True, layout_problem=problem)
+                    if problem:
+                        raise TranslationLayoutError(problem)
                 if not artifacts:
                     pdf_started = time.monotonic()
                     interpreter = await asyncio.to_thread(self.interpreter)
@@ -1075,6 +1120,7 @@ class Translation:
                     await asyncio.gather(*responses)
                     if await process.wait() != 0 or not artifacts:
                         raise ValueError("翻译组件未完成处理，已完成内容保留。")
+                    job.update(layout_checked=True, layout_problem="")
                     job.setdefault("metrics", {})["pdf_seconds"] = round(
                         time.monotonic() - pdf_started, 2
                     )
@@ -1147,6 +1193,8 @@ class Translation:
 
     def artifact(self, job_id, kind):
         job = self.job(job_id)
+        if job.get("layout_problem"):
+            raise TranslationLayoutError(job["layout_problem"])
         if kind not in ("mono", "dual") or not self.ready_artifacts(job):
             raise ValueError("译文 PDF 尚未完成。")
         path = Path(job["artifacts"][kind]).resolve()
@@ -1210,6 +1258,8 @@ class Translation:
         self.closing = True
         job_ids = list(self.tasks)
         tasks = list(self.tasks.values())
+        if self.layout_audit:
+            tasks.append(self.layout_audit)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

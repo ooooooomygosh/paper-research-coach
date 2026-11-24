@@ -185,7 +185,7 @@ export function TranslationTools({
         </button>
       ) : job && ["failed", "cancelled", "interrupted"].includes(job.state) ? (
         <button disabled={busy} onClick={() => void action("retry")}>
-          继续翻译
+          {job.layout_problem ? "重建译本" : "继续翻译"}
         </button>
       ) : (
         <button

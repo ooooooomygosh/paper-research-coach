@@ -1,6 +1,6 @@
 # macOS 上的 DeepSeek Harness 插件安装与源码构建
 
-当前 **1.4.1** 提供 macOS Apple silicon [安装 ZIP](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.1/PRC-DSH-1.4.1-mac.zip)。完全退出 Harness，解压后双击 `安装.command`。原生宿主验证基线为 **0.2.2-rc.1**。首次从旧版升级使用这个包，之后支持 DSH 专属更新：校验并暂存，下一次完全退出并打开时安装，数据目录继续保留。[当前指南](../../../docs/DEEPSEEK_HARNESS.md)
+当前 **1.4.2** 提供 macOS Apple silicon [安装 ZIP](https://github.com/ooooooomygosh/paper-research-coach/releases/download/dsh-v1.4.2/PRC-DSH-1.4.2-mac.zip)。完全退出 Harness，解压后双击 `安装.command`。原生宿主验证基线为 **0.2.2-rc.1**。首次从旧版升级使用这个包，之后支持 DSH 专属更新：校验并暂存，下一次完全退出并打开时安装，数据目录继续保留。[当前指南](../../../docs/DEEPSEEK_HARNESS.md)
 
 下文保留源码构建流程和 **1.1.0／0.2.1-rc.5** 历史验证记录，其中 Windows 1.2.0 包仅用作历史资源来源，不能代表新版 macOS 安装方式。
 

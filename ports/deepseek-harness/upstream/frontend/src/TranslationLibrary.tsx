@@ -16,7 +16,9 @@ export function TranslationBadge({ job }: { job: any }) {
   const ready = hasTranslation(job);
   const text = ready
     ? "双语"
-    : job.state === "running"
+    : job.layout_problem
+      ? "译本需重建"
+      : job.state === "running"
       ? "翻译中"
       : job.state === "queued"
         ? "待翻译"
@@ -406,7 +408,7 @@ export default function TranslationLibrary({
                       disabled={busy}
                       onClick={() => void action(job, "retry")}
                     >
-                      继续翻译
+                      {job.layout_problem ? "重建译本" : "继续翻译"}
                     </button>
                   )
                 )}
