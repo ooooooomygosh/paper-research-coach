@@ -5,8 +5,12 @@ import LearningWorkspace from "./LearningWorkspace";
 import InteractiveStudio from "./InteractiveStudio";
 import "./workspace.css";
 import ReadingPromptButton from './ReadingPromptButton';
+import { createStudio, studioPaperContext } from "./studio-context";
 
-export type WorkspaceProps = { mode: string; paper?: RecordData; page: number; quote?: string; report: (message: string) => void; onSource?: (anchor: any) => void };
+export type WorkspaceProps = {
+  mode: string; paper?: RecordData; page: number; papers?: RecordData[]; openedStudio?: string;
+  onStudioOpened?: () => void; report: (message: string) => void; onSource?: (anchor: RecordData) => boolean | void;
+};
 export function JobStatus({ job, onCancel }: { job?: RecordData; onCancel: () => void }) {
   if (!job) return null;
   const running = ["running", "queued"].includes(job.state);
@@ -20,7 +24,7 @@ export function JobStatus({ job, onCancel }: { job?: RecordData; onCancel: () =>
   </div>;
 }
 
-export default function Workspace({ mode, paper, page, quote, report, onSource }: WorkspaceProps) {
+export default function Workspace({ mode, paper, page, papers, openedStudio, onStudioOpened, report, onSource }: WorkspaceProps) {
   const [state, setState] = useState<RecordData>({ studios: [], kbs: [], jobs: [] });
   const [kb, setKb] = useState(() => localStorage.getItem("prc-workspace-kb") || ""), [studio, setStudio] = useState(() => localStorage.getItem("prc-workspace-studio") || "");
   const [methodRequest, setMethodRequest] = useState<RecordData | null>(null);
@@ -41,14 +45,21 @@ export default function Workspace({ mode, paper, page, quote, report, onSource }
   }, [reload]);
   const isKb = mode === "knowledge", rows = isKb ? state.kbs : state.studios;
   const selected = isKb ? kb : studio;
+  const pageContext = studioPaperContext(paper, page);
+  useEffect(() => {
+    if (!openedStudio) return;
+    setStudio(openedStudio);
+    onStudioOpened?.();
+    void reload().catch(error => setError(error.message));
+  }, [openedStudio, onStudioOpened, reload]);
   useEffect(() => { if (selected) localStorage.setItem(isKb ? "prc-workspace-kb" : "prc-workspace-studio", selected); }, [isKb, selected]);
   useEffect(() => {
-    if (!selected && rows.length) (isKb ? setKb : setStudio)(rows[0].id);
-  }, [isKb, rows, selected]);
-  async function create() {
+    if (!selected && !openedStudio && rows.length) (isKb ? setKb : setStudio)(rows[0].id);
+  }, [isKb, rows, selected, openedStudio]);
+  async function create(fromPage = false) {
     setBusy(true);
     try {
-      const row = await workspaceApi(isKb ? "/kbs" : "/studios", isKb ? { title, depth } : { context: paper ? { paper_id: paper.id, source_version: paper.source_version, page_index: page, quote } : {} });
+      const row = isKb ? await workspaceApi("/kbs", { title, depth }) : await createStudio(paper, fromPage ? pageContext || {} : {});
       (isKb ? setKb : setStudio)(row.id); setNewKb(false); setTitle(""); await reload();
     } catch (error) { report(String(error)); }
     finally { setBusy(false); }
@@ -62,8 +73,9 @@ export default function Workspace({ mode, paper, page, quote, report, onSource }
         {rows.map((row: RecordData) => <option key={row.id} value={row.id}>{row.title}{activeJob(state.jobs, row.id) ? ' · 正在处理' : ''}</option>)}
       </select>}
       {!isKb && <ReadingPromptButton paper={paper} page={page} />}
-      <button className="primary" disabled={busy} onClick={() => isKb ? setNewKb(!newKb) : void create()}>
-        <Plus size={16} />{isKb ? "新建知识库" : "新建讲解"}</button>
+      {!isKb && pageContext && <button className="primary" disabled={busy} onClick={() => void create(true)}>讲解当前页</button>}
+      <button className={isKb || !pageContext ? "primary" : undefined} disabled={busy} onClick={() => isKb ? setNewKb(!newKb) : void create()}>
+        <Plus size={16} />{isKb ? "新建知识库" : "新建独立讲解"}</button>
     </header>
     {error && <p role="alert">{error}</p>}
     {newKb && isKb && <form className="workspace-create" onSubmit={e => { e.preventDefault(); void create(); }}>
@@ -74,7 +86,7 @@ export default function Workspace({ mode, paper, page, quote, report, onSource }
     <div className="workspace-layout">
       <section className="workspace-main">
         {isKb ? kb ? <LearningWorkspace key={kb} id={kb} paper={paper} jobs={props.jobs} reload={reload} report={report} methodRequest={methodRequest} onNavigate={entry => { setKb(entry.kb_id); setMethodRequest({ ...entry, requested_at: Date.now() }); }} /> : <div className="workspace-empty"><Layers3 size={35} /><h2>从一组材料开始</h2><p>导入 PDF、Word、PPT、EPUB、Markdown 或文本，保留原文出处。</p><button onClick={() => setNewKb(true)}>新建知识库</button></div>
-          : studio ? <InteractiveStudio key={studio} id={studio} paper={paper} page={page} quote={quote} kbs={state.kbs} onSource={onSource} {...props} /> : <div className="workspace-empty"><Sparkles size={35} /><h2>把一个问题展开</h2><p>可从当前论文或知识库中取材，也可以解释一个独立的问题。</p><button onClick={() => void create()}>新建交互式讲解</button></div>}
+          : studio ? <InteractiveStudio key={studio} id={studio} paper={paper} page={page} papers={papers} kbs={state.kbs} onSource={onSource} {...props} /> : <div className="workspace-empty"><Sparkles size={35} /><h2>选择来源并写下问题</h2><p>可以讲解当前 PDF 页、选取知识库，或提出独立问题。</p></div>}
       </section>
     </div>
   </div>;

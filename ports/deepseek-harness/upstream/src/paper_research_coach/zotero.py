@@ -6,17 +6,18 @@ import math
 import re
 import secrets
 import sqlite3
+from collections import defaultdict, deque
 from contextlib import nullcontext
-from filelock import FileLock, Timeout
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 from urllib.request import url2pathname
 
 import httpx
+from filelock import FileLock, Timeout
 
 from .models import Note, SyncState, now, uid
-from .store import Store, digest, NotFound
+from .store import NotFound, Store, digest
 
 
 class SyncError(ValueError):
@@ -84,6 +85,7 @@ class ZoteroSync:
         )
         self.keys = {}
         self.lock = FileLock(str(store.root / "zotero-sync.lock"), timeout=0)
+        self.topic_lock = FileLock(str(store.root / "zotero-topics.lock"), timeout=0)
 
     def state(self):
         return SyncState.model_validate(self.store.setting("zotero", {})).model_dump()
@@ -189,6 +191,118 @@ class ZoteroSync:
             "collections": [
                 {"key": x["key"], "name": x["data"]["name"]} for x in r.json()
             ],
+        }
+
+    def topic_roots(self):
+        sync = self.state()
+        vault = self.store.setting("vault", {})
+        roots = defaultdict(set)
+        for server, collection in (
+            (sync["server_id"], sync["collection"]),
+            (vault.get("server"), vault.get("collection")),
+        ):
+            if server and collection:
+                roots[server].add(collection)
+        return {server: sorted(keys) for server, keys in roots.items()}
+
+    def topic_state(self, papers):
+        cache = self.store.setting("zotero-topics", {})
+        sid = cache.get("server")
+        if not sid or cache.get("roots") != self.topic_roots().get(sid):
+            return {"zotero_collections": [], "paper_topic_keys": {}}
+        memberships = cache["memberships"]
+        return {
+            "zotero_collections": cache["collections"],
+            "paper_topic_keys": {
+                p["id"]: memberships[p["zotero_key"]]
+                for p in papers
+                if p.get("zotero_server") == sid and p.get("zotero_key") in memberships
+            },
+        }
+
+    def refresh_topics(self):
+        """Read and cache collection membership independently of paper and note sync."""
+        roots = self.topic_roots()
+        if not roots:
+            return None
+        try:
+            with self.topic_lock.acquire():
+                sid = self.probe()
+                if sid not in roots:
+                    raise SyncError("Zotero library changed")
+                snapshot = self.read_topics(sid, roots[sid])
+                if roots != self.topic_roots():
+                    return {"state": "refreshing"}
+                if snapshot != self.store.setting("zotero-topics"):
+                    self.store.set_setting("zotero-topics", snapshot)
+        except Timeout:
+            return {"state": "refreshing"}
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            return {"state": "attention", "message": "暂时无法更新 Zotero 分类。"}
+        return {"state": "connected"}
+
+    def read_topics(self, sid, roots):
+        version = None
+
+        def pages(path, *, keys_only=False):
+            nonlocal version
+            rows = []
+            while True:
+                response = self.client.get(
+                    path,
+                    params={
+                        "format": "keys" if keys_only else "json",
+                        "limit": 100,
+                        "start": len(rows),
+                    },
+                    headers={"Zotero-API-Version": "3", "Zotero-Server-ID": sid},
+                )
+                response.raise_for_status()
+                current_version = response.headers.get("Last-Modified-Version")
+                if response.headers.get("Zotero-Server-ID", sid) != sid or (
+                    version is not None and current_version != version
+                ):
+                    raise SyncError("Zotero library changed during category refresh")
+                version = current_version
+                page = response.text.split() if keys_only else response.json()
+                if not isinstance(page, list):
+                    raise SyncError("Invalid Zotero category response")
+                rows.extend(page)
+                total = int(response.headers.get("Total-Results", len(rows)))
+                if len(rows) == total:
+                    return rows
+                if not page or len(rows) > total:
+                    raise SyncError("Incomplete Zotero category response")
+
+        children = defaultdict(list)
+        for row in pages("users/0/collections"):
+            data = row["data"]
+            if not data.get("deleted"):
+                children[data.get("parentCollection") or ""].append(
+                    (row["key"], data["name"])
+                )
+
+        collections = {}
+        pending = deque(roots)
+        while pending:
+            parent = pending.popleft()
+            for key, name in children[parent]:
+                if key not in collections:
+                    collections[key] = {"key": key, "name": name, "parent_key": parent}
+                    pending.append(key)
+
+        memberships = defaultdict(list)
+        for key, collection in collections.items():
+            if collection["parent_key"] not in collections:
+                collection["parent_key"] = ""
+            item_keys = pages(f"users/0/collections/{key}/items/top", keys_only=True)
+            for item_key in dict.fromkeys(item_keys):
+                memberships[item_key].append(key)
+        return {
+            "server": sid,
+            "roots": roots,
+            "collections": list(collections.values()),
+            "memberships": memberships,
         }
 
     def configure(self, server_id, collection, enabled=True):

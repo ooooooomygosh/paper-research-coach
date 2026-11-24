@@ -10,6 +10,7 @@ import {
 } from "./glyphs";
 import { api, put, type Row, location } from "./api";
 import TranslationLibrary from "./TranslationLibrary";
+import type { TopicFilter } from "./TopicPicker";
 const fields: Record<string, string> = {
   problem: "研究问题",
   unique_observation: "独特观察",
@@ -662,6 +663,7 @@ export function Settings({
   report,
   onTranslationUpdate,
   onReadTranslated,
+  topicFilter,
   updates,
 }: {
   state: any;
@@ -669,6 +671,7 @@ export function Settings({
   report: (s: string) => void;
   onTranslationUpdate?: () => void;
   onReadTranslated?: (paperId: string) => void;
+  topicFilter?: TopicFilter;
   updates?: React.ReactNode;
 }) {
   const [collections, setCollections] = useState<any>(null),
@@ -700,6 +703,7 @@ export function Settings({
       )}
       <TranslationLibrary
         papers={state.papers || []}
+        topicFilter={topicFilter}
         onUpdate={onTranslationUpdate}
         onRead={onReadTranslated}
       />

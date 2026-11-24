@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, id, type Row } from "./api";
+import { ALL_TOPICS, filterPapers, papersInTopic } from "./library-search";
+import TopicPicker, { type TopicFilter } from "./TopicPicker";
 
 export function hasTranslation(job: any): boolean {
   return Boolean(
@@ -31,10 +33,12 @@ export function TranslationBadge({ job }: { job: any }) {
 
 export default function TranslationLibrary({
   papers,
+  topicFilter,
   onUpdate,
   onRead,
 }: {
   papers: Row[];
+  topicFilter?: TopicFilter;
   onUpdate?: () => void;
   onRead?: (paperId: string) => void;
 }) {
@@ -48,7 +52,6 @@ export default function TranslationLibrary({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const operation = useRef("");
   const mounted = useRef(true);
 
   async function reload() {
@@ -106,17 +109,16 @@ export default function TranslationLibrary({
       setSaving(false);
     }
   }
-  const visible = papers.filter((p) => {
+  const topic = topicFilter?.value ?? ALL_TOPICS;
+  const topics = topicFilter?.topics;
+  const candidates = useMemo(
+    () => filterPapers(papersInTopic(papers, topics, topic), search),
+    [papers, topics, topic, search],
+  );
+  const visible = candidates.filter((p) => {
     const job = overview.papers[p.id];
-    const matches = [p.title, p.authors, p.year]
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase().trim());
-    return (
-      matches &&
-      (filter === "all" ||
-        (filter === "ready" ? hasTranslation(job) : !hasTranslation(job)))
-    );
+    return filter === "all" ||
+      (filter === "ready" ? hasTranslation(job) : !hasTranslation(job));
   });
   const eligible = visible.filter(
     (p) =>
@@ -125,30 +127,31 @@ export default function TranslationLibrary({
       !hasTranslation(overview.papers[p.id]) &&
       !["queued", "running"].includes(overview.papers[p.id]?.state),
   );
+  const picked = papers.filter((p) => selected.has(p.id));
+  const hiddenCount = picked.length - visible.filter((p) => selected.has(p.id)).length;
   function choose(paperId: string) {
     setSelected((previous) => {
       const next = new Set(previous);
       next.has(paperId) ? next.delete(paperId) : next.add(paperId);
       return next;
     });
-    operation.current = "";
   }
   async function start() {
+    if (!picked.length) return;
     setBusy(true);
     setError("");
     setNotice("");
-    const picked = papers.filter((p) => selected.has(p.id));
     const key =
       "prc-translation-batch:" +
       picked
         .map((p) => p.id + ":" + p.source_version)
         .sort()
         .join("|");
-    operation.current = localStorage.getItem(key) || id();
-    localStorage.setItem(key, operation.current);
     try {
+      const operationId = localStorage.getItem(key) || id();
+      localStorage.setItem(key, operationId);
       const response = await api("translation/batch", {
-        operation_id: operation.current,
+        operation_id: operationId,
         papers: picked.map((p) => ({
           paper_id: p.id,
           source_version: p.source_version,
@@ -206,10 +209,6 @@ export default function TranslationLibrary({
   return (
     <section className="surface translation-library" aria-label="后台批量翻译">
       <h3>后台批量翻译</h3>
-      <p>
-        提前准备想读的论文。选中后加入后台队列，双语 PDF
-        生成后即可阅读，句子对应继续在后台完成。
-      </p>
       {profile && (
         <details className="translation-advanced">
           <summary>批量翻译高级设置</summary>
@@ -308,14 +307,16 @@ export default function TranslationLibrary({
           <p className="muted small">请求并发由所有论文共享；已有任务保持启动时的模型，并发设置立即生效。</p>
         </details>
       )}
-      <p className="muted small">关闭面板不影响已提交任务；完全退出应用会停止计算，已保存进度可以恢复。</p>
       {!profile?.component?.ready && profile && (
         <p role="status">请先安装 BabelDOC 翻译组件。</p>
       )}
       <div className="translation-library-controls">
+        {topicFilter && topicFilter.topics.options.length > 1 && (
+          <TopicPicker filter={topicFilter} label="批量翻译主题" />
+        )}
         <input
           aria-label="搜索待翻译论文"
-          placeholder="搜索标题、作者或年份…"
+          placeholder={topic ? "在当前主题内搜索" : "搜索标题、作者、年份或 DOI…"}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -324,7 +325,7 @@ export default function TranslationLibrary({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
-          <option value="all">全部论文</option>
+          <option value="all">全部状态</option>
           <option value="missing">还没有双语版</option>
           <option value="ready">双语已可读</option>
         </select>
@@ -335,17 +336,13 @@ export default function TranslationLibrary({
               (previous) =>
                 new Set([...previous, ...eligible.map((p) => p.id)]),
             );
-            operation.current = "";
           }}
         >
-          勾选搜索结果
+          勾选当前结果
         </button>
         <button
-          disabled={busy || !selected.size}
-          onClick={() => {
-            setSelected(new Set());
-            operation.current = "";
-          }}
+          disabled={busy || !picked.length}
+          onClick={() => setSelected(new Set())}
         >
           清空勾选
         </button>
@@ -417,18 +414,20 @@ export default function TranslationLibrary({
             </div>
           );
         })}
-        {!visible.length && <p className="muted">没有匹配的论文。</p>}
+        {!visible.length && <p className="muted" role="status">当前筛选结果为 0 篇。</p>}
       </div>
       <div className="translation-batch-footer">
-        <span>
-          已勾选 {selected.size} 篇 · 后台 {active.length} 篇
+        <span role="status">
+          {visible.length} 篇结果 · 已勾选 {picked.length} 篇
+          {hiddenCount > 0 && `（含其他筛选结果中的 ${hiddenCount} 篇）`}
+          {" · 后台 "}{active.length} 篇
         </span>
         <button
           className="primary"
           disabled={
             busy ||
             saving ||
-            !selected.size ||
+            !picked.length ||
             !profile?.component?.ready ||
             !model
           }

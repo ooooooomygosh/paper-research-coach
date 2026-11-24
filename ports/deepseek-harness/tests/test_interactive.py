@@ -137,8 +137,23 @@ def test_native_sources_do_not_treat_a_user_selection_as_pdf_evidence(tmp_path):
     from paper_research_coach.store import Store
     path = tmp_path / 'synthetic.pdf'
     pdf = canvas.Canvas(str(path)); pdf.drawString(40, 700, 'Real PDF evidence must be checked.'); pdf.save()
+    prompts = []
+
+    class Text:
+        def __init__(self, *args):
+            pass
+
+        async def text(self, prompt, **kwargs):
+            prompts.append(prompt)
+            page = fixture()
+            page.update(source_id="pdf-page", source_quote="Real PDF evidence")
+            return json.dumps(page)
+
+        async def close(self):
+            pass
+
     async def run():
-        app = create_app(Store(tmp_path / 'data'), 'secret'); ws = app.state.workspace
+        app = create_app(Store(tmp_path / 'data'), 'secret', workspace_text_factory=Text); ws = app.state.workspace
         paper = ws.papers.add_paper('Synthetic metadata', str(path))
         source = {"paper_id": paper["id"], "page_index": 0, "quote": "This is not in the PDF."}
         sources = await ws.interactive_sources(source)
@@ -148,6 +163,16 @@ def test_native_sources_do_not_treat_a_user_selection_as_pdf_evidence(tmp_path):
         assert sources[0]["anchor"]["source_version"] == paper["source_version"]
         with pytest.raises(ValueError, match="换版"):
             await ws.interactive_sources({**source, "source_version": "old-version"})
+        row = ws.studio.create({"presentation": "components", "question": "Explain the selection", "context": source})
+        job = ws.studio.generate(row["id"], {})
+        await ws.jobs.tasks[job["id"]]
+        assert ws.store.get("job", job["id"])["state"] == "completed"
+        source_excerpts, selection = prompts[0].split("读者选区", 1)
+        assert source["quote"] not in source_excerpts
+        assert source["quote"] in selection
+        published = ws.store.get("studio", row["id"])["published"]
+        assert "quote" not in published["context"]
+        assert published["source_anchor"]["quote"] == "Real PDF evidence"
         await ws.close()
     asyncio.run(run())
 

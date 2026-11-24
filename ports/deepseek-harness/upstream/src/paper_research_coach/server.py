@@ -140,6 +140,14 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
                         )
                 await asyncio.sleep(vault.state()["poll_seconds"])
 
+        async def topic_loop():
+            while True:
+                try:
+                    await asyncio.to_thread(sync.refresh_topics)
+                except Exception:
+                    log.exception("Zotero category refresh failed; retrying next round")
+                await asyncio.sleep(60)
+
         async def update_loop():
             if os.environ.get("PRC_EMBEDDED") == "1":
                 return
@@ -160,16 +168,18 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
 
         folder_task = asyncio.create_task(folder_loop())
         task = asyncio.create_task(loop())
+        topic_task = asyncio.create_task(topic_loop())
         update_task = asyncio.create_task(update_loop())
         yield
         task.cancel()
         folder_task.cancel()
+        topic_task.cancel()
         update_task.cancel()
         await coach.close()
         await translation.close()
         await workspace.close()
         try:
-            await asyncio.gather(task, folder_task)
+            await asyncio.gather(task, folder_task, topic_task)
         except asyncio.CancelledError:
             pass
 
@@ -263,8 +273,10 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
 
     @app.get("/api/state")
     def state():
+        papers = store.list("paper")
         return {
-            "papers": store.list("paper"),
+            "papers": papers,
+            **sync.topic_state(papers),
             "sync": sync.state(),
             "conflicts": sync.conflicts(),
             "version": __version__,
@@ -781,7 +793,9 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
 
     @app.post("/api/zotero/sync")
     async def synchronize():
-        return await asyncio.to_thread(sync.run)
+        result = await asyncio.to_thread(sync.run)
+        await asyncio.to_thread(sync.refresh_topics)
+        return result
 
     @app.post("/api/sync/refresh")
     async def refresh_sync():
@@ -790,6 +804,8 @@ def create_app(store: Store, token: str | None = None, sync: ZoteroSync | None =
             result["vault"] = await asyncio.to_thread(vault.run, manual=True)
         if sync.state().get("collection"):
             result["zotero"] = await asyncio.to_thread(sync.run)
+        if topics := await asyncio.to_thread(sync.refresh_topics):
+            result["topics"] = topics
         return result
 
     @app.post("/api/zotero/conflict/{conflict_id}")

@@ -1,0 +1,31 @@
+.studio-workspace .studio-requirements { margin-bottom: 12px; }
+.studio-workspace .studio-source-card {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+.studio-source-header, .studio-submit, .studio-result-source, .studio-starters, .studio-advanced > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.studio-source-header > div { flex: 1 1 190px; min-width: 0; }
+.studio-source-header strong { display: block; color: var(--text); font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
+.studio-source-header button, .studio-result-source button, .studio-starters button { font-size: 12px; }
+.studio-quotation { margin-top: 8px; }
+.studio-quotation summary, .studio-advanced summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.studio-workspace .studio-quotation blockquote, .studio-incoming blockquote { max-height: 116px; overflow: auto; margin: 8px 0 0; font-size: 12px; }
+.studio-workspace .studio-source-warning { color: var(--warn-text); font-size: 12px; margin: 8px 0 0; }
+.studio-source-warning button, .studio-incoming button { margin-inline: 8px; }
+.studio-incoming p { margin: 0; }
+.studio-incoming blockquote { margin-bottom: 8px; }
+.studio-workspace .studio-options { margin-block: 14px; }
+.studio-advanced { flex-basis: 100%; }
+.studio-advanced > div { margin-top: 8px; }
+.studio-submit { margin-bottom: 4px; }
+.studio-result-source { justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.studio-result .artifact-toolbar { flex-wrap: wrap; justify-content: flex-start; }
+.studio-result .artifact-toolbar span { flex: 1 1 110px; }

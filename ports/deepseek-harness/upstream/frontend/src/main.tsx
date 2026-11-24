@@ -1,5 +1,5 @@
 import PaperStudy from "./PaperStudy";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BookOpen,
@@ -26,7 +26,8 @@ import {
 } from "./glyphs";
 import { api, ApiError, put, anchorFor, anchorQuote, id, type Row } from "./api";
 import { readLaunchInput } from "./launch";
-import { filterPapers } from "./library-search";
+import { ALL_TOPICS, filterPapers, indexTopics, papersInTopic } from "./library-search";
+import TopicPicker from "./TopicPicker";
 import Welcome from "./Welcome";
 import Dialog from "./Dialog";
 import { ImportModal, PaperEditor } from "./PaperDialogs";
@@ -47,6 +48,7 @@ import {
 } from "./ReadingTools";
 import { hasTranslation, TranslationBadge } from "./TranslationLibrary";
 import Workspace from "./Workspace";
+import { createStudio, studioPaperContext } from "./studio-context";
 import Icon from './Icon';
 import GlobalTranslation from './GlobalTranslation';
 import './harness-refresh.css';
@@ -70,6 +72,12 @@ const nav = [
   ["review", "复习队列", RotateCcw],
   ["export", "导出", Download],
 ] as const;
+function savedOriginalPage(paper: Row, session?: Row) {
+  const stored = localStorage.getItem("prc-page-" + paper.id + ":" + paper.source_version);
+  const saved = Number(stored);
+  if (stored !== null && Number.isInteger(saved) && saved >= 0 && saved < paper.page_count) return saved;
+  return session?.cursor?.status === "stale" ? 0 : session?.cursor?.page_index || 0;
+}
 export function App() {
   const [ready, setReady] = useState(false),
     [state, setState] = useState<any>({ papers: [], sync: {}, conflicts: [] }),
@@ -91,6 +99,21 @@ export function App() {
   const [sidebarHidden, setSidebarHidden] = useState(
     () => localStorage.getItem("prc-sidebar-hidden") !== "false",
   );
+  const [savedTopic, setSavedTopic] = useState(
+    () => localStorage.getItem("prc-library-topic") || ALL_TOPICS,
+  );
+  const topics = useMemo(
+    () => indexTopics(state.papers, state.zotero_collections, state.paper_topic_keys),
+    [state.papers, state.zotero_collections, state.paper_topic_keys],
+  );
+  const topicFilter = {
+    topics,
+    value: topics.options.some((option) => option.key === savedTopic) ? savedTopic : ALL_TOPICS,
+    onChange(value: string) {
+      setSavedTopic(value);
+      localStorage.setItem("prc-library-topic", value);
+    },
+  };
   const [immersive, setImmersive] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [globalTranslation, setGlobalTranslation] = useState(false);
@@ -118,6 +141,10 @@ export function App() {
   const translatedRead = useRef("");
   const [pdfView, setPdfView] = useState<PdfView>("original");
   const [selection, setSelection] = useState<any>(null);
+  const [openedStudio, setOpenedStudio] = useState("");
+  const [openingStudio, setOpeningStudio] = useState(false);
+  const [workspaceOriginalPage, setWorkspaceOriginalPage] = useState<number | null>(null);
+  const studioLocation = useRef<Row | null>(null);
   // Sentences the coach pointed at, and where the reader was before the coach moved the PDF.
   const [coachMarks, setCoachMarks] = useState<any>(null);
   const [returnTo, setReturnTo] = useState<{ page: number; to: number; key: string; scrollTop?: number; scrollLeft?: number; view?: string } | null>(null);
@@ -184,6 +211,17 @@ export function App() {
   }
   const [markedSelection, setMarkedSelection] = useState("");
   const layout = useRef<HTMLDivElement>(null);
+  const sidebarToggle = useRef<HTMLButtonElement>(null);
+  function showLibrary(visible: boolean) {
+    setSidebarHidden(!visible);
+    localStorage.setItem("prc-sidebar-hidden", String(!visible));
+    if (visible) setImmersive(false);
+    else sidebarToggle.current?.focus();
+  }
+  function navigateFromLibrary(view: string) {
+    setTab(view);
+    if (!sidebarHidden && window.matchMedia?.("(max-width: 800px)").matches) showLibrary(false);
+  }
   const toolsTrigger = useRef<HTMLElement | null>(null);
   function closeTools() {
     setToolsOpen(false);
@@ -224,7 +262,7 @@ export function App() {
   }
   useEffect(() => {
     function keyboard(e: KeyboardEvent) {
-      if (e.defaultPrevented || document.querySelector("dialog[open]")) return;
+      if (e.defaultPrevented || globalTranslation || document.querySelector("dialog[open]")) return;
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Enter") {
         e.preventDefault();
         immersiveToggle();
@@ -239,12 +277,12 @@ export function App() {
         } else if (immersive) {
           e.preventDefault();
           setImmersive(false);
-        } else if (!sidebarHidden) setSidebarHidden(true);
+        } else if (!sidebarHidden) showLibrary(false);
       }
     }
     document.addEventListener("keydown", keyboard);
     return () => document.removeEventListener("keydown", keyboard);
-  }, [immersive, toolsOpen, selection, sidebarHidden]);
+  }, [immersive, toolsOpen, selection, sidebarHidden, globalTranslation]);
   const [launchConversation, setLaunchConversation] = useState("");
   const launchRef = useRef("");
   const selectedRef = useRef(selected),
@@ -332,30 +370,20 @@ export function App() {
   }, []);
   useEffect(() => {
     if (!ready || !selected) return;
+    if (studioLocation.current?.paper_id !== selected) studioLocation.current = null;
     let disposed = false;
     api("context/" + selected)
       .then((c) => {
         if (!disposed) {
           setContext(c);
-          const savedPage = Number(
-            localStorage.getItem(
-              "prc-page-" + c.paper.id + ":" + c.paper.source_version,
-            ),
-          );
-          setPage(
-            Number.isInteger(savedPage) &&
-              localStorage.getItem(
-                "prc-page-" + c.paper.id + ":" + c.paper.source_version,
-              ) !== null &&
-              savedPage >= 0 &&
-              savedPage < c.paper.page_count
-              ? savedPage
-              : c.session[0]?.cursor?.status === "stale"
-                ? 0
-                : c.session[0]?.cursor?.page_index || 0,
-          );
+          const requested = studioLocation.current;
+          studioLocation.current = null;
+          const target = requested && requested.source_version === c.paper.source_version && requested.page_index < c.paper.page_count ? requested : null;
+          if (requested && !target) report("来源 PDF 已变化，请重新核实原文。");
+          setPage(target ? target.page_index : savedOriginalPage(c.paper, c.session[0]));
+          setWorkspaceOriginalPage(null);
           setAnchor(null);
-          setFocusAnchor(null);
+          setFocusAnchor(target);
         }
       })
       .catch((e) => report(String(e)));
@@ -386,6 +414,9 @@ export function App() {
   }, [ready]);
   const paper = context?.paper,
     session = context?.session?.[0];
+  const originalPage = pdfView === "original" ? page : paper ? savedOriginalPage(paper, session) : 0;
+  const workspacePage = workspaceOriginalPage ?? originalPage;
+  useEffect(() => { if (tab === "read") setWorkspaceOriginalPage(null); }, [tab]);
   async function reloadTranslation() {
     const pid = paper?.id,
       version = paper?.source_version;
@@ -459,34 +490,38 @@ export function App() {
     ) {
       clearTimeout(pageTimer.current);
       setPage(0);
+      setWorkspaceOriginalPage(null);
       setAnchor(null);
       setFocusAnchor(null);
     }
     sourceRef.current = { id: paper.id, source_version: paper.source_version };
   }, [paper?.id, paper?.source_version]);
   function select(id: string) {
-    launchRef.current = "";
-    setLaunchConversation("");
-    setContext(null);
-    setSelected(id);
-    selectedRef.current = id;
-    setTab("read");
-    setSidebarHidden(true);
+    if (selectedRef.current !== id) {
+      launchRef.current = "";
+      setLaunchConversation("");
+      setContext(null);
+      setSelected(id);
+      selectedRef.current = id;
+    }
+    navigateFromLibrary("read");
     setTaskEditor(null);
   }
-  function movePage(n: number, how?: "scroll") {
+  function movePage(n: number, how?: "scroll", workspaceOriginal = false) {
+    const view = workspaceOriginal ? "original" : pdfView;
     // Scrolling onto the next page keeps the open selection and the highlighted spot.
     if (how !== "scroll") setSelection(null);
     if (paper)
       localStorage.setItem(
-        "prc-page-" + paper.id + ":" + paper.source_version + (pdfView === "original" ? "" : ":" + translationPdfJob?.id + ":" + pdfView),
+        "prc-page-" + paper.id + ":" + paper.source_version + (view === "original" ? "" : ":" + translationPdfJob?.id + ":" + view),
         String(n),
       );
-    setPage(n);
+    if (workspaceOriginal && pdfView !== "original") setWorkspaceOriginalPage(n);
+    else setPage(n);
     if (how !== "scroll") setFocusAnchor(null);
     clearTimeout(pageTimer.current);
     const pid = selectedRef.current;
-    if (pdfView !== "original") return;
+    if (view !== "original") return;
     pageTimer.current = setTimeout(async () => {
       try {
         const c = await api("context/" + pid);
@@ -497,6 +532,49 @@ export function App() {
         report(String(e));
       }
     }, 600);
+  }
+  async function explainPaperPage(selection?: any) {
+    const context = studioPaperContext(paper, originalPage, selection);
+    if (!context || openingStudio) return;
+    setOpeningStudio(true);
+    try {
+      const row = await createStudio(paper, context);
+      if (selectedRef.current === context.paper_id) {
+        if (pdfView === "original") setPage(context.page_index);
+        else setWorkspaceOriginalPage(context.page_index);
+        setFocusAnchor(selection && context.quote ? { ...selection, rendition: undefined } : null);
+      }
+      setOpenedStudio(row.id);
+      setSelection(null);
+      setImmersive(false);
+      setShowOriginal(true);
+      setTab("interactive");
+    } catch (error) { report(String(error)); }
+    finally { setOpeningStudio(false); }
+  }
+  function locateStudioSource(a: any) {
+    const source = paper?.id === a.paper_id ? paper : state.papers.find((row: Row) => row.id === a.paper_id);
+    if (!source?.source_path || !Number.isInteger(a.page_index) || a.page_index < 0 || a.page_index >= source.page_count) {
+      report("讲解的来源论文已不可用。");
+      return false;
+    }
+    if (a.source_version !== source.source_version) {
+      report("来源 PDF 已换版，请重新核实原文。");
+      return false;
+    }
+    setShowOriginal(true);
+    if (source.id === paper?.id) {
+      movePage(a.page_index, undefined, true);
+      setFocusAnchor(a);
+    } else {
+      studioLocation.current = a;
+      launchRef.current = "";
+      setLaunchConversation("");
+      setContext(null);
+      selectedRef.current = source.id;
+      setSelected(source.id);
+    }
+    return true;
   }
   async function locate(a: any) {
     if (a.status === "stale" || a.source_version !== paper.source_version) {
@@ -568,7 +646,10 @@ export function App() {
       report(String(e));
     }
   }
-  const visiblePapers = filterPapers(state.papers, search);
+  const visiblePapers = useMemo(
+    () => filterPapers(papersInTopic(state.papers, topics, topicFilter.value), search),
+    [state.papers, topics, topicFilter.value, search],
+  );
   if (!ready)
     return (
       <main className="login">
@@ -627,6 +708,14 @@ export function App() {
           <div>
             Paper Research<span>COACH</span>
           </div>
+          <button
+            type="button"
+            className="close-library"
+            aria-label="关闭论文栏"
+            onClick={() => showLibrary(false)}
+          >
+            <X size={17} />
+          </button>
         </div>
         <div className="sidebar-intro">阅读，始于一个好问题。</div>
         <nav>
@@ -636,7 +725,7 @@ export function App() {
               <button
                 key={id}
                 className={tab === id ? "selected" : ""}
-                onClick={() => setTab(id)}
+                onClick={() => navigateFromLibrary(id)}
               >
                 <Icon size={17} />
                 {label}
@@ -656,7 +745,7 @@ export function App() {
                 <button
                   key={id}
                   className={tab === id ? "selected" : ""}
-                  onClick={() => setTab(id)}
+                  onClick={() => navigateFromLibrary(id)}
                 >
                   <Icon size={17} />
                   {label}
@@ -670,11 +759,12 @@ export function App() {
             <Plus size={17} />
           </button>
         </div>
+        {topics.options.length > 1 && <TopicPicker filter={topicFilter} />}
         <div className="search">
           <Search size={14} />
           <input
             aria-label="查找论文"
-            placeholder="标题、作者、年份…"
+            placeholder={topicFilter.value ? "在当前主题内搜索" : "标题、作者、年份…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -684,6 +774,7 @@ export function App() {
               <button
                 key={p.id}
                 className={selected === p.id ? "current" : ""}
+                aria-current={selected === p.id ? "true" : undefined}
                 onClick={() => select(p.id)}
               >
                 <span className={"paper-dot " + p.status} />
@@ -708,9 +799,13 @@ export function App() {
             ))}
           {!!state.papers.length && !visiblePapers.length && (
             <div className="library-empty" role="status">
-              <p>没有找到“{search}”</p>
-              <small>试试标题、作者、年份或 DOI。</small>
-              <button className="text-button" onClick={() => setSearch("")}>清除搜索</button>
+              <p>当前筛选结果为 0 篇</p>
+              {search.trim() && (
+                <button className="text-button" onClick={() => setSearch("")}>清除搜索</button>
+              )}
+              {topicFilter.value && (
+                <button className="text-button" onClick={() => topicFilter.onChange(ALL_TOPICS)}>查看全部主题</button>
+              )}
             </div>
           )}
           {!state.papers.length && (
@@ -725,7 +820,7 @@ export function App() {
           className={
             "settings-button " + (tab === "settings" ? "selected" : "")
           }
-          onClick={() => setTab("settings")}
+          onClick={() => navigateFromLibrary("settings")}
         >
           <SettingsIcon size={16} />
           Zotero 与设置
@@ -745,23 +840,19 @@ export function App() {
       >
         <header className={"topbar" + (immersive ? " immersive-controls" : "")}>
           <button
+            ref={sidebarToggle}
             className="sidebar-toggle"
             aria-label={sidebarHidden ? "显示论文栏" : "隐藏论文栏"}
             aria-expanded={!sidebarHidden}
             aria-controls="paper-library"
-            onClick={() => {
-              setSidebarHidden(!sidebarHidden);
-              localStorage.setItem(
-                "prc-sidebar-hidden",
-                String(!sidebarHidden),
-              );
-            }}
+            onClick={() => showLibrary(sidebarHidden)}
           >
             {sidebarHidden ? (
               <PanelLeftOpen size={18} />
             ) : (
               <PanelLeftClose size={18} />
             )}
+            <span>论文栏</span>
           </button>
           <span className="topbar-title" title={paper?.title}>
             {tab === "knowledge" ? "知识库学习" : tab === "interactive" ? "交互式讲解" : paper?.title || "论文工作台"}
@@ -771,6 +862,9 @@ export function App() {
             <button aria-pressed={tab === 'read'} onClick={() => setTab('read')}><Icon name="book" />阅读</button>
             <button aria-pressed={tab === "knowledge"} onClick={() => { setImmersive(false); setTab("knowledge"); }}><Icon name="layers" />知识库学习</button>
             <button aria-pressed={tab === "interactive"} onClick={() => { setImmersive(false); setTab("interactive"); }}><Icon name="explain" />交互式讲解</button>
+            {tab === "read" && pdfView === "original" && paper?.source_path && <button disabled={openingStudio} onClick={() => void explainPaperPage()}>
+              {openingStudio ? "正在打开讲解…" : "讲解当前页"}
+            </button>}
             <button aria-expanded={globalTranslation} onClick={() => { setToolsOpen(false); setGlobalTranslation(!globalTranslation); }}><Icon name="translate" />翻译</button>
             <button disabled={!paper?.source_path} aria-pressed={tab === 'read' ? pdfView === 'original' : showOriginal} onClick={() => {
               if (tab === 'read') { setPdfView('original'); setSelection(null); setFocusAnchor(null); }
@@ -812,13 +906,10 @@ export function App() {
         {tab === "knowledge" || tab === "interactive" ? (
           <div className={'workspace-source-layout' + (showOriginal && paper?.source_path ? ' with-source' : '')}>
             {showOriginal && paper?.source_path && <aside className="workspace-original" aria-label="当前论文原文">
-              <PdfReader key={paper.id + paper.source_version} paper={paper} page={page} setPage={movePage} onAnchor={a => setAnchor(a)} focusAnchor={focusAnchor} notes={context?.notes || []} onLocateNote={(a, noteId) => { locate(a); openTools("notes"); requestAnimationFrame(() => { const card = document.getElementById("note-card-" + noteId); card?.scrollIntoView({ block: "center" }); card?.focus({ preventScroll: true }); }); }} />
+              <PdfReader key={paper.id + paper.source_version} paper={paper} page={workspacePage} setPage={(n, how) => movePage(n, how, true)} onAnchor={a => setAnchor(a)} focusAnchor={focusAnchor} notes={context?.notes || []} onLocateNote={(a, noteId) => { locate(a); openTools("notes"); requestAnimationFrame(() => { const card = document.getElementById("note-card-" + noteId); card?.scrollIntoView({ block: "center" }); card?.focus({ preventScroll: true }); }); }} />
             </aside>}
-            <Workspace mode={tab} paper={paper} page={page} quote={anchor?.quote || selection?.anchor?.quote || selection?.quote || ""} report={report} onSource={a => {
-              if (!paper || a.paper_id !== paper.id) { report('请先在论文栏选择这份来源论文。'); return; }
-              if (a.source_version !== paper.source_version) { report('来源 PDF 已换版，请重新核实原文。'); return; }
-              setShowOriginal(true); movePage(a.page_index); setFocusAnchor(a);
-            }} />
+            <Workspace mode={tab} paper={paper} page={workspacePage} papers={state.papers} openedStudio={openedStudio}
+              onStudioOpened={() => setOpenedStudio("")} report={report} onSource={locateStudioSource} />
           </div>
         ) : tab === "settings" ? (
           <Settings
@@ -827,6 +918,7 @@ export function App() {
             refresh={() => void refresh()}
             report={report}
             onTranslationUpdate={() => void reloadTranslation()}
+            topicFilter={topicFilter}
             onReadTranslated={(pid) => {
               translatedRead.current = pid;
               select(pid);
@@ -1260,6 +1352,8 @@ export function App() {
                         )
                         ?.focus();
                     }}
+                    onExplain={a => void explainPaperPage(a)}
+                    explaining={openingStudio}
                   />
                 )}
               </>
@@ -1299,7 +1393,7 @@ export function App() {
         catch(e) { report(String(e)); }
       }}/></div>}
 
-      {globalTranslation && <GlobalTranslation paper={paper} papers={state.papers} job={translationJob} readableJob={translationPdfJob}
+      {globalTranslation && <GlobalTranslation paper={paper} papers={state.papers} topicFilter={topicFilter} job={translationJob} readableJob={translationPdfJob}
         reload={() => void reloadTranslation()} onClose={() => setGlobalTranslation(false)} onRead={pid => {
           translatedRead.current = pid; select(pid); setTab('read'); setGlobalTranslation(false);
           if (pid === paper?.id) void reloadTranslation();

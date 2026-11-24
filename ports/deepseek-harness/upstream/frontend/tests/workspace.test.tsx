@@ -6,6 +6,7 @@ import { artifactMessage } from "../src/ArtifactFrame";
 import Workspace from "../src/Workspace";
 import InteractiveStudio from "../src/InteractiveStudio";
 import { unitProgress } from "../src/workspace-api";
+import { createStudio, studioPaperContext } from "../src/studio-context";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); localStorage.clear(); });
 
@@ -53,4 +54,49 @@ it("creating a knowledge base saves local metadata and does not start account an
   await waitFor(() => expect(requests.some(request => request.path === "/api/workspace/kbs")).toBe(true));
   expect(requests.find(request => request.path === "/api/workspace/kbs")?.body).toEqual({ title: "资料集", depth: "systematic" });
   expect(requests.some(request => /build|generate|\/ask/.test(request.path))).toBe(false);
+});
+
+it("creates the draft from the selection's physical page without starting the account job", async () => {
+  const fetch = vi.fn(async (_path: string, _opts: RequestInit) => ({ ok: true, json: async () => ({ id: "studio-a" }) }));
+  vi.stubGlobal("fetch", fetch);
+  const paper = { id: "p", source_version: "v2", title: "合成论文", source_path: "fixture.pdf" };
+  const anchor = { paper_id: "p", source_version: "v2", page_index: 1, quote: " Exact passage ", status: "verified" };
+  const source = studioPaperContext(paper, 3, anchor);
+  expect(source).toEqual({ paper_id: "p", source_version: "v2", page_index: 1, quote: "Exact passage" });
+  expect(studioPaperContext(paper, 3, { ...anchor, source_version: "v1" })).toEqual({
+    paper_id: "p", source_version: "v2", page_index: 3,
+  });
+  await createStudio(paper, source!);
+  expect(fetch).toHaveBeenCalledOnce();
+  expect(fetch.mock.calls[0][0]).toBe("/api/workspace/studios");
+  expect(JSON.parse(String(fetch.mock.calls[0][1].body))).toEqual({
+    title: "合成论文 · 第 2 页", context: source, presentation: "components",
+  });
+});
+
+it("retains an edited follow-up and the last published page when generation fails", async () => {
+  const initial = { id: "s1", revision: 1, title: "讲解", question: "已发送问题", source: "", presentation: "components", context: {},
+    published: { version: "v1", title: "上次讲解" }, history: [] };
+  let row = initial;
+  const fetch = vi.fn(async (_path: string, init: RequestInit) => {
+    if (init?.method === "PUT") row = { ...row, ...JSON.parse(String(init.body)), revision: row.revision + 1 };
+    return { ok: true, json: async () => row };
+  });
+  vi.stubGlobal("fetch", fetch);
+  const pending = { id: "j1", owner: "s1", state: "running", stage: "生成中" };
+  const props = { id: "s1", kbs: [], page: 0, reload: vi.fn(async () => undefined), report: vi.fn() };
+  const view = render(<InteractiveStudio {...props} jobs={[pending]} />);
+  await screen.findByTitle("上次讲解");
+  const input = screen.getByLabelText<HTMLTextAreaElement>("交互式讲解问题");
+  fireEvent.change(input, { target: { value: "正在编辑的追问" } });
+  view.rerender(<InteractiveStudio {...props} jobs={[{ ...pending, state: "failed", stage: "失败", message: "合成错误" }]} />);
+  await screen.findByText("合成错误");
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  expect(input.value).toBe("正在编辑的追问");
+  expect(screen.getByRole("button", { name: "重新生成" })).toBeTruthy();
+  expect(screen.getByTitle("上次讲解")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "保存草稿" }));
+  await screen.findByText("草稿已保存。");
+  expect(row.question).toBe("正在编辑的追问");
+  expect(fetch.mock.calls.some(([url]) => url.endsWith("/generate"))).toBe(false);
 });

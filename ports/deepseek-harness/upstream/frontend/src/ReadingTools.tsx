@@ -233,6 +233,8 @@ export function TranslationPopover({
   onSource,
   onMark,
   onNote,
+  onExplain,
+  explaining,
 }: {
   selection: { anchor: any; view: PdfView; x: number; y: number; bounds?: Bounds };
   job: any;
@@ -241,6 +243,8 @@ export function TranslationPopover({
   onSource: (a: any) => void;
   onMark?: (a: any) => Promise<void>;
   onNote?: (a: any) => void;
+  onExplain?: (a: any) => void;
+  explaining?: boolean;
 }) {
   const [result, setResult] = useState<any>(null),
     [error, setError] = useState(""),
@@ -315,6 +319,7 @@ export function TranslationPopover({
   }
   const drawing = !!(selection.anchor.rendition || selection.anchor).ink?.length;
   const discussionSource = result?.source_anchor || (selection.view === "original" ? selection.anchor : null);
+  const explainSource = selection.view === "original" ? selection.anchor : discussionSource;
   const markAnchor = useRef<any>(null);
   return (
     <div
@@ -351,6 +356,10 @@ export function TranslationPopover({
         try { markAnchor.current ||= source; await onMark(markAnchor.current); setSaved(true); } catch { setError("标记未保存，请重试。"); } finally { setSaving(false); }
       }}>{saved ? "已保存批注" : saving ? "正在保存…" : "保留标记"}</button>}
       {onNote && <button onClick={() => { onNote(source); onClose(); }}>记笔记</button>}
+      {onExplain && explainSource?.status === "verified" && Number.isInteger(explainSource.page_index)
+        && typeof explainSource.quote === "string" && explainSource.quote.trim() && <button type="button" disabled={explaining} onClick={() => onExplain(explainSource)}>
+        {explaining ? "正在打开讲解…" : selection.view === "original" ? "讲解选中文字" : "讲解对应原文"}
+      </button>}
       <button
         disabled={!selection.anchor}
         title={!discussionSource ? "这处译文尚未对应原文，可先保存批注" : undefined}

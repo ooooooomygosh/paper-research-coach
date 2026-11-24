@@ -59,12 +59,17 @@ class Studio:
         (directory / "page.html").write_text(result["html"], encoding="utf-8")
         (directory / "page.md").write_text(source, encoding="utf-8")
         write_json(directory / "render.json", {key: value for key, value in result.items() if key != "html"})
-        published = {"version": version, "title": result.get("meta", {}).get("title") or document["title"], "created_at": now(), "warnings": result.get("warnings", [])}
+        context = {key: value for key, value in document.get("context", {}).items() if key in ("paper_id", "source_version", "page_index", "kb_id", "version")}
+        anchor = context if context.get("paper_id") and context.get("source_version") and type(context.get("page_index")) is int else None
+        published = {"version": version, "title": result.get("meta", {}).get("title") or document["title"], "created_at": now(), "warnings": result.get("warnings", []),
+                     "context": context, "source_anchor": anchor}
         latest = self.store.get("studio", item_id)
         return self.store.patch("studio", item_id, {"source": source, "title": published["title"], "state": "ready", "published": published,
             "history": latest["history"] + ([latest["published"]] if latest["published"] else [])})
 
     def generate(self, item_id, payload):
+        if self.jobs.active(item_id):
+            raise ValueError("已有讲解正在生成，请稍候或停止后重试。")
         document = self.store.get("studio", item_id)
         question = str(payload.get("question") or document["question"]).strip()
         if not question:
@@ -106,7 +111,11 @@ class Studio:
         if sources and sources[0].get("context"):
             context = sources[0]["context"]
             self.store.patch("studio", item_id, {"context": context})
-        prompt = question + "\n\n选定来源（仅覆盖这些片段）：\n" + json.dumps(sources, ensure_ascii=False)
+        excerpts = [{key: source[key] for key in ("id", "label", "text")} for source in sources]
+        prompt = question + "\n\n选定来源（仅覆盖这些片段）：\n" + json.dumps(excerpts, ensure_ascii=False)
+        if context.get("paper_id") and context.get("quote"):
+            selection = json.dumps(str(context["quote"])[:4000], ensure_ascii=False)
+            prompt += "\n\n读者选区（用于聚焦问题；引用只可从上面的来源 text 复制）：\n" + selection
         if document.get("source"):
             prompt += "\n\n当前文字草稿（供修订使用，不是核验来源；与旧组件冲突时优先遵循当前草稿和本次问题）：\n" + document["source"]
         if document.get("component_spec"):
@@ -140,7 +149,7 @@ class Studio:
         write_json(directory / "page.json", page)
         write_json(directory / "render.json", {"format": "components", "kind": page["kind"], "schema_version": page["schema_version"]})
         published = {"version": version, "title": page["title"], "created_at": now(), "warnings": [], "format": "components",
-                     "kind": page["kind"], "context": context, "source_anchor": page["source_anchor"]}
+                     "kind": page["kind"], "context": page["source_context"], "source_anchor": page["source_anchor"]}
         latest = self.store.get("studio", item_id)
         self.store.patch("studio", item_id, {"source": content, "component_spec": page, "title": page["title"], "state": "ready", "published": published,
                                             "history": latest["history"] + ([latest["published"]] if latest["published"] else [])})

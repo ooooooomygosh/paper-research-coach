@@ -1,6 +1,6 @@
 {
   "name": "Paper Research Coach",
-  "pluginVersion": "1.2.0",
+  "pluginVersion": "1.4.1",
   "upstream": {
     "url": "https://github.com/ooooooomygosh/paper-research-coach",
     "version": "2.0.0rc15",
@@ -14,7 +14,7 @@
   "sourceFiles": {
     ".gitignore": "7b4443eef0effd4e6fbd1a5757f8f35afb3b5573ac6a44f2bb8f3889fd9eaa92",
     "LICENSE": "bd1a5627691fa06fb9ffa79aa7bd0b2827a0e36c9d827f45f268ea06b4264060",
-    "README.md": "95d401b727f7ada840baa5ca423afe44227543d8f79d330f9e738fdb4b883cd3",
+    "README.md": "45b4f0a775f6a5450729d245f447a125d8607bddac5563ea9eb2cd4283e61206",
     "THIRD_PARTY.md": "c30631a435ca544c74a35fcc7764dc170701a24b8ab8ed2e6322a2967726b362",
     "client/client.js": "6457725cdcf460d989305130e6dd259b319778d24eebb4b1ce5445c66729466c",
     "cordis.patch.yml": "a553ebbf74162efcdfd764c8ed17c3a0362235d7e14c02be9d3f50352eccf188",
@@ -721,11 +721,11 @@
     "integrations/learn-from-materials/templates/visual-interactions.js": "2af6c494ea4ddc1cb5a3d9416f57fde9984fae603fd3892c2615a47eb4e56ee1",
     "locale/en.json": "e764587307a5b0dd60e60a431d3c18e2e3ea96cc40bcfced66e5ab5cbd4b5e80",
     "locale/zh.json": "7ad8f0add12abbc496674b2eaff1f0624a5cbf3eb3e32b6e28c81c434eb67844",
-    "macos/README.md": "023b8f7d8e017bc477c16ccb64450dd965387091a33c94571164dc6d533f5441",
+    "macos/README.md": "8e4017fac01bb1d07bf1d8742213a8ce258d9d5dcdeab91943969015eda38a26",
     "macos/import-legacy.sh": "dd786ad6c9cbbc598364865a10f2ea4061aff2fe473098df0360a4a3532131b7",
     "macos/install-macos.sh": "784593e491a67ac9c91a98eb71eb6e6174e1963b414bc061a2c234992537ffde",
     "macos/uninstall-macos.sh": "5344e8da24da21bcf93631019f14663faa1929ed65b1ef22eab9484da3d36e6f",
-    "package.json": "52dbc26d5602f3fec8e4c0f3d894cfcfef03189207bcff5cac87cd29f2812c17",
+    "package.json": "0fa3f293a2708e7964a8b47d82d2be53b53cddfd3a9e14fa303708f6ffa3e05d",
     "runtime/ASSET-MANIFEST.json": "57de2bf90c66bc2da69e33178ba8b617beb1d3a64806c4480fdbda8d17013d91",
     "runtime/MSVC-NOTICE.txt": "10b476d0ab3791f0abbad7129e0fff4389e8c58699c6dcf30dfbae1244aceecf",
     "runtime/requirements.lock.txt": "e60f29b8ea951e8631e559b8d611414071b1cae8c97c38ba55fb3fb6421e9465",
@@ -751,13 +751,13 @@
     "tests/relocation_smoke.py": "2286ec05efcd021769fab71f51c9408b5de579754e81b1eb913cd8e46cf4ffa4",
     "tests/studio.test.mjs": "933882f1272ee669adafa56a4adaebb4b48cf16e531a59799af941831d5f122e",
     "tests/test_distribution.py": "5c3508da5185e020294e50796b74e188af8bc495bf46bb193e4f4ce6cc418862",
-    "tests/test_interactive.py": "e54213d87c9659a6543e35c8ecdfe3993e2d9c2b6dcaaca90519d6a614e765a9",
+    "tests/test_interactive.py": "37b2254c09de14645a0cdc0e590b0e4a5e8f986c1ba09340b2851fc26b9dd2fe",
     "tests/test_learning.py": "50351a48d1b2eefedeea857a428a5fb5bea3b5ce4253d341cc718a3d4f6b2f11",
     "tests/test_paper_study.py": "c06093f2ff6f8240b79d2694a89977543c6584f88e15a3e8e19764f5d8245f3e",
     "tests/test_paper_study_api.py": "e043178639243eac7d7cd1a775b506448fba00b844485a75d5ed3389db9a691e",
     "tests/test_plugin_updater.py": "a00da98942466884b02fb9acf721326ba7475d38b1b45305102df91d66193548",
     "tests/test_port_runtime.py": "e760d20adc05e58120a9753fb22aff3116fb4ea5536b93463cb63f4d0210937f",
-    "tests/test_studio.py": "c1c117db6de56381871a058fa4c94980effe3bf9205e6cf5483597bb91a3bf63",
+    "tests/test_studio.py": "69a7c52ff1d03193bbe25461e9249d77af630fd104405c4e38cd76c12d7a3b29",
     "upstream/.claude-plugin/marketplace.json": "31596ee1f005cff8539eec538e28e02cf9c001960edd6352fe600ec4c5d92abc",
     "upstream/.github/ISSUE_TEMPLATE/bug_report.yml": "cc912f1375851c653af4456c5fae17152386d93ae585548fca2b0c55eec6dbeb",
     "upstream/.github/ISSUE_TEMPLATE/config.yml": "13064e7bea658e01e718b414fbb7b3b244f36411fe25ee2055c151f7b534547a",
@@ -818,19 +818,19 @@
     "upstream/frontend/package.json": "c4d1c5ef77b42a0a838b8de938251f8e274de4bc9f2784a4c52362f872b026e0",
     "upstream/frontend/scripts/preparePdfViewer.ts": "f750b66c2f5902e920630462c9d132338dc8494d3965a472f07f692e6bf5d9a9",
     "upstream/frontend/src/AdvancedPdfViewer.tsx": "36f6db58103ac399d6bb87e677aee45c28216cb387d7ffae89aec3aec53b0df5",
-    "upstream/frontend/src/ArtifactFrame.tsx": "6f4ad4e4166cf3e9637ca68e6b24fa6aa1aa72aa22871764149e3c3a4bb34de8",
+    "upstream/frontend/src/ArtifactFrame.tsx": "271a1bbd9b41fae9163ad7ed559bb694782f935ff86818ef62f23cff965fd08e",
     "upstream/frontend/src/Coach.tsx": "e2da98bc22bd2fba3ca7a9c0f11cff38d4103c4de88756d4c6b836590f49e44a",
     "upstream/frontend/src/Dialog.tsx": "617f016864bd58035acbcce1c5f9b3db63d5583cb64340362bea4c3f126db86f",
-    "upstream/frontend/src/GlobalTranslation.tsx": "6565e551c20b5f2654e53ff0cbe35194560455343c62927b6e9068da7b4733b1",
+    "upstream/frontend/src/GlobalTranslation.tsx": "2f4a3ad1b6e1b20e7fa536530e47b568e606790325bdd7eec4b7da4f47b1b69f",
     "upstream/frontend/src/Icon.tsx": "c70ee64ebea98863d7e4d1fd5732a5ff9a36ae84ead0230a15f830cc8c8b3531",
-    "upstream/frontend/src/InteractiveStudio.tsx": "c747af2139f458cf9648815274b286c79884e48e0d25aa564cc4f8d15392dfab",
+    "upstream/frontend/src/InteractiveStudio.tsx": "7514e5796e85dce8aeecaa47c6f4a2bddefe5e640374e76b9e3c437794e35e82",
     "upstream/frontend/src/JourneyTree.tsx": "bb791edee951bdd0e1a1e97e1d24b05c3cb3e57566a3686aa6c675508ae2a690",
     "upstream/frontend/src/LearningWorkspace.tsx": "6444dabfc669d956c3bd2350ddf4b69f257e91dc2f8ce7545a7e905f127fb5fe",
     "upstream/frontend/src/MethodsLibrary.tsx": "8af4862422439bdaff785ac82338c285b2cb96b4161533e5c62feb53442b7e07",
     "upstream/frontend/src/Notes.tsx": "a24587f50c8c817d273e2c683e738d6eeeb575d419b71820ffb8bcf8f2b8053f",
     "upstream/frontend/src/PageNavigation.tsx": "1eea7ffc0d9ca5bbff7e532c0122d5560b3ba857164ec6504ecc4ebe98f53a48",
     "upstream/frontend/src/PageOcr.tsx": "954f144a6aa9be51c527bd6ca01cd1a1a243155f0ea2aa355ab1dbff74de68c5",
-    "upstream/frontend/src/Panels.tsx": "e948a2b4fb37cf305dac4eb8cbe89dbf423112e77978ef9aa1a27d9fc01460ab",
+    "upstream/frontend/src/Panels.tsx": "cbe44e7edc7911248ecc341b5e6d35a12ef4fbfea16872f19261c751df295885",
     "upstream/frontend/src/PaperDialogs.tsx": "a2a8dff5eac01027a6ab0a1b376d522a8931133171d09b1a9eba76e5ed0c743c",
     "upstream/frontend/src/PaperStudy.tsx": "fa7a2fa38c7a61edfb22953457e729419b7413d6014d3c7a9659b88f41afc383",
     "upstream/frontend/src/PdfInk.tsx": "d7ca42008bc6fcd9958359d7d9c262a1f3bfa920265d2135fcfcab24a7a5e515",
@@ -841,11 +841,12 @@
     "upstream/frontend/src/QuestLog.tsx": "1fdd817919e5f688bdc9008cb9cf5c77fa36b970060772a89150531a2e16e409",
     "upstream/frontend/src/ReadingPlan.tsx": "ef3dc2c0566fefec9cf8d41ef3bf2d320c342e6c020d27fb56fddfb12a904f88",
     "upstream/frontend/src/ReadingPromptButton.tsx": "3930dcedfafdfa7ca35b0c013df2a67299ef5b6952d5e5a0ec03f350feea4c69",
-    "upstream/frontend/src/ReadingTools.tsx": "4ad5c7ff107aae1f466e9caf9cd216059556cdbbf6b6be3a6c279d01c12cc409",
-    "upstream/frontend/src/TranslationLibrary.tsx": "1ca4fc3fe69a7f9c8f3136cb9ceb6097911b57a880ff589a7ec65a4943eb7f69",
+    "upstream/frontend/src/ReadingTools.tsx": "f97e4c652a03893cdb1239375c2bac0ae0624cbb91e77c6bbb39594c9d3787ca",
+    "upstream/frontend/src/TopicPicker.tsx": "0aa15ed56352006db928be94e91bca969efdc20dfb414c3f0551427762babb7e",
+    "upstream/frontend/src/TranslationLibrary.tsx": "ae77e9cdacfda46eb9d898927f23e11a69304904b6688fa4a22e9726139e0557",
     "upstream/frontend/src/UpdateNotice.tsx": "3d1919491b123800f24c693c47d420a9976d7ca3308b2ec7b6f6184eea0be25a",
     "upstream/frontend/src/Welcome.tsx": "59a35d0898adf3a849e2111a13a9f40fc6fef214bea66c9bb684b98864396dfe",
-    "upstream/frontend/src/Workspace.tsx": "23caa68192c602aa20788b403dcf5e8c7d8f19ad975ddc1008a5a0e3cdcc6da3",
+    "upstream/frontend/src/Workspace.tsx": "f7cc2afd55ca94d6bd6a9115c70a52f9d21cfeefe7e5bccce28d8cb3acebb2d4",
     "upstream/frontend/src/api.ts": "8bb1e1811bdde2ebf8007a594432c3d2277db862cdc04de5cfc783998b9317fe",
     "upstream/frontend/src/assets/standard-reading.txt": "2c211bf5d341e746093db11cd70eb8e08157c5490ee2cad8f8b0502d1a246b84",
     "upstream/frontend/src/explainer/BlockBoundary.tsx": "9ae266aa953e31866cba6c401e70f30e696fe97e5e5c9021718f69ea925baaa7",
@@ -928,21 +929,23 @@
     "upstream/frontend/src/icons/x.svg": "7c1e5334b94051b842811defa4403ef64217251a923b6a2bf67c8cb35bac3121",
     "upstream/frontend/src/icons/zoom-in.svg": "fe103f8508a96cc2364d02e2dfebea0d77cf70bdbcbae3a931e2a9346275b367",
     "upstream/frontend/src/icons/zoom-out.svg": "d3730632bb0f0f74700e19787c0430247bcfb578ffaf6fecf8a99170c82c6e27",
+    "upstream/frontend/src/interactive-studio.css": "cf8ea91c7885b04778451a441e6f55f076c91bdb7b98f1785fa262ec16287c92",
     "upstream/frontend/src/journey.css": "f6ad9e125626adf2ccd54bfcf78bf02c2513983d7b272203513a96a58a9d6f99",
     "upstream/frontend/src/launch.ts": "ed77ac148284c7421f1eecbc69a74a018abd5141eadd6650f2aa9848d042493d",
-    "upstream/frontend/src/library-search.ts": "a953d7ff9093138b6b80786c595a0562847b18f7b9d536325e471358c5f9114f",
+    "upstream/frontend/src/library-search.ts": "83fa719b404cfcb825a56a3c447fc4b323f391e85a6a39685fe9c10f3d7ddfcd",
     "upstream/frontend/src/main-embedded.tsx": "2e4524aeca9e17a518d6259de375dce612e4ca3f6e1a7710b84304707169b232",
-    "upstream/frontend/src/main.tsx": "c7d0b9bc4b3a563222dcafaea630e798adf97bef8d494634818a20b68d7401dd",
+    "upstream/frontend/src/main.tsx": "ab5866593246725885eb46dd8d91874c8af9e7262e0a744862095c19198fe0de",
     "upstream/frontend/src/note-markdown.css": "606a2f844cd91013af4c65b3b784f03bf04c85b60a0b24b799ac0c13e77c3bc9",
     "upstream/frontend/src/onboarding.css": "c9489f6e859153ee27dfaab7bd7d0aed297d6277a0c9b745b2b57739ee5c81b7",
     "upstream/frontend/src/paper-map.ts": "2ab5fe6c213becb98c7361bd6dee02e9dc78819ce50602dee433c988df43d5a3",
     "upstream/frontend/src/pdf-controls.css": "f4df9625c7f3c5f20ca2ded75012fd1a199f22c151d30185f88e7e70cdc686f8",
     "upstream/frontend/src/pdf-text-layer.css": "6313432f6a486643be55670f63caba96b9304202448ba4aee41a8eb4cb353d16",
     "upstream/frontend/src/pdfTextCache.ts": "7389ded2fa5d632d88adae5ab18b6a9980c36491d3548206fd19e6575e4e193e",
-    "upstream/frontend/src/quiet-reading.css": "6d0cafdb0f58a13d3281384813b952804077bfb11a0d51e3d90dfa7ba7158d7f",
+    "upstream/frontend/src/quiet-reading.css": "6c7d160307dfc7cc864441e21eec8bd2823702e7e84b9aa21c2be76fe1a9d8eb",
     "upstream/frontend/src/reading-context.ts": "77b2dca7ca1f6e8e7867ea3456d3fb018e5984924d19790c0e5c67effbf97ec6",
     "upstream/frontend/src/reading-experience.css": "4a9dd5bd5399db740047a2b1b8fe0d0eb174bfd30d502dd9c20d8df0b5a91537",
-    "upstream/frontend/src/style.css": "b1bd00148abba6e746464c25a722e51ecf1880958d83c4bfc050aab6d59f9811",
+    "upstream/frontend/src/studio-context.ts": "b6621a6b6e651e9289de2bb09bfc7eefca8d63e6ae27f6a972aad2b696274a9a",
+    "upstream/frontend/src/style.css": "3c43a1065b9253eac1ab93029eb4246ed710488356584fff0b8e97c5597d8c40",
     "upstream/frontend/src/useLearningSurface.tsx": "81ab640256276b6e749d64686495655612cbab1ca21fd20db2c5d9fff9efa2a1",
     "upstream/frontend/src/usePdfZoom.ts": "92a152b1a2bfe000ba7d3c283fac6fcf30fe95124a0a15dc3ad869e5a95b8c31",
     "upstream/frontend/src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
@@ -958,7 +961,7 @@
     "upstream/frontend/tests/journey.test.tsx": "0c427297bb4eb16c3f1333739fad7a99a4fe105c8257b328cd8f0a39d87dd67e",
     "upstream/frontend/tests/learning-layout.test.tsx": "506d1eb450366f418a062cd0e2091ee3a2f1b0538d70685b92604d4fa4b4f174",
     "upstream/frontend/tests/learning-surface.test.tsx": "70334f6466aa3902acd09824aed8cedb334c182e390f852227d0d07f80eafac8",
-    "upstream/frontend/tests/library.test.tsx": "d9be678c683cbf5a25b4db4b0edf7d4ff80789f5ffe0b962bd8a7292b22508a6",
+    "upstream/frontend/tests/library.test.tsx": "6d421a358d8a206fdc15a5e728b8609a66fdae27966f18bdcece8dc21a518ad6",
     "upstream/frontend/tests/navigation.test.tsx": "24e43bca93e684253d382c1da42ddd38be7aacbf9f6093251f1e7d8f4c3b79a5",
     "upstream/frontend/tests/notes.test.tsx": "3b4153966b179c52201271d82e680d795501c672791be2f9cc5ecb691510d02c",
     "upstream/frontend/tests/onboarding.test.tsx": "656b0015fef3d4beb5be33cf935aade94824457839d4476bea0e68e68d378d72",
@@ -967,11 +970,11 @@
     "upstream/frontend/tests/paper-study.test.tsx": "1d7d72dc48098edac2daa4da72d406d9fdc19200dec820909c6e8fd8c0aea13e",
     "upstream/frontend/tests/pdf.test.tsx": "81be8ee941ec916ee73100b1dcffd17512cd4cff18ece0be3ac98a8db7e28e14",
     "upstream/frontend/tests/reading-plan.test.tsx": "4ac001f4e1c6c096a3d5007998f0ca8763cf754ed93550e3852f9e4d567771f1",
-    "upstream/frontend/tests/reading-redesign.test.tsx": "11b8c04194868c167eb13b813a8ea2ded2ac423ce9890ed18dade732a7a03612",
-    "upstream/frontend/tests/translation-library.test.tsx": "2aa7cfb11942a10d5220193a8fbdbdf73286e43bd122234e34d0f07524cba424",
+    "upstream/frontend/tests/reading-redesign.test.tsx": "5c9730fb0aa0de831254941a5d0622c614f8f8714ad9efbcf59f7a1c048982fa",
+    "upstream/frontend/tests/translation-library.test.tsx": "2a2240ec091f2b7cabd24c1d70e3538b2b04056630df2700cfa7ca96397109d0",
     "upstream/frontend/tests/translation.test.tsx": "470ef7e7b7fe8f9f60cb4b57c36f62a2a5759777859a43e698c1081c6faeebc2",
     "upstream/frontend/tests/update.test.tsx": "c70a9758ae9a7491f9fbe7092853b49f626dd64e97c8e64162edf35e65d0383b",
-    "upstream/frontend/tests/workspace.test.tsx": "a57163c7aeffc875055860cb9106efa02d847dea9be2ed11def15d9a7803a016",
+    "upstream/frontend/tests/workspace.test.tsx": "886adf01bd37cb5dce60e0181ed2593893770e8adfd2ab18cb80073cfd125c97",
     "upstream/frontend/tsconfig.json": "641fecb794c5f9577bcbdc0c2400b931e8996175be470c4582b54dd519811ab8",
     "upstream/frontend/vite.config.ts": "68c82c7545bedce370280593fdd456d6a8fdb48b99737d96db066e537b308fc3",
     "upstream/frontend/vitest.config.ts": "6f6bb6f47bc2ab2e676ab97575db8a7968df13377439873738595d0df9f6c6ec",
@@ -1045,11 +1048,11 @@
     "upstream/src/paper_research_coach/relaunch.py": "ca3454d15b6c893792a7e697ade3ee6235012a8b382ea5587d4cadf57320adcd",
     "upstream/src/paper_research_coach/renditions.py": "dbec6263460e9a8693a2c6e4111bad7c15d7fb0c281fa9cd04278b184c896b00",
     "upstream/src/paper_research_coach/runtime_prompt.py": "37fcf02f27047eea86378b6bbac11e5152049e8b45248897f49a0c7a39902d6d",
-    "upstream/src/paper_research_coach/server.py": "29d2b8b98a54e9984b177f24c5b6d28631046288ec7b6a65e6e0dc22becaa237",
+    "upstream/src/paper_research_coach/server.py": "57607ea1a089405f736188743bd47ff7ff329dc4324528be9d4a24002938fccf",
     "upstream/src/paper_research_coach/service.py": "719ecbb2fd07ddeffe8999b9c9934f13acc60b542ca9284d25c720d9a7813072",
     "upstream/src/paper_research_coach/shortcut.py": "3573dc06d3b41145b830fd7021b72397aafea820de2fb12081d1fb4d7bf36211",
     "upstream/src/paper_research_coach/store.py": "2e1ca0effbb478c9d0bf5c6e5c182791ec5aa1e3eada6e4679af71c619b13123",
-    "upstream/src/paper_research_coach/studio.py": "45445d141680d988e32bad9d98efc3976ef1aead2afbf687785e47b27fc8f816",
+    "upstream/src/paper_research_coach/studio.py": "ec56dba4652a2c023b234c4a390dccc9e57679337e2f97fe4a5779d8335bb86e",
     "upstream/src/paper_research_coach/study_fonts/IBMPlexSans-OFL.txt": "37784b44044a4ffd9256702b7c0982c37e5c8887ba90c6dca0479aea93dc898d",
     "upstream/src/paper_research_coach/study_fonts/IBMPlexSans.ttf": "3b031aa4216174205bd8471f88a49b91f093169e9e87bd5262242bc5967fe2e3",
     "upstream/src/paper_research_coach/study_fonts/Lora-OFL.txt": "1d9a970809ac804b582a6ce7f0ebc4e7fefcbfd7ff6299cad35ee656a21be716",
@@ -1061,7 +1064,7 @@
     "upstream/src/paper_research_coach/vision_ocr.js": "4cf4886db95317ae0530d5521ad8880acd05cdc3d35fe5aec5cde5b863e956eb",
     "upstream/src/paper_research_coach/workspace_api.py": "6446ae33f51919375730379153de6c945ba952972b1252055d7d4903652ffe9f",
     "upstream/src/paper_research_coach/workspaces.py": "49c3c218d5a6cbeda653c4ee10176e7749516f2360a737dc4d2555b553718683",
-    "upstream/src/paper_research_coach/zotero.py": "674a6f60ad05f250fe3ade52a7a4f0808c03e901bf42607a3d9f33f16ee89383",
+    "upstream/src/paper_research_coach/zotero.py": "73130949c8713e62d408e5dc21459a345e76427c9532bdbf365c9f4e0083d631",
     "upstream/tests/conftest.py": "4009c9ea485c57b8ede2d29ae21180abe96e7d503c985b125d12242ba61d9263",
     "upstream/tests/fixtures/explainers/budget-zh.doc.json": "01b7f93d174ad8de65aa4d306925cea85223ea98eb1454612854e3f34d018ea4",
     "upstream/tests/fixtures/explainers/budget-zh.md": "d4b8bd0a041991503c3fe5747c8ced92972b2c300b8aaf768bf952549862f1fc",
@@ -1096,7 +1099,7 @@
     "upstream/tests/test_reading.py": "29edc3d3ec6ac1fd8434770e996474ac722555b6011c82580900991ad94ef885",
     "upstream/tests/test_reading_v2.py": "66d1ac3b2689f38fde6eabc18d4d60d520a826b553d3392e33e3d998f0c3950e",
     "upstream/tests/test_renditions.py": "7ea9f10477009e83247dabba05fa66cc12254e90bfecc409677937e9715ed1ce",
-    "upstream/tests/test_server.py": "4d49ff874ed6cabdefc814edc6d22543fcddf371b8b276e5615f603fb184d059",
+    "upstream/tests/test_server.py": "958ffa352e745a3c21589553b1e472bf399886596bcadd61b2f7961eee3bbaaf",
     "upstream/tests/test_store.py": "4e3ba1ab363ae6d84845971dac88687c636d694d1e69d940cd2d7082e2b3ba00",
     "upstream/tests/test_translation.py": "4615e22cc0eaea5726f05b1c7e49ac5653057150900f0c327991d4a5f515f882",
     "upstream/tests/test_translation_queue.py": "85a06d32dbe17498334db07233e22fb56dc8d8d708f3a0bd1d3f47a84128762b",
@@ -1233,6 +1236,10 @@
     {
       "path": "frontend/src/ReadingTools.tsx",
       "change": "modified"
+    },
+    {
+      "path": "frontend/src/TopicPicker.tsx",
+      "change": "added"
     },
     {
       "path": "frontend/src/TranslationLibrary.tsx",
@@ -1539,6 +1546,14 @@
       "change": "added"
     },
     {
+      "path": "frontend/src/interactive-studio.css",
+      "change": "added"
+    },
+    {
+      "path": "frontend/src/library-search.ts",
+      "change": "modified"
+    },
+    {
       "path": "frontend/src/main-embedded.tsx",
       "change": "added"
     },
@@ -1563,6 +1578,14 @@
       "change": "modified"
     },
     {
+      "path": "frontend/src/studio-context.ts",
+      "change": "added"
+    },
+    {
+      "path": "frontend/src/style.css",
+      "change": "modified"
+    },
+    {
       "path": "frontend/src/workspace-api.ts",
       "change": "added"
     },
@@ -1583,6 +1606,10 @@
       "change": "added"
     },
     {
+      "path": "frontend/tests/library.test.tsx",
+      "change": "modified"
+    },
+    {
       "path": "frontend/tests/notes.test.tsx",
       "change": "modified"
     },
@@ -1597,6 +1624,10 @@
     {
       "path": "frontend/tests/reading-redesign.test.tsx",
       "change": "added"
+    },
+    {
+      "path": "frontend/tests/translation-library.test.tsx",
+      "change": "modified"
     },
     {
       "path": "frontend/tests/translation.test.tsx",
